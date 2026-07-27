@@ -1,91 +1,163 @@
-# AI Builder Sprint 2026
+# 그때그때
 
-> 총 168시간, AI와 함께 만드는 도전
+> 대화하면 기억이 알아서 튀어나오는, 우리 그룹의 살아있는 추억 아카이브
+>
+> AI Builder Sprint 2026 · 주제 "AI를 통해 인간다움을 더 잘 드러내는 서비스"
 
-## 대회 소개
+---
 
-**AI Builder Sprint 2026**은 부산대학교 **APPTIVE**가 주최하고, **Upstage**, 부산대학교 **Anchor 사업단** 및 부산대학교 **AI융합교육원**이 후원하는 해커톤입니다. 참가자들은 자유로운 기술 스택을 바탕으로 실제로 동작하는 서비스를 직접 코드로 구현합니다.
+## 소개
 
-| 항목 | 내용 |
-| --- | --- |
-| 주제 | AI를 통해 인간다움을 더욱 잘 드러낼 수 있는 서비스 개발 |
-| 팀 구성 | 2~4인 1팀 |
-| 개발 방식 | 코드 기반 앱 개발 필수 (노코드/로우코드 단독 사용 불가) |
+우리의 추억은 수천 장의 사진 속에 흩어져 있지만, 그 사진 뒤의 *이야기와 감정*은 어디에도 남지 않습니다. 클라우드에 잘 저장돼 있어도 "그때 우리 진짜 웃겼던 그날"을 다시 꺼내려면 폴더를 끝없이 뒤져야 합니다.
 
-### 진행 흐름
+**그때그때**는 사진에 담긴 *사람의 이야기(메모)*를 함께 저장하고, 대화만으로 그 순간을 되살려줍니다. 기술이 추억을 차가운 저장소로 만들었다면, 그때그때는 그 뒤의 사람 이야기를 다시 잇습니다.
 
-1. **팀 단위 참가 신청** — 팀원 정보, 프로젝트 아이디어, 활용 예정 AI 기술·API 제출
-2. **참가팀 선발** (20~50팀) — 아이디어 참신성·실현 가능성·AI 활용 계획 기반 서류 심사
-3. **예선 개발 기간** (7.27 ~ 8.3, 약 1주일) — API 크레딧 발급, 아이디어 구체화 및 개발
-4. **결과물 제출 및 1차 심사** — 데모 영상/배포 링크, 코드 저장소, 발표 자료, AI 활용 증빙 제출
-5. **본선 발표 및 질의응답** (8.7) — 팀당 7분 발표 + 5분 Q&A, 심사 후 수상팀 확정
+## 주요 기능
 
-### 기술 스택 및 규칙
+- **추억 수집** — 사진·문서를 올리고, 그에 얽힌 썰(메모)을 남깁니다
+- **AI 메모 초안** — 업로드 시 AI가 사진을 보고 메모 초안을 제안 → 사용자는 진짜 이야기만 덧붙입니다
+- **대화형 검색** — "그때 그거 기억나?" 하고 물으면, AI가 필요한 만큼 되물어 좁힌 뒤 관련 사진을 찾아줍니다
+- **추억 상세** — 사진 + 남겨진 이야기 + 작성자/시점
 
-- 사용 API·모델은 자유이며, **Upstage API**(Solar LLM, Document Parse, Information Extract) 활용 시 심사 가점
-- Claude, GPT, Gemini 등 타사 모델 병행 사용 가능 (제약 없음)
-- 프레임워크/언어 자유 (Python, JavaScript, React, Flutter 등)
-- 결과물은 데모 가능한 동작하는 앱 (웹앱, 모바일앱, CLI 도구 등 형태 무관)
-- 코딩 에이전트(Claude Code, Codex 등) 활용 시 `.claude/`, `AGENTS.md` 등 관련 설정·지침 파일을 저장소에 포함해야 심사에 반영됩니다
+### 사용 예시
 
-### 심사 기준
-
-| 기준 | 배점 |
-| --- | --- |
-| 창의성 | 20점 |
-| AI 활용도 | 20점 |
-| 완성도 | 20점 |
-| 실용성 | 20점 |
-| 발표력 (본선) | 20점 |
-| Upstage API 활용 가점 | +5점 |
-| 지역사회 기여도 가점 | +5점 |
-
-### 시상 내역
-
-- 대상 1팀: 100만원 + 상품
-- 최우수상 1팀: 50만원 + 상품
-- 우수상 1팀: 상품
-- 본선 참가 10팀: Upstage 굿즈 + 참가 인증서
-
-## Git Fork 하는 방법
-
-참가팀은 이 저장소를 팀 대표의 GitHub 계정으로 **Fork**한 뒤, 해당 Fork 저장소에서 프로젝트를 개발하고 최종 결과물을 제출합니다.
-
-### 1. 저장소 Fork하기
-
-1. [AI-Builder-Sprint 저장소](https://github.com/ApptiveDev/AI-Builder-Sprint)에 접속합니다.
-2. 우측 상단의 **Fork** 버튼을 클릭합니다.
-  <img width="1888" height="1131" alt="스크린샷 2026-07-27 오전 12 31 16" src="https://github.com/user-attachments/assets/2f0f7f80-6c92-4ba5-87c5-89ed6107eeab" />
-
-3. 본인(또는 팀 대표) GitHub 계정으로 저장소가 복사됩니다. (`https://github.com/<내-계정>/AI-Builder-Sprint`)
-
-### 2. Fork한 저장소 로컬로 클론하기
-
-```bash
-git clone https://github.com/<내-계정>/AI-Builder-Sprint.git
-cd AI-Builder-Sprint
+```
+나:  우리 그때 밤에 치킨 먹다가 다 같이 운 날 사진 있어?
+AI:  언제쯤이었는지 기억나세요? 어떤 여행이나 모임이었어요?
+나:  작년 겨울, 종강하고 강릉 갔을 때
+AI:  찾았어요! 2025년 12월 강릉이네요.
+     "시험 끝나고 치킨 먹다 졸업 얘기 나와서 다 같이 운 날"이라고 메모돼 있어요.
+     [사진 카드]
 ```
 
-### 3. 개발 진행 및 커밋
+## 데모
 
-```bash
-git checkout -b develop
-# 코드 작성 및 수정
-git add .
-git commit -m "feat: 프로젝트 초기 구현"
-git push origin develop
+- 데모 영상: `docs/demo.mp4` _(제출 시 링크로 대체)_
+- APK 다운로드: _(Firebase App Distribution 링크)_
+- 테스트 계정: _(제출 시 기입)_
+
+## 기술 스택
+
+| 영역 | 기술 |
+|---|---|
+| 앱 (프론트) | Kotlin · Jetpack Compose |
+| 앱 라이브러리 | Coil · Supabase Kotlin SDK · Coroutines/Flow · Photo Picker |
+| 백엔드 | Supabase Edge Functions (Deno / TypeScript) |
+| 데이터 | Supabase (Postgres + pgvector + Storage + Auth) |
+| AI · 대화 Agent | Upstage Solar LLM |
+| AI · 문서 처리 | Upstage Document Parse / Information Extract |
+| AI · 임베딩 | 임베딩 모델 (메모 벡터화) |
+
+## 시스템 구조
+
+```
+[안드로이드 앱 · Kotlin/Compose]
+   업로드(사진/문서+메모) · 채팅형 검색 UI
+        │                          │
+        │ Supabase Kotlin SDK      │ Edge Function 호출
+        │ (사진→Storage, 메모 CRUD) │ (임베딩·Agent 검색·문서 파싱)
+        ▼                          ▼
+[Supabase]                 [Edge Functions · Deno/TS]  ← Upstage 키는 secrets에만
+  Postgres + pgvector        Document Parse / 임베딩 / Solar Agent
+  Storage · Auth (RLS)              │
+        ▲                          ▼
+        └──────────────── [Upstage] Solar LLM · Document Parse · Information Extract
 ```
 
-포크된 저장소 내에서 개발을 진행해주시면 됩니다.
+- **RAG**: 메모 임베딩 → pgvector 의미 검색 → 사진 소환
+- **Agent**: 질문이 모호할 때 Edge Function 안의 Solar가 스스로 되물어 검색 정확도를 높임
 
-### 4. 결과물 제출
+> 일반 CRUD(사진·메모)는 앱에서 Supabase SDK로 직접 처리하며 RLS로 보호합니다.
+> Upstage API 키는 앱에 포함하지 않고 Edge Function secrets에만 저장합니다.
 
-- **팀별로 Fork한 본인 저장소 URL을 제출 양식에 기재합니다.**
-- 제출 마감 전까지 코드, 데모 영상/배포 링크, 발표 자료를 함께 준비해 제출해주세요.
-- 코딩 에이전트를 활용한 경우 `.claude/`, `AGENTS.md` 등 설정 파일도 반드시 저장소에 포함해주세요.
+## 실행 방법
 
+### 사전 준비
+- JDK 17+, Android Studio (Koala 이상)
+- Supabase 프로젝트, Supabase CLI, Upstage API 키
 
-## 문의
+### 1. Supabase 설정
+`vector` 확장을 켜고 스키마를 생성합니다.
 
-- 대회 관련 문의: 해커톤 문의 오픈채팅방
-- 주최: 부산대학교 APPTIVE, 정보컴퓨터공학부 동아리연합회 / 후원: Upstage, 부산대 Anchor 사업단, 부산대 AI융합교육원
+```sql
+create extension if not exists vector;
+
+create table groups (
+  id uuid primary key default gen_random_uuid(),
+  name text not null
+);
+
+create table memories (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid references groups(id),
+  image_url text not null,
+  memo_text text,
+  memo_embedding vector(N),   -- N = 사용 임베딩 모델의 차원
+  taken_at timestamptz,
+  author text,
+  created_at timestamptz default now()
+);
+```
+
+의미 검색은 pgvector 코사인 거리(`<=>`)를 쓰는 RPC 함수로 수행합니다.
+사진 파일은 Supabase Storage 버킷(`memories`)에 업로드합니다.
+테이블에는 RLS 정책을 적용합니다.
+
+### 2. 백엔드 (Supabase Edge Functions)
+Upstage 키는 함수 시크릿으로만 저장합니다. 앱에는 넣지 않습니다.
+
+```bash
+supabase login
+supabase link --project-ref <your-project-ref>
+
+# Upstage 키를 함수 시크릿으로 등록 (앱에는 미포함)
+supabase secrets set UPSTAGE_API_KEY=your_key
+
+# 함수 배포 (예: 임베딩·검색·문서파싱)
+supabase functions deploy embed
+supabase functions deploy search
+supabase functions deploy parse-doc
+```
+
+### 3. 안드로이드 앱
+`app` 설정(`local.properties` 등)에 Supabase 접속 정보를 넣습니다. anon 키는 클라이언트 공개가 안전하며 RLS로 보호됩니다.
+
+```properties
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_ANON_KEY=your_anon_key
+```
+
+Android Studio에서 `app` 모듈을 실행합니다. 앱은 사진/메모는 Supabase SDK로, AI 검색은 Edge Function 호출로 처리합니다.
+
+## 프로젝트 구조
+
+```
+ttgttg/
+├── app/                    # 안드로이드 (Kotlin + Jetpack Compose)
+├── supabase/
+│   ├── functions/          # Edge Functions (embed · search · parse-doc)
+│   └── migrations/         # DB 스키마 · RPC 함수
+├── docs/                   # 발표자료 · 데모 영상 · AI 활용 증빙
+├── CLAUDE.md               # AI 코딩 어시스턴트 지침
+└── README.md
+```
+
+## AI 활용
+
+- **Upstage Solar LLM** — 대화형 검색 Agent의 질문 분석·되묻기·응답 생성
+- **Upstage Document Parse / Information Extract** — 업로드된 문서에서 텍스트·핵심 정보 추출
+- **임베딩 모델** — 메모를 벡터로 변환해 의미 기반 검색에 사용
+- **개발 과정** — AI 코딩 어시스턴트를 활용했으며, 지침은 [`CLAUDE.md`](./CLAUDE.md)에 정리
+- 모델·API 사용 위치, 프롬프트, 검증 산출물은 `docs/ai-usage.md` 참고
+
+## 팀
+
+| 이름 | 역할 |
+|---|---|
+| _(기입)_ | 안드로이드 (Compose) |
+| _(기입)_ | Supabase / Edge Functions |
+| _(기입)_ | AI / 기획 |
+
+## 라이선스
+
+_(예: MIT — 팀 결정 후 기입)_

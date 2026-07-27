@@ -1,0 +1,31 @@
+# ── 보안: 커밋 금지 (CLAUDE.md §12) ──
+local.properties
+*.keystore
+*.jks
+.env
+.env.local
+supabase/.temp/
+supabase/.branches/
+
+# ── Android / Gradle ──
+android/.gradle/
+android/build/
+android/app/build/
+android/**/build/
+android/local.properties
+android/.idea/
+*.iml
+.idea/
+captures/
+.cxx/
+
+# ── Deno / Edge Functions ──
+supabase/functions/**/node_modules/
+
+# ── OS / 에디터 ──
+.DS_Store
+Thumbs.db
+*.log
+
+# 샌드박스에서 생성돼 삭제 불가한 임시 파일 (직접 삭제 권장)
+__probe.tmp
