@@ -16,13 +16,12 @@ supabase/.branches/
 .externalNativeBuild
 .cxx
 .cxx/
-android/.gradle/
-android/build/
-android/app/build/
-android/**/build/
-android/local.properties
-android/.idea/
-android/.idea/
+front/.gradle/
+front/build/
+front/app/build/
+front/**/build/
+front/local.properties
+front/.idea/
 
 # ── IntelliJ / Android Studio ──
 .idea/

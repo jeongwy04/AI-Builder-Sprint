@@ -23,7 +23,7 @@ AI는 조건이 부족하면 되묻고, 확보된 조건으로 그룹의 기록�
 
 | 레이어 | 선택 |
 |---|---|
-| App | **Kotlin + Jetpack Compose** (minSdk 26, targetSdk 35) |
+| App | **Kotlin + Jetpack Compose** (minSdk 26, targetSdk 36) |
 | 아키텍처 | MVVM + Repository, Hilt DI, Coroutines/Flow |
 | 네비게이션 | Navigation Compose (type-safe routes, kotlinx.serialization) |
 | 이미지 | Coil |
@@ -49,8 +49,9 @@ trace-archive/
 ├── evals/                         # 프롬프트 품질 검증 산출물
 ├── docs/ARCHITECTURE.md
 │
-├── android/                       # Android Studio 프로젝트 루트
-│   ├── app/src/main/java/com/tracearchive/
+├── design/                        # UI 시안 이미지 (구현 참조용)
+├── front/                         # Android Studio 프로젝트 루트
+│   ├── app/src/main/java/com/ai_builder_hackathon/gttgtt/
 │   │   ├── TraceArchiveApp.kt
 │   │   ├── di/                    # Hilt 모듈 (SupabaseClient 제공)
 │   │   ├── data/
@@ -98,7 +99,7 @@ supabase functions deploy chat
 supabase secrets set UPSTAGE_API_KEY=...
 
 # Android
-cd android
+cd front
 ./gradlew assembleDebug
 ./gradlew test                         # 단위 테스트
 ./gradlew lint
@@ -233,7 +234,7 @@ supabase.functions.invoke("chat", body = ChatRequest(archiveId, message))
 
 ## 7. 데이터 모델
 
-테이블은 다음 8개다. **임의로 추가하지 말고 먼저 제안한다.**
+테이블은 다음 11개다. **임의로 추가하지 말고 먼저 제안한다.**
 
 | 테이블 | 용도 | archive_id |
 |---|---|---|
@@ -245,6 +246,8 @@ supabase.functions.invoke("chat", body = ChatRequest(archiveId, message))
 | `media_assets` | Storage 미디어 메타 | ✅ |
 | `notes` | 메모·문구 (memory 1:N) | ✅ |
 | `chat_sessions` / `chat_messages` | AI 대화 이력 | ✅ |
+| `post_likes` | 게시물 좋아요 (post_id + user_id 유니크) | ✅ |
+| `comments` | 게시물 댓글 | ✅ |
 
 - Supabase Auth를 쓰므로 `users` 테이블을 직접 만들지 않는다. `auth.users` 를 참조하는 `profiles` 를 쓴다.
 - 스키마 변경은 `supabase migration new` 로만 한다. 대시보드에서 직접 수정 금지 (이력이 남지 않는다).
@@ -375,7 +378,6 @@ $$;
 - ❌ 음성 STT
 - ❌ 지역 공개 보관소, 공개 열람
 - ❌ 멤버 역할·권한 등급
-- ❌ 리액션, 좋아요
 - ❌ SSE 스트리밍 응답
 - ❌ iOS / 웹 클라이언트
 - ⏸ 과거 사진 알림 / 푸시 — **보류.** 별도 지시가 있을 때만 착수한다.
@@ -414,7 +416,7 @@ $$;
 
 ## 16. 환경변수 / 설정
 
-**Android — `local.properties` (커밋 금지)**
+**Android — `front/local.properties` (커밋 금지)**
 ```properties
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_ANON_KEY=eyJ...

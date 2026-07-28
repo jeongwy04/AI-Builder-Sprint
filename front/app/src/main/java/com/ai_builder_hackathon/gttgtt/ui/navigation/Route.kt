@@ -24,9 +24,8 @@ sealed interface Route {
     @Serializable
     data class GroupChat(val archiveId: String) : Route
 
-    /** S2 AI 대화 — 피드의 "AI 추억 찾기" 버튼으로 진입 */
-    @Serializable
-    data class Chat(val archiveId: String) : Route
+    // AI 추억 찾기는 별도 목적지가 아니다.
+    // 그룹 피드 위에 뜨는 바텀시트(AiChatSheet)라서 라우트를 두지 않는다.
 
     /** S3 기억 상세 */
     @Serializable

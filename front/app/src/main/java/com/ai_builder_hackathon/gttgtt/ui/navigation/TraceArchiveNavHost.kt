@@ -49,16 +49,12 @@ fun TraceArchiveNavHost(
             GroupFeedScreen(
                 onBackClick = { navController.popBackStack() },
                 onChatClick = { navController.navigate(Route.GroupChat(archiveId)) },
-                onAiSearchClick = { navController.navigate(Route.Chat(archiveId)) },
+                onMemoryClick = { memoryId -> navController.navigate(Route.MemoryDetail(memoryId)) },
             )
         }
 
         composable<Route.GroupChat> {
             GroupChatScreen(onBackClick = { navController.popBackStack() })
-        }
-
-        composable<Route.Chat> {
-            Placeholder("S2 AI 추억 찾기") { navController.popBackStack() }
         }
 
         composable<Route.Timeline> {

@@ -19,10 +19,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +50,7 @@ import com.ai_builder_hackathon.gttgtt.ui.component.AppTopBar
 import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
 import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
 import com.ai_builder_hackathon.gttgtt.ui.component.gradientOf
+import com.ai_builder_hackathon.gttgtt.ui.screen.chat.AiChatSheet
 import com.ai_builder_hackathon.gttgtt.ui.theme.AiFabGradient
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
@@ -67,24 +73,41 @@ import java.time.format.DateTimeFormatter
 
 private val ScreenPadding = 20.dp
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupFeedScreen(
     onBackClick: () -> Unit,
     onChatClick: () -> Unit,
-    onAiSearchClick: () -> Unit,
+    onMemoryClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GroupFeedViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // AI 대화는 별도 화면이 아니라 이 피드 위에 뜨는 시트다.
+    // 뒤에 피드가 보여야 "이 그룹 안에서 찾는다"는 맥락이 유지된다.
+    var isAiSheetOpen by rememberSaveable { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
+
     GroupFeedContent(
         uiState = uiState,
         onBackClick = onBackClick,
         onChatClick = onChatClick,
-        onAiSearchClick = onAiSearchClick,
+        onAiSearchClick = { isAiSheetOpen = true },
         onLikeClick = viewModel::onLikeClick,
         modifier = modifier,
     )
+
+    if (isAiSheetOpen) {
+        AiChatSheet(
+            sheetState = sheetState,
+            onDismiss = { isAiSheetOpen = false },
+            onMemoryClick = { memoryId ->
+                isAiSheetOpen = false
+                onMemoryClick(memoryId)
+            },
+        )
+    }
 }
 
 @Composable
