@@ -1,12 +1,12 @@
 package com.ai_builder_hackathon.gttgtt.di
 
-import com.ai_builder_hackathon.gttgtt.data.repository.FakeAiChatRepository
-import com.ai_builder_hackathon.gttgtt.data.repository.FakeArchiveRepository
-import com.ai_builder_hackathon.gttgtt.data.repository.FakeChatRepository
 import com.ai_builder_hackathon.gttgtt.data.remote.AndroidPhotoMetadataReader
-import com.ai_builder_hackathon.gttgtt.data.repository.FakeMemoryRepository
-import com.ai_builder_hackathon.gttgtt.data.repository.FakePostRepository
-import com.ai_builder_hackathon.gttgtt.data.repository.FakeProfileRepository
+import com.ai_builder_hackathon.gttgtt.data.repository.FakeAiChatRepository
+import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseArchiveRepository
+import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseChatRepository
+import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseMemoryRepository
+import com.ai_builder_hackathon.gttgtt.data.repository.SupabasePostRepository
+import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseProfileRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.AiChatRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.ChatRepository
@@ -23,15 +23,10 @@ import javax.inject.Singleton
 /**
  * Repository 구현체 바인딩. 한 줄씩 바꿔 Fake ↔ Supabase 를 스위칭한다.
  *
- * ⚠️ Supabase 구현은 로그인 세션이 있어야 동작한다 (RLS).
- * 로그인 완성 전까지 Fake 를 유지하고, 완성되면 아래 주석의 구현으로 교체:
- *   - ArchiveRepository → SupabaseArchiveRepository  (작성 완료)
- *   - AiChatRepository  → SupabaseAiChatRepository   (작성 완료)
- *   - MemoryRepository  → SupabaseMemoryRepository   (작성 완료, MediaUploader 필요)
- *   - PostRepository    → SupabasePostRepository     (작성 완료, MediaUploader 필요)
- *   - ChatRepository    → SupabaseChatRepository      (작성 완료, MediaUploader 필요)
- *   - ProfileRepository → SupabaseProfileRepository   (작성 완료)
- * 6개 전부 작성 끝. 로그인 붙으면 이 파일 6줄만 바꾸면 된다.
+ * 로그인이 실제로 붙어서(구글 네이티브 로그인) RLS 가 걸리는 5개는 Supabase 로 전환했다.
+ *
+ * ⚠️ AiChatRepository 만 아직 Fake 다 — `chat`/`embed-memory` Edge Function 배포 여부가
+ * 확인되지 않았다. 배포가 확인되면 SupabaseAiChatRepository 로 바꾼다 (작성은 이미 끝남).
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -39,27 +34,28 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindArchiveRepository(impl: FakeArchiveRepository): ArchiveRepository
+    abstract fun bindArchiveRepository(impl: SupabaseArchiveRepository): ArchiveRepository
 
     @Binds
     @Singleton
-    abstract fun bindPostRepository(impl: FakePostRepository): PostRepository
+    abstract fun bindPostRepository(impl: SupabasePostRepository): PostRepository
 
     @Binds
     @Singleton
-    abstract fun bindChatRepository(impl: FakeChatRepository): ChatRepository
+    abstract fun bindChatRepository(impl: SupabaseChatRepository): ChatRepository
 
+    // TODO: chat/embed-memory Edge Function 배포 확인되면 SupabaseAiChatRepository 로 교체.
     @Binds
     @Singleton
     abstract fun bindAiChatRepository(impl: FakeAiChatRepository): AiChatRepository
 
     @Binds
     @Singleton
-    abstract fun bindProfileRepository(impl: FakeProfileRepository): ProfileRepository
+    abstract fun bindProfileRepository(impl: SupabaseProfileRepository): ProfileRepository
 
     @Binds
     @Singleton
-    abstract fun bindMemoryRepository(impl: FakeMemoryRepository): MemoryRepository
+    abstract fun bindMemoryRepository(impl: SupabaseMemoryRepository): MemoryRepository
 
     @Binds
     @Singleton

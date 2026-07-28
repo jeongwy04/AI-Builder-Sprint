@@ -53,7 +53,6 @@ import com.ai_builder_hackathon.gttgtt.ui.component.AppTopBar
 import com.ai_builder_hackathon.gttgtt.ui.component.GroupBottomNavBar
 import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
 import com.ai_builder_hackathon.gttgtt.ui.component.PhotoImage
-import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
 import com.ai_builder_hackathon.gttgtt.ui.screen.chat.AiChatPanel
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.ChipBackground
@@ -134,20 +133,11 @@ private fun GroupFeedContent(
             .background(ScreenBackground)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // 채팅·AI 는 하단 바로 내려갔고, 상단 액션은 기억 작성 하나뿐이다.
+            // 채팅·AI·기억 남기기가 전부 하단 바로 내려가서 상단엔 뒤로가기/제목만 남는다.
             AppTopBar(
                 title = uiState.groupName,
                 subtitle = "멤버 ${uiState.memberCount}명",
                 onBackClick = onBackClick,
-                action = {
-                    TopBarButton(
-                        iconRes = R.drawable.ic_plus,
-                        contentDescription = "기억 남기기",
-                        background = BrandGreen,
-                        tint = SurfaceWhite,
-                        onClick = onCreateMemoryClick,
-                    )
-                },
             )
 
             when {
@@ -182,6 +172,7 @@ private fun GroupFeedContent(
                 isAiSelected = isAiSheetOpen,
                 onAiClick = onAiSearchClick,
                 onChatClick = onChatClick,
+                onCreateMemoryClick = onCreateMemoryClick,
                 modifier = Modifier.padding(bottom = 12.dp),
             )
 

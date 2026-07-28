@@ -3,6 +3,7 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.grouplist
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
+import com.ai_builder_hackathon.gttgtt.domain.model.GroupType
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +36,59 @@ class GroupListViewModel @Inject constructor(
 
     fun retry() {
         loadGroups()
+    }
+
+    /** 우측 하단 + 버튼. */
+    fun onCreateGroupClick() {
+        _uiState.update {
+            it.copy(
+                isCreateDialogOpen = true,
+                createName = "",
+                createGroupType = GroupType.FRIENDS,
+                createError = null,
+            )
+        }
+    }
+
+    fun onDismissCreateDialog() {
+        // 생성 요청이 나가 있는 동안엔 닫히면 안 된다 (중복 탭 방지).
+        if (_uiState.value.isCreating) return
+        _uiState.update { it.copy(isCreateDialogOpen = false) }
+    }
+
+    fun onCreateNameChange(value: String) {
+        _uiState.update { it.copy(createName = value, createError = null) }
+    }
+
+    fun onCreateGroupTypeSelect(type: GroupType) {
+        _uiState.update { it.copy(createGroupType = type) }
+    }
+
+    fun onConfirmCreateGroup() {
+        val state = _uiState.value
+        if (!state.canConfirmCreate) {
+            _uiState.update { it.copy(createError = "그룹 이름을 입력해주세요.") }
+            return
+        }
+
+        _uiState.update { it.copy(isCreating = true, createError = null) }
+        viewModelScope.launch {
+            archiveRepository.createArchive(state.createName, state.createGroupType)
+                .onSuccess { created ->
+                    // 새로 만든 그룹이 최근 활동순 맨 위에 오도록 앞에 붙인다.
+                    allGroups = listOf(created) + allGroups
+                    _uiState.update { it.copy(isCreating = false, isCreateDialogOpen = false) }
+                    applyFilter()
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isCreating = false,
+                            createError = throwable.message ?: "그룹을 만들지 못했습니다.",
+                        )
+                    }
+                }
+        }
     }
 
     private fun loadGroups() {

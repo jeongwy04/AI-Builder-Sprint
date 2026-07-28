@@ -15,14 +15,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -31,10 +38,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.GroupType
 import com.ai_builder_hackathon.gttgtt.ui.component.GroupAvatarStack
 import com.ai_builder_hackathon.gttgtt.ui.component.GroupThumbnail
 import com.ai_builder_hackathon.gttgtt.ui.component.SearchField
@@ -75,6 +85,11 @@ fun GroupListScreen(
         onQueryChange = viewModel::onQueryChange,
         onGroupClick = onGroupClick,
         onProfileClick = onProfileClick,
+        onCreateGroupClick = viewModel::onCreateGroupClick,
+        onDismissCreateDialog = viewModel::onDismissCreateDialog,
+        onCreateNameChange = viewModel::onCreateNameChange,
+        onCreateGroupTypeSelect = viewModel::onCreateGroupTypeSelect,
+        onConfirmCreateGroup = viewModel::onConfirmCreateGroup,
         modifier = modifier,
     )
 }
@@ -85,48 +100,258 @@ private fun GroupListContent(
     onQueryChange: (String) -> Unit,
     onGroupClick: (String) -> Unit,
     onProfileClick: () -> Unit,
+    onCreateGroupClick: () -> Unit,
+    onDismissCreateDialog: () -> Unit,
+    onCreateNameChange: (String) -> Unit,
+    onCreateGroupTypeSelect: (GroupType) -> Unit,
+    onConfirmCreateGroup: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(ScreenBackground)
-    ) {
-        HomeHeader(
-            onProfileClick = onProfileClick,
-            modifier = Modifier.padding(
-                start = ScreenPadding,
-                end = ScreenPadding,
-                top = 6.dp,
-                bottom = 2.dp,
-            ),
-        )
-
-        SearchField(
-            query = uiState.query,
-            onQueryChange = onQueryChange,
-            placeholder = "채팅방 검색",
-            modifier = Modifier.padding(
-                start = ScreenPadding,
-                end = ScreenPadding,
-                top = 14.dp,
-            ),
-        )
-
-        Spacer(Modifier.height(18.dp))
-
-        when {
-            uiState.isLoading -> LoadingState()
-            uiState.errorMessage != null -> MessageState(uiState.errorMessage)
-            uiState.isEmpty -> MessageState(
-                if (uiState.query.isBlank()) "아직 참여 중인 채팅방이 없어요." else "검색 결과가 없어요."
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(ScreenBackground)
+        ) {
+            HomeHeader(
+                onProfileClick = onProfileClick,
+                modifier = Modifier.padding(
+                    start = ScreenPadding,
+                    end = ScreenPadding,
+                    top = 6.dp,
+                    bottom = 2.dp,
+                ),
             )
 
-            else -> GroupList(
-                groups = uiState.groups,
-                onGroupClick = onGroupClick,
+            SearchField(
+                query = uiState.query,
+                onQueryChange = onQueryChange,
+                placeholder = "채팅방 검색",
+                modifier = Modifier.padding(
+                    start = ScreenPadding,
+                    end = ScreenPadding,
+                    top = 14.dp,
+                ),
             )
+
+            Spacer(Modifier.height(18.dp))
+
+            when {
+                uiState.isLoading -> LoadingState()
+                uiState.errorMessage != null -> MessageState(uiState.errorMessage)
+                uiState.isEmpty -> MessageState(
+                    if (uiState.query.isBlank()) "아직 참여 중인 채팅방이 없어요." else "검색 결과가 없어요."
+                )
+
+                else -> GroupList(
+                    groups = uiState.groups,
+                    onGroupClick = onGroupClick,
+                )
+            }
         }
+
+        CreateGroupFab(
+            onClick = onCreateGroupClick,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = ScreenPadding, bottom = 24.dp),
+        )
+    }
+
+    if (uiState.isCreateDialogOpen) {
+        CreateGroupDialog(
+            name = uiState.createName,
+            selectedType = uiState.createGroupType,
+            isCreating = uiState.isCreating,
+            errorMessage = uiState.createError,
+            onNameChange = onCreateNameChange,
+            onTypeSelect = onCreateGroupTypeSelect,
+            onConfirm = onConfirmCreateGroup,
+            onDismiss = onDismissCreateDialog,
+        )
+    }
+}
+
+/** 우측 하단에 뜨는 원형 + 버튼. 그룹 만들기 다이얼로그를 연다. */
+@Composable
+private fun CreateGroupFab(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(56.dp)
+            .shadow(elevation = 6.dp, shape = CircleShape)
+            .clip(CircleShape)
+            .background(BrandGreen)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_plus),
+            contentDescription = "그룹 만들기",
+            tint = SurfaceWhite,
+            modifier = Modifier.size(24.dp),
+        )
+    }
+}
+
+/** 그룹 이름 + 유형을 받아 새 그룹을 만드는 다이얼로그. */
+@Composable
+private fun CreateGroupDialog(
+    name: String,
+    selectedType: GroupType,
+    isCreating: Boolean,
+    errorMessage: String?,
+    onNameChange: (String) -> Unit,
+    onTypeSelect: (GroupType) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(SurfaceWhite)
+                .padding(24.dp),
+        ) {
+            Text(
+                text = "새 그룹 만들기",
+                color = TextPrimary,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Black,
+            )
+
+            Spacer(Modifier.height(18.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(ScreenBackground)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+            ) {
+                if (name.isEmpty()) {
+                    Text(
+                        text = "그룹 이름",
+                        color = TextSecondary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                BasicTextField(
+                    value = name,
+                    onValueChange = onNameChange,
+                    singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(
+                        color = TextPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                text = "그룹 유형",
+                color = TextSecondary,
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GroupType.entries.forEach { type ->
+                    GroupTypeChip(
+                        type = type,
+                        selected = type == selectedType,
+                        onClick = { onTypeSelect(type) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            if (errorMessage != null) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = errorMessage,
+                    color = Color(0xFFB64B39),
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(CardBackground)
+                        .clickable(enabled = !isCreating, onClick = onDismiss),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "취소",
+                        color = TextSecondary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(BrandGreen)
+                        .clickable(enabled = !isCreating, onClick = onConfirm),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isCreating) {
+                        CircularProgressIndicator(
+                            color = SurfaceWhite,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    } else {
+                        Text(
+                            text = "만들기",
+                            color = SurfaceWhite,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Black,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GroupTypeChip(
+    type: GroupType,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) BrandGreen else CardBackground)
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = type.displayName,
+            color = if (selected) SurfaceWhite else TextSecondary,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 
@@ -353,6 +578,11 @@ private fun GroupListContentPreview() {
             onQueryChange = {},
             onGroupClick = {},
             onProfileClick = {},
+            onCreateGroupClick = {},
+            onDismissCreateDialog = {},
+            onCreateNameChange = {},
+            onCreateGroupTypeSelect = {},
+            onConfirmCreateGroup = {},
         )
     }
 }

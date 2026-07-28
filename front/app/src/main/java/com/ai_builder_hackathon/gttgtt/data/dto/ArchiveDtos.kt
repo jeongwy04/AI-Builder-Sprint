@@ -47,3 +47,20 @@ data class UnreadCountDto(
     @SerialName("archive_id") val archiveId: String,
     @SerialName("unread") val unread: Int,
 )
+
+/**
+ * create_archive RPC 가 돌려주는 archives 1행.
+ *
+ * ⚠️ archives 에 직접 insert 하지 않는다 — RLS readback 함정이 있어 이 RPC 로만 그룹을 만든다.
+ * 요청 파라미터는 이 postgrest-kt 버전이 `rpc(function, JsonObject)` 만 지원해서
+ * DTO 대신 `buildJsonObject { }` 로 바로 조립한다 (SupabaseArchiveRepository 참고).
+ */
+@Serializable
+data class ArchiveRowDto(
+    @SerialName("id") val id: String,
+    @SerialName("name") val name: String,
+    @SerialName("group_type") val groupType: String? = null,
+    @SerialName("cover_image_path") val coverImagePath: String? = null,
+    @SerialName("created_by") val createdBy: String,
+    @SerialName("created_at") val createdAt: String,
+)

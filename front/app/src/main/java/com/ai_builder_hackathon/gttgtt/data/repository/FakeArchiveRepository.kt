@@ -2,11 +2,13 @@ package com.ai_builder_hackathon.gttgtt.data.repository
 
 import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.GroupType
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.util.UUID
 import javax.inject.Inject
 
 /**
@@ -17,10 +19,44 @@ import javax.inject.Inject
  */
 class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
 
+    // 그룹 생성이 실제로 목록에 반영되는지 보려고 메모리에 들고 있는다. 앱 재시작하면 초기화된다.
+    private val archives = seedArchives().associateBy { it.id }.toMutableMap()
+
     override suspend fun getMyArchives(): Result<List<ArchiveSummary>> {
         delay(FAKE_NETWORK_DELAY_MILLIS)
-        return Result.success(
-            listOf(
+        return Result.success(archives.values.toList())
+    }
+
+    override suspend fun createArchive(name: String, groupType: GroupType): Result<ArchiveSummary> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) {
+            return Result.failure(IllegalArgumentException("그룹 이름을 입력해주세요."))
+        }
+
+        val created = ArchiveSummary(
+            id = "archive-${UUID.randomUUID()}",
+            name = trimmed,
+            lastMessagePreview = "그룹을 만들었어요! 첫 기억을 남겨보세요.",
+            lastActivityAtMillis = System.currentTimeMillis(),
+            theme = groupType.toFakeTheme(),
+            memberIds = listOf(ME_ID),
+            totalMemberCount = 1,
+        )
+        archives[created.id] = created
+        return Result.success(created)
+    }
+
+    /** SupabaseArchiveRepository#themeFor 와 같은 매핑을 쓴다 — 실데이터로 바뀌어도 색이 안 바뀌게. */
+    private fun GroupType.toFakeTheme(): GradientTheme = when (this) {
+        GroupType.FAMILY -> GradientTheme.FAMILY
+        GroupType.COUPLE -> GradientTheme.BEACH
+        GroupType.FRIENDS -> GradientTheme.FOREST
+        GroupType.CLUB -> GradientTheme.LAPTOP
+    }
+
+    private fun seedArchives(): List<ArchiveSummary> =
+        listOf(
                 ArchiveSummary(
                     id = "archive-gangneung",
                     name = "강릉 여행",
@@ -58,8 +94,6 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
                     totalMemberCount = 4,
                 ),
             )
-        )
-    }
 
     private fun todayAt(hour: Int, minute: Int): Long =
         LocalDate.now()
@@ -70,5 +104,8 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
 
     private companion object {
         const val FAKE_NETWORK_DELAY_MILLIS = 300L
+
+        /** FakeChatRepository 등 다른 Fake 들과 같은 "나" id. */
+        const val ME_ID = "u-me"
     }
 }

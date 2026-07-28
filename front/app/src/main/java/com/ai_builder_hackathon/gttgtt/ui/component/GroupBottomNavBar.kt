@@ -33,15 +33,18 @@ private val ItemHeight = 42.dp
 
 /**
  * 그룹 피드 하단의 흰색 알약 플로팅 바.
- * 채팅 이동과 AI 추억 찾기 두 가지만 담는다.
+ * AI 추억 찾기 · 그룹 채팅 · 기억(게시물) 남기기 세 가지를 담는다.
  *
- * 선택된 항목은 그린 타원으로 차오르고 아이콘이 흰색으로 반전된다.
+ * AI/채팅은 선택된 항목이 그린 타원으로 차오르고 아이콘이 흰색으로 반전되는 토글이다.
+ * "기억 남기기"는 토글이 아니라 항상 눌러서 바로 작성 화면으로 넘어가는 액션이라
+ * 선택 상태 없이 항상 흰 배경 + 초록 아이콘으로 고정한다.
  */
 @Composable
 fun GroupBottomNavBar(
     isAiSelected: Boolean,
     onAiClick: () -> Unit,
     onChatClick: () -> Unit,
+    onCreateMemoryClick: () -> Unit,
     modifier: Modifier = Modifier,
     isChatSelected: Boolean = false,
 ) {
@@ -62,6 +65,8 @@ fun GroupBottomNavBar(
             isSelected = isAiSelected,
             onClick = onAiClick,
         )
+        // 가운데 자리 — 토글이 아니라 항상 흰 배경 + 초록 아이콘으로 고정된 액션 버튼.
+        CreateMemoryNavItem(onClick = onCreateMemoryClick)
         NavItem(
             iconRes = R.drawable.ic_message_2,
             contentDescription = "그룹 채팅",
@@ -71,7 +76,7 @@ fun GroupBottomNavBar(
     }
 }
 
-/** 타원형 항목. 선택되면 그린으로 차오르고 아이콘이 흰색이 된다. */
+/** 타원형 토글 항목. 선택되면 그린으로 차오르고 아이콘이 흰색이 된다. */
 @Composable
 private fun NavItem(
     iconRes: Int,
@@ -89,6 +94,38 @@ private fun NavItem(
         label = "navItemIcon",
     )
 
+    NavItemBox(
+        iconRes = iconRes,
+        contentDescription = contentDescription,
+        background = background,
+        iconTint = iconTint,
+        onClick = onClick,
+    )
+}
+
+/**
+ * "기억 남기기" 전용 항목. AI/채팅과 달리 토글이 아니라 항상 같은 모습이라
+ * 색을 애니메이션할 필요가 없다 — 흰 배경 + 초록 아이콘 고정.
+ */
+@Composable
+private fun CreateMemoryNavItem(onClick: () -> Unit) {
+    NavItemBox(
+        iconRes = R.drawable.ic_plus,
+        contentDescription = "기억 남기기",
+        background = SurfaceWhite,
+        iconTint = BrandGreen,
+        onClick = onClick,
+    )
+}
+
+@Composable
+private fun NavItemBox(
+    iconRes: Int,
+    contentDescription: String,
+    background: Color,
+    iconTint: Color,
+    onClick: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .width(ItemWidth)
@@ -115,6 +152,7 @@ private fun GroupBottomNavBarPreview() {
             isAiSelected = true,
             onAiClick = {},
             onChatClick = {},
+            onCreateMemoryClick = {},
         )
     }
 }

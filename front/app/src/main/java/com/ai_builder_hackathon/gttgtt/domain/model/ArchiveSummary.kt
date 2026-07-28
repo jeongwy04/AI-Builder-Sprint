@@ -36,3 +36,14 @@ enum class GradientTheme {
     SEA,
     NIGHT,
 }
+
+/**
+ * 그룹 생성 시 고르는 유형. `archives.group_type` 컬럼에 그대로 들어간다
+ * (관례값이지 DB 제약은 아니다 — CLAUDE.md §7).
+ */
+enum class GroupType(val rawValue: String, val displayName: String) {
+    FAMILY("family", "가족"),
+    COUPLE("couple", "커플"),
+    FRIENDS("friends", "친구"),
+    CLUB("club", "모임"),
+}

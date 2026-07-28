@@ -1,15 +1,22 @@
 package com.ai_builder_hackathon.gttgtt.data.repository
 
+import com.ai_builder_hackathon.gttgtt.data.dto.ArchiveRowDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ArchiveWithMembersDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MessagePreviewDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ProfileDto
 import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.GroupType
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.time.OffsetDateTime
 import javax.inject.Inject
 import kotlin.math.absoluteValue
@@ -23,6 +30,8 @@ import kotlin.math.absoluteValue
 class SupabaseArchiveRepository @Inject constructor(
     private val supabase: SupabaseClient,
 ) : ArchiveRepository {
+
+    private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun getMyArchives(): Result<List<ArchiveSummary>> = runCatching {
         // RLS: 내가 멤버인 archives 만 내려온다. memberships 는 내장 조인.
@@ -63,6 +72,39 @@ class SupabaseArchiveRepository @Inject constructor(
                 totalMemberCount = archive.memberships.size,
             )
         }.sortedByDescending { it.lastActivityAtMillis }
+    }
+
+    override suspend fun createArchive(name: String, groupType: GroupType): Result<ArchiveSummary> = runCatching {
+        val trimmed = name.trim()
+        require(trimmed.isNotEmpty()) { "그룹 이름을 입력해주세요." }
+
+        // ⚠️ archives 에 직접 insert 하지 않는다 — RLS readback 함정이 있어 이 RPC 로만 만든다
+        // (RPC 가 archives insert + 내 membership insert 를 한 트랜잭션으로 처리한다).
+        // 이 버전의 postgrest-kt 는 rpc() 파라미터로 JsonObject 만 받는다 (리파이드 제네릭 오버로드 없음).
+        val result = supabase.postgrest.rpc(
+            "create_archive",
+            buildJsonObject {
+                put("p_name", trimmed)
+                put("p_group_type", groupType.rawValue)
+            },
+        )
+
+        // ⚠️ decodeSingle() 은 배열([...])의 첫 원소를 꺼내는 방식이라 여기선 안 맞는다.
+        // create_archive 는 `returns public.archives` (setof 아님) 라서 응답이 배열이 아니라
+        // 객체({"id":...}) 하나로 그대로 온다. 그래서 raw JSON을 직접 파싱한다.
+        val created = json.decodeFromString<ArchiveRowDto>(result.data)
+
+        val myId = supabase.auth.currentUserOrNull()?.id
+
+        ArchiveSummary(
+            id = created.id,
+            name = created.name,
+            lastMessagePreview = "그룹을 만들었어요! 첫 기억을 남겨보세요.",
+            lastActivityAtMillis = parseMillis(created.createdAt),
+            theme = themeFor(created.groupType, created.id),
+            memberIds = listOfNotNull(myId),
+            totalMemberCount = 1,
+        )
     }
 
     /** 그룹당 1건이라 N번 호출되지만, 소그룹 서비스 특성상 N이 작아 허용한다. */
