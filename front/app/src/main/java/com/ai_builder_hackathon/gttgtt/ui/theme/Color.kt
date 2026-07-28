@@ -35,10 +35,6 @@ val SurfaceWhite = Color(0xFFFFFFFF)
 /** .tbar .bk 아이콘 색 */
 val TopBarIcon = Color(0xFF2A2836)
 
-/** .pin — 고정 게시물 배지 */
-val PinBackground = Color(0xFFFFF4DE)
-val PinText = Color(0xFF8A5A0F)
-
 /** .chip — 댓글 등 기본 칩 */
 val ChipBackground = Color(0xFFF4F3F0)
 val ChipText = Color(0xFF55535F)

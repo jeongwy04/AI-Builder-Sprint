@@ -29,7 +29,7 @@ sealed interface Route {
     data class GroupChat(val archiveId: String) : Route
 
     // AI 추억 찾기는 별도 목적지가 아니다.
-    // 그룹 피드 위에 뜨는 바텀시트(AiChatSheet)라서 라우트를 두지 않는다.
+    // 그룹 피드 위에 뜨는 패널(AiChatPanel)이라서 라우트를 두지 않는다.
 
     /** S3 기억 상세 */
     @Serializable

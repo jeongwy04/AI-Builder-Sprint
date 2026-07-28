@@ -3,10 +3,8 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.chat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.toRoute
 import com.ai_builder_hackathon.gttgtt.domain.model.AiMessage
 import com.ai_builder_hackathon.gttgtt.domain.repository.AiChatRepository
-import com.ai_builder_hackathon.gttgtt.ui.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +26,11 @@ class AiChatViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private val archiveId: String = savedStateHandle.toRoute<Route.GroupFeed>().archiveId
+    // GroupFeed 목적지에 스코프되므로 피드의 archiveId 인자를 그대로 읽는다.
+    // toRoute() 는 Bundle 을 요구해 JVM 테스트에서 터지므로 키로 읽는다.
+    private val archiveId: String = requireNotNull(savedStateHandle["archiveId"]) {
+        "archiveId 인자가 없다. Route.GroupFeed 로 진입했는지 확인할 것."
+    }
 
     private val _uiState = MutableStateFlow(
         // 그룹에 들어오면 AI 가 먼저 묻는다 (CLAUDE.md §6.4).

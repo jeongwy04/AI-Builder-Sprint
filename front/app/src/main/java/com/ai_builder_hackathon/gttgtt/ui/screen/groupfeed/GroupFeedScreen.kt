@@ -1,5 +1,9 @@
 package com.ai_builder_hackathon.gttgtt.ui.screen.groupfeed
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,10 +24,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,22 +50,17 @@ import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.domain.model.Post
 import com.ai_builder_hackathon.gttgtt.ui.component.AppTopBar
+import com.ai_builder_hackathon.gttgtt.ui.component.GroupBottomNavBar
 import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
-import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
 import com.ai_builder_hackathon.gttgtt.ui.component.gradientOf
-import com.ai_builder_hackathon.gttgtt.ui.screen.chat.AiChatSheet
-import com.ai_builder_hackathon.gttgtt.ui.theme.AiFabGradient
+import com.ai_builder_hackathon.gttgtt.ui.screen.chat.AiChatPanel
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
-import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
-import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenSoft
 import com.ai_builder_hackathon.gttgtt.ui.theme.ChipBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.ChipText
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipText
 import com.ai_builder_hackathon.gttgtt.ui.theme.MoreIcon
-import com.ai_builder_hackathon.gttgtt.ui.theme.PinBackground
-import com.ai_builder_hackathon.gttgtt.ui.theme.PinText
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextPrimary
@@ -73,7 +71,12 @@ import java.time.format.DateTimeFormatter
 
 private val ScreenPadding = 20.dp
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** AI 패널이 차지하는 화면 비율. 뒤의 피드가 보여야 맥락이 산다. */
+private const val AI_PANEL_HEIGHT_FRACTION = 0.58f
+
+/** 패널이 열렸을 때 뒤 피드를 덮는 반투명 막 */
+private val ScrimColor = Color(0x66000000)
+
 @Composable
 fun GroupFeedScreen(
     onBackClick: () -> Unit,
@@ -84,41 +87,41 @@ fun GroupFeedScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // AI 대화는 별도 화면이 아니라 이 피드 위에 뜨는 시트다.
+    // AI 대화는 별도 화면이 아니라 이 피드 위에 뜨는 패널이다.
     // 뒤에 피드가 보여야 "이 그룹 안에서 찾는다"는 맥락이 유지된다.
     var isAiSheetOpen by rememberSaveable { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState()
+
+    // 패널이 열려 있으면 뒤로가기가 화면을 나가는 대신 패널을 닫는다.
+    BackHandler(enabled = isAiSheetOpen) { isAiSheetOpen = false }
 
     GroupFeedContent(
         uiState = uiState,
+        isAiSheetOpen = isAiSheetOpen,
         onBackClick = onBackClick,
         onChatClick = onChatClick,
-        onAiSearchClick = { isAiSheetOpen = true },
+        onAiSearchClick = { isAiSheetOpen = !isAiSheetOpen },
+        onDismissAiSheet = { isAiSheetOpen = false },
         onLikeClick = viewModel::onLikeClick,
         onPostClick = onMemoryClick,
+        onMemoryClickFromAi = { memoryId ->
+            isAiSheetOpen = false
+            onMemoryClick(memoryId)
+        },
         modifier = modifier,
     )
-
-    if (isAiSheetOpen) {
-        AiChatSheet(
-            sheetState = sheetState,
-            onDismiss = { isAiSheetOpen = false },
-            onMemoryClick = { memoryId ->
-                isAiSheetOpen = false
-                onMemoryClick(memoryId)
-            },
-        )
-    }
 }
 
 @Composable
 private fun GroupFeedContent(
     uiState: GroupFeedUiState,
+    isAiSheetOpen: Boolean,
     onBackClick: () -> Unit,
     onChatClick: () -> Unit,
     onAiSearchClick: () -> Unit,
+    onDismissAiSheet: () -> Unit,
     onLikeClick: (String) -> Unit,
     onPostClick: (String) -> Unit,
+    onMemoryClickFromAi: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -127,19 +130,11 @@ private fun GroupFeedContent(
             .background(ScreenBackground)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
+            // 채팅·AI 진입이 하단 바로 내려가서 상단바에는 액션이 없다.
             AppTopBar(
                 title = uiState.groupName,
                 subtitle = "멤버 ${uiState.memberCount}명",
                 onBackClick = onBackClick,
-                action = {
-                    TopBarButton(
-                        iconRes = R.drawable.ic_message_2,
-                        contentDescription = "그룹 채팅",
-                        background = BrandGreenSoft,
-                        tint = BrandGreenDark,
-                        onClick = onChatClick,
-                    )
-                },
             )
 
             when {
@@ -154,12 +149,42 @@ private fun GroupFeedContent(
             }
         }
 
-        AiSearchFab(
-            onClick = onAiSearchClick,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = ScreenPadding, bottom = 20.dp),
-        )
+        // 패널 뒤의 피드를 살짝 어둡게. 탭하면 닫힌다.
+        if (isAiSheetOpen) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(ScrimColor)
+                    .clickable(onClick = onDismissAiSheet),
+            )
+        }
+
+        // 바와 패널을 한 Column 에 쌓아서, 패널이 펼쳐지면 바가 그 위에 얹혀 함께 올라간다.
+        Column(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            GroupBottomNavBar(
+                // AI 패널이 열려 있는 동안 AI 탭이 채워진 상태로 보인다.
+                isAiSelected = isAiSheetOpen,
+                onAiClick = onAiSearchClick,
+                onChatClick = onChatClick,
+                modifier = Modifier.padding(bottom = 12.dp),
+            )
+
+            AnimatedVisibility(
+                visible = isAiSheetOpen,
+                enter = expandVertically(expandFrom = Alignment.Top),
+                exit = shrinkVertically(shrinkTowards = Alignment.Top),
+            ) {
+                AiChatPanel(
+                    onMemoryClick = onMemoryClickFromAi,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(AI_PANEL_HEIGHT_FRACTION),
+                )
+            }
+        }
     }
 }
 
@@ -175,43 +200,12 @@ private fun PostList(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         items(posts, key = { it.id }) { post ->
-            Column {
-                if (post.isPinned) {
-                    PinnedBadge(modifier = Modifier.padding(start = ScreenPadding, bottom = 8.dp))
-                }
-                PostCard(
-                    post = post,
-                    onLikeClick = { onLikeClick(post.id) },
-                    onClick = { onPostClick(post.id) },
-                )
-            }
+            PostCard(
+                post = post,
+                onLikeClick = { onLikeClick(post.id) },
+                onClick = { onPostClick(post.id) },
+            )
         }
-    }
-}
-
-/** 시안 .pin — 노란 배지 */
-@Composable
-private fun PinnedBadge(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .clip(CircleShape)
-            .background(PinBackground)
-            .padding(horizontal = 13.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_pin),
-            contentDescription = null,
-            tint = PinText,
-            modifier = Modifier.size(14.dp),
-        )
-        Text(
-            text = "고정 게시물",
-            color = PinText,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.ExtraBold,
-        )
     }
 }
 
@@ -376,47 +370,6 @@ private fun Chip(
     }
 }
 
-/** 시안 우하단 "✨ AI 추억 찾기" */
-@Composable
-private fun AiSearchFab(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .shadow(elevation = 16.dp, shape = RoundedCornerShape(24.dp), clip = false)
-                .clip(RoundedCornerShape(24.dp))
-                .background(AiFabGradient)
-                .clickable(onClick = onClick),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_sparkles),
-                contentDescription = "AI 추억 찾기",
-                tint = SurfaceWhite,
-                modifier = Modifier.size(30.dp),
-            )
-        }
-        Text(
-            text = "AI 추억 찾기",
-            color = BrandGreenDark,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier
-                .shadow(elevation = 3.dp, shape = CircleShape, clip = false)
-                .clip(CircleShape)
-                .background(SurfaceWhite)
-                .padding(horizontal = 10.dp, vertical = 3.dp),
-        )
-    }
-}
-
 @Composable
 private fun LoadingState() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -468,7 +421,6 @@ private fun GroupFeedContentPreview() {
                         caption = "시험 끝나고 치킨 먹다 다 같이 울었던 날 🥹",
                         likeCount = 12,
                         commentCount = 5,
-                        isPinned = true,
                     ),
                     Post(
                         id = "2",
@@ -488,11 +440,14 @@ private fun GroupFeedContentPreview() {
                     ),
                 ),
             ),
+            isAiSheetOpen = false,
             onBackClick = {},
             onChatClick = {},
             onAiSearchClick = {},
+            onDismissAiSheet = {},
             onLikeClick = {},
             onPostClick = {},
+            onMemoryClickFromAi = {},
         )
     }
 }

@@ -3,9 +3,7 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.memorydetail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.toRoute
 import com.ai_builder_hackathon.gttgtt.domain.repository.MemoryRepository
-import com.ai_builder_hackathon.gttgtt.ui.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +18,10 @@ class MemoryDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private val memoryId: String = savedStateHandle.toRoute<Route.MemoryDetail>().memoryId
+    // toRoute() 는 Bundle 을 요구해 JVM 테스트에서 터지므로 키로 읽는다.
+    private val memoryId: String = requireNotNull(savedStateHandle["memoryId"]) {
+        "memoryId 인자가 없다. Route.MemoryDetail 로 진입했는지 확인할 것."
+    }
 
     private val _uiState = MutableStateFlow(MemoryDetailUiState())
     val uiState: StateFlow<MemoryDetailUiState> = _uiState.asStateFlow()

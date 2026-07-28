@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,11 +20,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,30 +58,27 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-/** 화면을 다 덮지 않는다. 뒤의 피드가 보여야 "이 그룹에서 찾는다"는 맥락이 유지된다. */
-private const val SHEET_HEIGHT_FRACTION = 0.62f
-
 /**
- * AI 추억 찾기 바텀시트.
+ * AI 추억 찾기 패널.
  *
- * 별도 화면이 아니라 그룹 피드 위에 뜨는 오버레이다.
- * ViewModel 이 GroupFeed 목적지에 스코프되므로 시트를 닫아도 대화가 유지된다.
+ * ModalBottomSheet 를 쓰지 않는 이유: 모달 시트는 별도 윈도우에 그려져서
+ * 하단 네비게이션 바가 그 위로 올라올 수 없다. 피드 레이아웃 안의 일반 패널로 두면
+ * 바가 패널 위에 얹혀 함께 올라간다. 높이는 호출부가 정한다.
+ *
+ * ViewModel 이 GroupFeed 목적지에 스코프되므로 패널을 닫아도 대화가 유지된다.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AiChatSheet(
-    sheetState: SheetState,
-    onDismiss: () -> Unit,
+fun AiChatPanel(
     onMemoryClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: AiChatViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = ScreenBackground,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+            .background(ScreenBackground)
     ) {
         AiChatSheetContent(
             uiState = uiState,
@@ -110,7 +104,8 @@ private fun AiChatSheetContent(
         }
     }
 
-    Column(modifier = Modifier.fillMaxHeight(SHEET_HEIGHT_FRACTION)) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Spacer(Modifier.height(14.dp))
         SheetHeader()
 
         LazyColumn(

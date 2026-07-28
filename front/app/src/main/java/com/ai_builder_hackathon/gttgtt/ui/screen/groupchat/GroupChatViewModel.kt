@@ -3,12 +3,10 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.groupchat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.toRoute
 import com.ai_builder_hackathon.gttgtt.domain.model.ChatListItem
 import com.ai_builder_hackathon.gttgtt.domain.model.ChatMessage
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.ChatRepository
-import com.ai_builder_hackathon.gttgtt.ui.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +25,10 @@ class GroupChatViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private val archiveId: String = savedStateHandle.toRoute<Route.GroupChat>().archiveId
+    // toRoute() 는 Bundle 을 요구해 JVM 테스트에서 터지므로 키로 읽는다.
+    private val archiveId: String = requireNotNull(savedStateHandle["archiveId"]) {
+        "archiveId 인자가 없다. Route.GroupChat 으로 진입했는지 확인할 것."
+    }
 
     private val _uiState = MutableStateFlow(GroupChatUiState())
     val uiState: StateFlow<GroupChatUiState> = _uiState.asStateFlow()

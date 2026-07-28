@@ -24,11 +24,7 @@ class FakePostRepository @Inject constructor() : PostRepository {
         delay(FAKE_NETWORK_DELAY_MILLIS)
         val feed = posts.values
             .filter { it.archiveId == archiveId }
-            .sortedWith(
-                // 고정 게시물이 항상 위. 그 안에서는 추억 날짜 최신순.
-                compareByDescending<Post> { it.isPinned }
-                    .thenByDescending { it.memoryDateMillis }
-            )
+            .sortedByDescending { it.memoryDateMillis }
         return Result.success(feed)
     }
 
@@ -55,7 +51,6 @@ class FakePostRepository @Inject constructor() : PostRepository {
             caption = "시험 끝나고 치킨 먹다 다 같이 울었던 날 🥹",
             likeCount = 12,
             commentCount = 5,
-            isPinned = true,
         ),
         Post(
             id = "mem-sea",

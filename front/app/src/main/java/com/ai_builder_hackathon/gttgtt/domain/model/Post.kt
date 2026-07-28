@@ -19,7 +19,6 @@ data class Post(
     val commentCount: Int,
     /** 내가 좋아요를 눌렀는지 */
     val likedByMe: Boolean = false,
-    val isPinned: Boolean = false,
 ) {
     /** 사진이 1장이면 큰 히어로, 2장 이상이면 3열 그리드로 그린다. */
     val hasSinglePhoto: Boolean get() = photos.size == 1
