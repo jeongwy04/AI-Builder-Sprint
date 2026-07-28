@@ -80,6 +80,126 @@ class GroupFeedViewModel @Inject constructor(
         }
     }
 
+    // ── 그룹 설정 시트 ──
+
+    fun onSettingsClick() {
+        _uiState.update { it.copy(isSettingsSheetOpen = true) }
+    }
+
+    fun onDismissSettingsSheet() {
+        _uiState.update { it.copy(isSettingsSheetOpen = false) }
+    }
+
+    // ── 이름 변경 ──
+
+    fun onRenameClick() {
+        _uiState.update {
+            it.copy(
+                isSettingsSheetOpen = false,
+                isRenameDialogOpen = true,
+                renameText = it.groupName,
+                renameError = null,
+            )
+        }
+    }
+
+    fun onRenameTextChange(value: String) {
+        _uiState.update { it.copy(renameText = value, renameError = null) }
+    }
+
+    fun onDismissRenameDialog() {
+        if (_uiState.value.isRenaming) return
+        _uiState.update { it.copy(isRenameDialogOpen = false) }
+    }
+
+    fun onConfirmRename() {
+        val newName = _uiState.value.renameText
+        _uiState.update { it.copy(isRenaming = true, renameError = null) }
+        viewModelScope.launch {
+            archiveRepository.renameArchive(archiveId, newName)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isRenaming = false,
+                            isRenameDialogOpen = false,
+                            groupName = newName.trim(),
+                        )
+                    }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isRenaming = false,
+                            renameError = throwable.message ?: "이름을 변경하지 못했습니다.",
+                        )
+                    }
+                }
+        }
+    }
+
+    // ── 삭제 ──
+
+    fun onDeleteClick() {
+        _uiState.update { it.copy(isSettingsSheetOpen = false, isDeleteConfirmOpen = true, deleteError = null) }
+    }
+
+    fun onDismissDeleteConfirm() {
+        if (_uiState.value.isDeleting) return
+        _uiState.update { it.copy(isDeleteConfirmOpen = false) }
+    }
+
+    fun onConfirmDelete() {
+        _uiState.update { it.copy(isDeleting = true, deleteError = null) }
+        viewModelScope.launch {
+            archiveRepository.deleteArchive(archiveId)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(isDeleting = false, isDeleteConfirmOpen = false, isGroupDeleted = true)
+                    }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isDeleting = false,
+                            deleteError = throwable.message ?: "그룹을 삭제하지 못했습니다.",
+                        )
+                    }
+                }
+        }
+    }
+
+    // ── 친구 초대 ──
+
+    fun onInviteClick() {
+        _uiState.update {
+            it.copy(
+                isSettingsSheetOpen = false,
+                isInviteDialogOpen = true,
+                isInviteLoading = true,
+                inviteToken = null,
+                inviteError = null,
+            )
+        }
+        viewModelScope.launch {
+            archiveRepository.createInvitation(archiveId)
+                .onSuccess { token ->
+                    _uiState.update { it.copy(isInviteLoading = false, inviteToken = token) }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isInviteLoading = false,
+                            inviteError = throwable.message ?: "초대 코드를 만들지 못했습니다.",
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onDismissInviteDialog() {
+        _uiState.update { it.copy(isInviteDialogOpen = false) }
+    }
+
     private fun loadFeed() {
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {

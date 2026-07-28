@@ -1,7 +1,10 @@
 package com.ai_builder_hackathon.gttgtt.data.repository
 
+import com.ai_builder_hackathon.gttgtt.data.dto.ArchiveRenameDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ArchiveRowDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ArchiveWithMembersDto
+import com.ai_builder_hackathon.gttgtt.data.dto.InvitationInsert
+import com.ai_builder_hackathon.gttgtt.data.dto.InvitationRowDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MessagePreviewDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ProfileDto
 import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
@@ -105,6 +108,49 @@ class SupabaseArchiveRepository @Inject constructor(
             memberIds = listOfNotNull(myId),
             totalMemberCount = 1,
         )
+    }
+
+    override suspend fun renameArchive(archiveId: String, newName: String): Result<Unit> = runCatching {
+        val trimmed = newName.trim()
+        require(trimmed.isNotEmpty()) { "그룹 이름을 입력해주세요." }
+
+        // archives_update_member 정책 = is_member(id) → 멤버 누구나 바꿀 수 있다 (역할 구분 없음).
+        supabase.postgrest.from("archives")
+            .update(ArchiveRenameDto(name = trimmed)) {
+                filter { eq("id", archiveId) }
+            }
+    }
+
+    override suspend fun deleteArchive(archiveId: String): Result<Unit> = runCatching {
+        // memberships/memories/media_assets/notes/... 는 archive_id FK 에 on delete cascade 라
+        // archives 한 행만 지우면 하위 데이터가 함께 정리된다 (마이그레이션 §2~8).
+        supabase.postgrest.from("archives").delete {
+            filter { eq("id", archiveId) }
+        }
+    }
+
+    override suspend fun createInvitation(archiveId: String): Result<String> = runCatching {
+        val row = supabase.postgrest.from("invitations")
+            .insert(InvitationInsert(archiveId = archiveId)) {
+                select(Columns.raw("token"))
+            }
+            .decodeSingle<InvitationRowDto>()
+        row.token
+    }
+
+    override suspend fun joinArchiveByToken(token: String): Result<String> = runCatching {
+        val trimmed = token.trim()
+        require(trimmed.isNotEmpty()) { "초대 코드를 입력해주세요." }
+
+        val result = supabase.postgrest.rpc(
+            "accept_invitation",
+            buildJsonObject { put("p_token", trimmed) },
+        )
+
+        // accept_invitation() 은 `returns uuid` (테이블 행이 아니라 스칼라 하나) 라서
+        // create_archive 때와 같은 이유로 decodeSingle() 을 못 쓴다 — 응답이 배열이 아니라
+        // 따옴표로 감싼 문자열 리터럴(예: "550e8400-...") 그대로 온다. raw JSON을 직접 디코드한다.
+        json.decodeFromString<String>(result.data)
     }
 
     /** 그룹당 1건이라 N번 호출되지만, 소그룹 서비스 특성상 N이 작아 허용한다. */

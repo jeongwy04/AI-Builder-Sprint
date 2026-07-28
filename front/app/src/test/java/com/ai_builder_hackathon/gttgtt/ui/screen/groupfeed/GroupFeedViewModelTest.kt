@@ -92,6 +92,78 @@ class GroupFeedViewModelTest {
         assertEquals("네트워크 오류", vm.uiState.value.errorMessage)
     }
 
+    @Test
+    fun `이름 변경에 성공하면 다이얼로그가 닫히고 화면 제목이 바뀐다`() = runTest(dispatcher) {
+        coEvery { archiveRepository.getMyArchives() } returns Result.success(listOf(archive))
+        coEvery { postRepository.getFeed(ARCHIVE_ID) } returns Result.success(listOf(post))
+        coEvery { archiveRepository.renameArchive(ARCHIVE_ID, "부산 여행") } returns Result.success(Unit)
+
+        val vm = viewModel()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onRenameClick()
+        vm.onRenameTextChange("부산 여행")
+        vm.onConfirmRename()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals(false, state.isRenameDialogOpen)
+        assertEquals("부산 여행", state.groupName)
+    }
+
+    @Test
+    fun `이름 변경 실패 시 에러를 담고 다이얼로그는 열려 있다`() = runTest(dispatcher) {
+        coEvery { archiveRepository.getMyArchives() } returns Result.success(listOf(archive))
+        coEvery { postRepository.getFeed(ARCHIVE_ID) } returns Result.success(listOf(post))
+        coEvery { archiveRepository.renameArchive(any(), any()) } returns
+            Result.failure(IllegalStateException("네트워크 오류"))
+
+        val vm = viewModel()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onRenameClick()
+        vm.onRenameTextChange("부산 여행")
+        vm.onConfirmRename()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals(true, state.isRenameDialogOpen)
+        assertEquals("네트워크 오류", state.renameError)
+    }
+
+    @Test
+    fun `삭제에 성공하면 isGroupDeleted 가 true 가 된다`() = runTest(dispatcher) {
+        coEvery { archiveRepository.getMyArchives() } returns Result.success(listOf(archive))
+        coEvery { postRepository.getFeed(ARCHIVE_ID) } returns Result.success(listOf(post))
+        coEvery { archiveRepository.deleteArchive(ARCHIVE_ID) } returns Result.success(Unit)
+
+        val vm = viewModel()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onDeleteClick()
+        vm.onConfirmDelete()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(true, vm.uiState.value.isGroupDeleted)
+    }
+
+    @Test
+    fun `초대 코드 발급에 성공하면 토큰을 담는다`() = runTest(dispatcher) {
+        coEvery { archiveRepository.getMyArchives() } returns Result.success(listOf(archive))
+        coEvery { postRepository.getFeed(ARCHIVE_ID) } returns Result.success(listOf(post))
+        coEvery { archiveRepository.createInvitation(ARCHIVE_ID) } returns Result.success("ABC123")
+
+        val vm = viewModel()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onInviteClick()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals("ABC123", state.inviteToken)
+        assertEquals(false, state.isInviteLoading)
+    }
+
     private val archive = ArchiveSummary(
         id = ARCHIVE_ID,
         name = "강릉 여행",

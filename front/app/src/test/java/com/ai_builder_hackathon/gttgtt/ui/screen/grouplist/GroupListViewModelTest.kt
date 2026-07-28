@@ -4,6 +4,7 @@ import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.domain.model.GroupType
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
+import io.mockk.andThen
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -148,6 +149,59 @@ class GroupListViewModelTest {
 
         viewModel.onDismissCreateDialog()
         assertFalse(viewModel.uiState.value.isCreateDialogOpen)
+    }
+
+    @Test
+    fun `코드 없이 참여하기를 누르면 에러만 뜨고 요청하지 않는다`() = runTest(dispatcher) {
+        coEvery { repository.getMyArchives() } returns Result.success(emptyList())
+        val viewModel = GroupListViewModel(repository)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onJoinByCodeClick()
+        viewModel.onConfirmJoin()
+
+        val state = viewModel.uiState.value
+        assertEquals("초대 코드를 입력해주세요.", state.joinError)
+        assertFalse(state.isJoining)
+    }
+
+    @Test
+    fun `코드로 참여에 성공하면 다이얼로그가 닫히고 목록을 다시 불러온다`() = runTest(dispatcher) {
+        coEvery { repository.getMyArchives() } returns Result.success(listOf(olderGroup)) andThen
+            Result.success(listOf(olderGroup, newGroup))
+        coEvery { repository.joinArchiveByToken("ABC123") } returns Result.success(newGroup.id)
+
+        val viewModel = GroupListViewModel(repository)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onJoinByCodeClick()
+        viewModel.onJoinCodeChange("ABC123")
+        viewModel.onConfirmJoin()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isJoinDialogOpen)
+        assertFalse(state.isJoining)
+        assertEquals(listOf("개발팀", "가족"), state.groups.map { it.name })
+    }
+
+    @Test
+    fun `유효하지 않은 코드면 에러 메시지를 담고 다이얼로그는 열려 있다`() = runTest(dispatcher) {
+        coEvery { repository.getMyArchives() } returns Result.success(emptyList())
+        coEvery { repository.joinArchiveByToken(any()) } returns
+            Result.failure(IllegalStateException("유효하지 않은 코드예요."))
+
+        val viewModel = GroupListViewModel(repository)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onJoinByCodeClick()
+        viewModel.onJoinCodeChange("WRONG")
+        viewModel.onConfirmJoin()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.isJoinDialogOpen)
+        assertEquals("유효하지 않은 코드예요.", state.joinError)
     }
 
     private val newGroup = ArchiveSummary(

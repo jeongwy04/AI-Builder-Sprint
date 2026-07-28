@@ -64,3 +64,21 @@ data class ArchiveRowDto(
     @SerialName("created_by") val createdBy: String,
     @SerialName("created_at") val createdAt: String,
 )
+
+/** 그룹 이름 변경 — archives.update() 요청 바디 (name 한 컬럼만) */
+@Serializable
+data class ArchiveRenameDto(
+    @SerialName("name") val name: String,
+)
+
+/** invitations insert 요청 바디. token/expires_at 은 DB 기본값이 채운다. */
+@Serializable
+data class InvitationInsert(
+    @SerialName("archive_id") val archiveId: String,
+)
+
+/** invitations insert 응답에서 토큰만 꺼내 쓴다. */
+@Serializable
+data class InvitationRowDto(
+    @SerialName("token") val token: String,
+)

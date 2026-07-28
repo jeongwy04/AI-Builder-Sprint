@@ -16,4 +16,29 @@ interface ArchiveRepository {
      * (직접 insert 시 RLS readback 함정에 걸린다 — 백엔드 계약).
      */
     suspend fun createArchive(name: String, groupType: GroupType): Result<ArchiveSummary>
+
+    /**
+     * 그룹 이름 변경. `archives_update_member` 정책이 `is_member(id)` 라서
+     * 역할 구분 없이 멤버 누구나 바꿀 수 있다 (CLAUDE.md §6.1 — 역할 개념 없음).
+     */
+    suspend fun renameArchive(archiveId: String, newName: String): Result<Unit>
+
+    /**
+     * 그룹(보관소) 삭제. `archives_delete_member` 정책도 `is_member(id)` 라 멤버 누구나 지울 수 있다.
+     * memberships/memories/notes/… 는 전부 `archive_id` FK 에 `on delete cascade` 가 걸려 있어
+     * archives 한 행만 지우면 하위 데이터가 함께 정리된다 (마이그레이션 §2~8 참고).
+     */
+    suspend fun deleteArchive(archiveId: String): Result<Unit>
+
+    /**
+     * 초대 토큰을 새로 만든다. 반환값은 공유할 토큰 문자열.
+     * 토큰 자체는 `invitations` 테이블의 DB 기본값(`encode(gen_random_bytes(16),'hex')`)이 채운다.
+     */
+    suspend fun createInvitation(archiveId: String): Result<String>
+
+    /**
+     * 초대 토큰으로 멤버십을 등록한다. `accept_invitation` RPC 를 그대로 감싼 것.
+     * 성공 시 가입한 archiveId 를 반환한다.
+     */
+    suspend fun joinArchiveByToken(token: String): Result<String>
 }

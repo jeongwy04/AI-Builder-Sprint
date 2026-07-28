@@ -23,12 +23,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
@@ -40,6 +42,8 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
@@ -80,6 +84,18 @@ fun GroupListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // 그룹 삭제·초대 참여 후 이 화면으로 돌아왔을 때 목록이 그대로 남아있지 않도록,
+    // 화면이 다시 보일 때마다(RESUME) 새로 불러온다. ViewModel은 백스택에 남아있는 동안
+    // 재생성되지 않아 init { loadGroups() } 한 번만으로는 갱신되지 않기 때문.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.retry()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     GroupListContent(
         uiState = uiState,
         onQueryChange = viewModel::onQueryChange,
@@ -90,6 +106,10 @@ fun GroupListScreen(
         onCreateNameChange = viewModel::onCreateNameChange,
         onCreateGroupTypeSelect = viewModel::onCreateGroupTypeSelect,
         onConfirmCreateGroup = viewModel::onConfirmCreateGroup,
+        onJoinByCodeClick = viewModel::onJoinByCodeClick,
+        onDismissJoinDialog = viewModel::onDismissJoinDialog,
+        onJoinCodeChange = viewModel::onJoinCodeChange,
+        onConfirmJoin = viewModel::onConfirmJoin,
         modifier = modifier,
     )
 }
@@ -105,6 +125,10 @@ private fun GroupListContent(
     onCreateNameChange: (String) -> Unit,
     onCreateGroupTypeSelect: (GroupType) -> Unit,
     onConfirmCreateGroup: () -> Unit,
+    onJoinByCodeClick: () -> Unit = {},
+    onDismissJoinDialog: () -> Unit = {},
+    onJoinCodeChange: (String) -> Unit = {},
+    onConfirmJoin: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -134,7 +158,22 @@ private fun GroupListContent(
                 ),
             )
 
-            Spacer(Modifier.height(18.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = ScreenPadding, end = ScreenPadding, top = 10.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Text(
+                    text = "코드로 그룹 참여하기",
+                    color = TextSecondary,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable(onClick = onJoinByCodeClick),
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             when {
                 uiState.isLoading -> LoadingState()
@@ -169,6 +208,120 @@ private fun GroupListContent(
             onConfirm = onConfirmCreateGroup,
             onDismiss = onDismissCreateDialog,
         )
+    }
+
+    if (uiState.isJoinDialogOpen) {
+        JoinByCodeDialog(
+            code = uiState.joinCode,
+            isJoining = uiState.isJoining,
+            errorMessage = uiState.joinError,
+            onCodeChange = onJoinCodeChange,
+            onConfirm = onConfirmJoin,
+            onDismiss = onDismissJoinDialog,
+        )
+    }
+}
+
+/** 그룹 설정에서 발급받은 초대 코드를 입력해 그룹에 참여하는 다이얼로그. */
+@Composable
+private fun JoinByCodeDialog(
+    code: String,
+    isJoining: Boolean,
+    errorMessage: String?,
+    onCodeChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(SurfaceWhite)
+                .padding(24.dp),
+        ) {
+            Text(
+                text = "코드로 그룹 참여하기",
+                color = TextPrimary,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Black,
+            )
+
+            Spacer(Modifier.height(18.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(ScreenBackground)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+            ) {
+                if (code.isEmpty()) {
+                    Text(
+                        text = "초대 코드",
+                        color = TextSecondary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                BasicTextField(
+                    value = code,
+                    onValueChange = onCodeChange,
+                    singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(
+                        color = TextPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            if (errorMessage != null) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = errorMessage,
+                    color = Color(0xFFB64B39),
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(CardBackground)
+                        .clickable(enabled = !isJoining, onClick = onDismiss),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(text = "취소", color = TextSecondary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(BrandGreen)
+                        .clickable(enabled = !isJoining, onClick = onConfirm),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isJoining) {
+                        CircularProgressIndicator(
+                            color = SurfaceWhite,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    } else {
+                        Text(text = "참여하기", color = SurfaceWhite, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+        }
     }
 }
 

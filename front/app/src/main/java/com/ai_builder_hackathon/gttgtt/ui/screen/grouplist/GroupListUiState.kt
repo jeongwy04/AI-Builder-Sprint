@@ -15,10 +15,18 @@ data class GroupListUiState(
     val createGroupType: GroupType = GroupType.FRIENDS,
     val isCreating: Boolean = false,
     val createError: String? = null,
+    /** "코드로 참여하기" 다이얼로그 상태 — 그룹 설정에서 발급한 초대 코드를 입력해 참여한다. */
+    val isJoinDialogOpen: Boolean = false,
+    val joinCode: String = "",
+    val isJoining: Boolean = false,
+    val joinError: String? = null,
 ) {
     val isEmpty: Boolean
         get() = !isLoading && groups.isEmpty()
 
     val canConfirmCreate: Boolean
         get() = !isCreating && createName.isNotBlank()
+
+    val canConfirmJoin: Boolean
+        get() = !isJoining && joinCode.isNotBlank()
 }

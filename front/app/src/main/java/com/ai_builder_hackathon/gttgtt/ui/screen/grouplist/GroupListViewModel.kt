@@ -91,6 +91,47 @@ class GroupListViewModel @Inject constructor(
         }
     }
 
+    // ── 코드로 참여하기 ──
+
+    fun onJoinByCodeClick() {
+        _uiState.update { it.copy(isJoinDialogOpen = true, joinCode = "", joinError = null) }
+    }
+
+    fun onDismissJoinDialog() {
+        if (_uiState.value.isJoining) return
+        _uiState.update { it.copy(isJoinDialogOpen = false) }
+    }
+
+    fun onJoinCodeChange(value: String) {
+        _uiState.update { it.copy(joinCode = value, joinError = null) }
+    }
+
+    fun onConfirmJoin() {
+        val state = _uiState.value
+        if (!state.canConfirmJoin) {
+            _uiState.update { it.copy(joinError = "초대 코드를 입력해주세요.") }
+            return
+        }
+
+        _uiState.update { it.copy(isJoining = true, joinError = null) }
+        viewModelScope.launch {
+            archiveRepository.joinArchiveByToken(state.joinCode)
+                .onSuccess {
+                    _uiState.update { it.copy(isJoining = false, isJoinDialogOpen = false) }
+                    // 새로 들어간 그룹이 목록에 보이도록 다시 불러온다.
+                    loadGroups()
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isJoining = false,
+                            joinError = throwable.message ?: "유효하지 않은 코드예요.",
+                        )
+                    }
+                }
+        }
+    }
+
     private fun loadGroups() {
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {

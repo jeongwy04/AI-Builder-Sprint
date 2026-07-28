@@ -47,6 +47,41 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
         return Result.success(created)
     }
 
+    override suspend fun renameArchive(archiveId: String, newName: String): Result<Unit> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        val trimmed = newName.trim()
+        if (trimmed.isEmpty()) {
+            return Result.failure(IllegalArgumentException("그룹 이름을 입력해주세요."))
+        }
+        val existing = archives[archiveId]
+            ?: return Result.failure(NoSuchElementException("그룹을 찾을 수 없습니다."))
+        archives[archiveId] = existing.copy(name = trimmed)
+        return Result.success(Unit)
+    }
+
+    override suspend fun deleteArchive(archiveId: String): Result<Unit> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        archives.remove(archiveId)
+        return Result.success(Unit)
+    }
+
+    override suspend fun createInvitation(archiveId: String): Result<String> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        // 실제 토큰 포맷(32자 hex)까진 흉내 내지 않는다 — 화면에서 보여주고 복사/공유하는 흐름만 확인하면 된다.
+        return Result.success(UUID.randomUUID().toString().take(8).uppercase())
+    }
+
+    override suspend fun joinArchiveByToken(token: String): Result<String> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        if (token.isBlank()) {
+            return Result.failure(IllegalArgumentException("초대 코드를 입력해주세요."))
+        }
+        // Fake 는 토큰 유효성을 실제로 검증할 방법이 없다 — 아무 그룹에나 들어간 것처럼 흉내낸다.
+        val target = archives.values.firstOrNull()
+            ?: return Result.failure(NoSuchElementException("유효하지 않은 코드입니다."))
+        return Result.success(target.id)
+    }
+
     /** SupabaseArchiveRepository#themeFor 와 같은 매핑을 쓴다 — 실데이터로 바뀌어도 색이 안 바뀌게. */
     private fun GroupType.toFakeTheme(): GradientTheme = when (this) {
         GroupType.FAMILY -> GradientTheme.FAMILY
