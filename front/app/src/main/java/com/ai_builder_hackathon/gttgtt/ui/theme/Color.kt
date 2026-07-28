@@ -50,6 +50,23 @@ val LikeChipText = Color(0xFFB64B39)
 /** .pmore — 게시물 더보기 아이콘 */
 val MoreIcon = Color(0xFFC2C0CB)
 
+// ── 그룹 채팅 ──
+/** 채팅 화면 배경. 목록 화면(--screen)보다 살짝 보라빛이 돈다. */
+val ChatBackground = Color(0xFFF4F3F8)
+
+/** .datediv — 날짜 구분 칩 */
+val DateChipBackground = Color(0xFFEBE9F3)
+val DateChipText = Color(0xFF736F85)
+
+/** .mwrap b — 말풍선 위 보낸사람 이름 */
+val SenderNameText = Color(0xFF6F6D7C)
+
+/** .mtime — 말풍선 옆 시각 */
+val MessageTimeText = Color(0xFFB8B6C1)
+
+/** .inbar .ico — 입력바의 사진·이모지 아이콘 */
+val InputBarIcon = Color(0xFFB7B5C0)
+
 /** AI 추억 찾기 FAB 그라디언트 (140deg) */
 val AiFabGradient = Brush.linearGradient(
     colorStops = arrayOf(

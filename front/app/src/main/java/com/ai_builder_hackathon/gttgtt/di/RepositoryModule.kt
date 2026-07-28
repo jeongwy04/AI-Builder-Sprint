@@ -1,8 +1,10 @@
 package com.ai_builder_hackathon.gttgtt.di
 
 import com.ai_builder_hackathon.gttgtt.data.repository.FakeArchiveRepository
+import com.ai_builder_hackathon.gttgtt.data.repository.FakeChatRepository
 import com.ai_builder_hackathon.gttgtt.data.repository.FakePostRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
+import com.ai_builder_hackathon.gttgtt.domain.repository.ChatRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.PostRepository
 import dagger.Binds
 import dagger.Module
@@ -25,4 +27,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPostRepository(impl: FakePostRepository): PostRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindChatRepository(impl: FakeChatRepository): ChatRepository
 }

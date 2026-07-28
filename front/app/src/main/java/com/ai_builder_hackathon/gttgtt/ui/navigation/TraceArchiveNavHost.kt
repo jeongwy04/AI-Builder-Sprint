@@ -14,6 +14,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.ai_builder_hackathon.gttgtt.ui.screen.groupchat.GroupChatScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.groupfeed.GroupFeedScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.grouplist.GroupListScreen
 
@@ -53,7 +54,7 @@ fun TraceArchiveNavHost(
         }
 
         composable<Route.GroupChat> {
-            Placeholder("그룹 채팅") { navController.popBackStack() }
+            GroupChatScreen(onBackClick = { navController.popBackStack() })
         }
 
         composable<Route.Chat> {

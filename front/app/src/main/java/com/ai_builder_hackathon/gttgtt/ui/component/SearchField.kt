@@ -1,6 +1,5 @@
 package com.ai_builder_hackathon.gttgtt.ui.component
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,21 +10,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
+import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.ui.theme.CardBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextPrimary
@@ -57,7 +55,12 @@ fun SearchField(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        SearchIcon(tint = TextSecondary)
+        Icon(
+            painter = painterResource(R.drawable.ic_search),
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.size(IconSize),
+        )
         Box(
             modifier = Modifier.weight(1f),
             contentAlignment = Alignment.CenterStart,
@@ -83,38 +86,6 @@ fun SearchField(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-    }
-}
-
-/**
- * 돋보기 아이콘을 직접 그린다.
- * material-icons 아티팩트를 추가하지 않기 위한 선택 — 아이콘 하나 때문에 의존성을 늘리지 않는다.
- */
-@Composable
-private fun SearchIcon(tint: Color) {
-    Canvas(modifier = Modifier.size(IconSize)) {
-        val stroke = size.minDimension * 0.11f
-        val radius = size.minDimension * 0.32f
-        val center = Offset(size.width * 0.42f, size.height * 0.42f)
-
-        drawCircle(
-            color = tint,
-            radius = radius,
-            center = center,
-            style = Stroke(width = stroke),
-        )
-        // 손잡이: 원의 오른쪽 아래 45도 방향
-        val handleStart = Offset(
-            x = center.x + radius * 0.72f,
-            y = center.y + radius * 0.72f,
-        )
-        drawLine(
-            color = tint,
-            start = handleStart,
-            end = Offset(size.width * 0.88f, size.height * 0.88f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
     }
 }
 
