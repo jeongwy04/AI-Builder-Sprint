@@ -1,5 +1,6 @@
 # ── 보안: 커밋 금지 (CLAUDE.md §12) ──
 local.properties
+/local.properties
 *.keystore
 *.jks
 .env
@@ -8,16 +9,29 @@ supabase/.temp/
 supabase/.branches/
 
 # ── Android / Gradle ──
+*.iml
+.gradle
+/build
+/captures
+.externalNativeBuild
+.cxx
+.cxx/
 android/.gradle/
 android/build/
 android/app/build/
 android/**/build/
 android/local.properties
 android/.idea/
-*.iml
+android/.idea/
+
+# ── IntelliJ / Android Studio ──
 .idea/
-captures/
-.cxx/
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
 
 # ── Deno / Edge Functions ──
 supabase/functions/**/node_modules/
