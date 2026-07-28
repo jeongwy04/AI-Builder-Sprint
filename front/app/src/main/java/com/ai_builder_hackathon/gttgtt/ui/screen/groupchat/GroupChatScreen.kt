@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -105,6 +106,9 @@ private fun GroupChatContent(
         modifier = modifier
             .fillMaxSize()
             .background(ChatBackground)
+            // enableEdgeToEdge() 를 쓰는 앱이라 시스템이 알아서 레이아웃을 밀어올려주지 않는다.
+            // 이게 없으면 키보드가 InputBar(전송 버튼 포함)를 그대로 덮어버린다.
+            .imePadding()
     ) {
         // 상단바만 목록 화면과 같은 배경을 써서 대화 영역과 층이 나뉜다.
         Box(modifier = Modifier.background(ScreenBackground)) {

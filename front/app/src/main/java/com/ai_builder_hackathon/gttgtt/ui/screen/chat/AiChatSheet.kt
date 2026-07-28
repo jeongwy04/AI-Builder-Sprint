@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -105,7 +106,12 @@ private fun AiChatSheetContent(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            // GroupChatScreen 과 같은 이유 — edge-to-edge 라 키보드가 알아서 안 밀어준다.
+            .imePadding(),
+    ) {
         Spacer(Modifier.height(14.dp))
         SheetHeader()
 
