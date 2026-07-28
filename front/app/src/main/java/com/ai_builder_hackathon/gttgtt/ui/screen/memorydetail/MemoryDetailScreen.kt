@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -105,6 +106,8 @@ private fun MemoryDetailContent(
         modifier = modifier
             .fillMaxSize()
             .background(ScreenBackground)
+            // GroupChatScreen/AiChatSheet 와 같은 이유 — 없으면 키보드가 댓글 입력바를 그대로 덮는다.
+            .imePadding()
     ) {
         DetailTopBar(onBackClick = onBackClick)
 
