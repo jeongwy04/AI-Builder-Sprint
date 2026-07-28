@@ -16,7 +16,15 @@ sealed interface Route {
     @Serializable
     data object GroupList : Route
 
-    /** S2 AI 대화 — 그룹 진입 시의 홈 */
+    /** 그룹 피드 — 그룹에 들어가면 처음 보이는 화면 */
+    @Serializable
+    data class GroupFeed(val archiveId: String) : Route
+
+    /** 그룹 채팅 — 멤버들끼리의 대화 */
+    @Serializable
+    data class GroupChat(val archiveId: String) : Route
+
+    /** S2 AI 대화 — 피드의 "AI 추억 찾기" 버튼으로 진입 */
     @Serializable
     data class Chat(val archiveId: String) : Route
 

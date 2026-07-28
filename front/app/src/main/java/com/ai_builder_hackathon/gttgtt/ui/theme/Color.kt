@@ -32,6 +32,33 @@ val CardBackground = Color(0xFFECEDF1)
 
 val SurfaceWhite = Color(0xFFFFFFFF)
 
+/** .tbar .bk 아이콘 색 */
+val TopBarIcon = Color(0xFF2A2836)
+
+/** .pin — 고정 게시물 배지 */
+val PinBackground = Color(0xFFFFF4DE)
+val PinText = Color(0xFF8A5A0F)
+
+/** .chip — 댓글 등 기본 칩 */
+val ChipBackground = Color(0xFFF4F3F0)
+val ChipText = Color(0xFF55535F)
+
+/** .chip.like — 좋아요 칩 */
+val LikeChipBackground = Color(0xFFFCEDEA)
+val LikeChipText = Color(0xFFB64B39)
+
+/** .pmore — 게시물 더보기 아이콘 */
+val MoreIcon = Color(0xFFC2C0CB)
+
+/** AI 추억 찾기 FAB 그라디언트 (140deg) */
+val AiFabGradient = Brush.linearGradient(
+    colorStops = arrayOf(
+        0f to Color(0xFF34C48F),
+        0.55f to Color(0xFF17A67C),
+        1f to Color(0xFF0C6E52),
+    )
+)
+
 // ── 그룹 썸네일 그라디언트 (.beach / .forest / ... , CSS 155deg) ──
 // CSS 의 155deg 는 위에서 아래로 살짝 오른쪽. Compose 기본 linearGradient(모서리→모서리)로 근사한다.
 

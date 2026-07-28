@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai_builder_hackathon.gttgtt.ui.theme.AvatarGradients
@@ -24,7 +25,7 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import kotlin.math.absoluteValue
 
 // 시안 .stack .av : 24x24, 흰 테두리 2px, 좌측 -8 겹침
-private val AvatarSize = 24.dp
+private val StackAvatarSize = 24.dp
 private val AvatarOverlap = (-8).dp
 private val AvatarRing = 2.dp
 
@@ -32,7 +33,7 @@ private val AvatarRing = 2.dp
  * 겹쳐진 멤버 아바타 + "+N" 배지.
  *
  * 프로필 이미지가 아직 없어서 id 해시로 그라디언트만 채운다.
- * 이미지가 생기면 [MemberDot] 안을 AsyncImage 로 바꾸면 나머지는 그대로 쓸 수 있다.
+ * 이미지가 생기면 [MemberAvatar] 안을 AsyncImage 로 바꾸면 이 파일 밖은 손댈 필요가 없다.
  */
 @Composable
 fun GroupAvatarStack(
@@ -46,7 +47,7 @@ fun GroupAvatarStack(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         memberIds.forEach { id ->
-            MemberDot(memberId = id)
+            MemberAvatar(memberId = id, size = StackAvatarSize)
         }
         if (hiddenCount > 0) {
             OverflowBadge(count = hiddenCount)
@@ -54,14 +55,29 @@ fun GroupAvatarStack(
     }
 }
 
+/**
+ * 멤버 한 명의 원형 아바타.
+ * @param showRing 겹쳐 쌓을 때만 흰 테두리를 두른다. 단독으로 쓸 때는 불필요.
+ */
 @Composable
-private fun MemberDot(memberId: String) {
+fun MemberAvatar(
+    memberId: String,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    showRing: Boolean = true,
+) {
     Box(
-        modifier = Modifier
-            .size(AvatarSize)
+        modifier = modifier
+            .size(size)
             .clip(CircleShape)
             .background(gradientFor(memberId))
-            .border(width = AvatarRing, color = SurfaceWhite, shape = CircleShape)
+            .then(
+                if (showRing) {
+                    Modifier.border(width = AvatarRing, color = SurfaceWhite, shape = CircleShape)
+                } else {
+                    Modifier
+                }
+            )
     )
 }
 
@@ -70,7 +86,7 @@ private fun MemberDot(memberId: String) {
 private fun OverflowBadge(count: Int) {
     Box(
         modifier = Modifier
-            .size(AvatarSize)
+            .size(StackAvatarSize)
             .clip(CircleShape)
             .background(BrandGreenSoft)
             .border(width = AvatarRing, color = SurfaceWhite, shape = CircleShape),

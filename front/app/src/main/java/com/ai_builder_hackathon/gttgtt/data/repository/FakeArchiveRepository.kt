@@ -1,7 +1,7 @@
 package com.ai_builder_hackathon.gttgtt.data.repository
 
 import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
-import com.ai_builder_hackathon.gttgtt.domain.model.GroupTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
 import kotlinx.coroutines.delay
 import java.time.LocalDate
@@ -26,7 +26,7 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
                     name = "강릉 여행",
                     lastMessagePreview = "민지: 바다 너무 예뻤어",
                     lastActivityAtMillis = todayAt(20, 45),
-                    theme = GroupTheme.BEACH,
+                    theme = GradientTheme.BEACH,
                     memberIds = listOf("u-minji", "u-seoyeon", "u-jaehun"),
                     totalMemberCount = 6,
                 ),
@@ -35,7 +35,7 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
                     name = "우리 대학 동기들",
                     lastMessagePreview = "현우: 다음에 또 보자 ㅋㅋ",
                     lastActivityAtMillis = todayAt(20, 30),
-                    theme = GroupTheme.FOREST,
+                    theme = GradientTheme.FOREST,
                     memberIds = listOf("u-hyunwoo", "u-doyun"),
                     totalMemberCount = 6,
                 ),
@@ -44,7 +44,7 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
                     name = "개발팀",
                     lastMessagePreview = "지훈: PR 리뷰 부탁드려요!",
                     lastActivityAtMillis = todayAt(17, 20),
-                    theme = GroupTheme.LAPTOP,
+                    theme = GradientTheme.LAPTOP,
                     memberIds = listOf("u-jihun", "u-sora", "u-taeyang"),
                     totalMemberCount = 6,
                 ),
@@ -53,7 +53,7 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
                     name = "가족",
                     lastMessagePreview = "엄마: 주말에 만나자~",
                     lastActivityAtMillis = todayAt(12, 10),
-                    theme = GroupTheme.FAMILY,
+                    theme = GradientTheme.FAMILY,
                     memberIds = listOf("u-mom", "u-dad"),
                     totalMemberCount = 4,
                 ),

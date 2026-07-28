@@ -10,7 +10,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.ai_builder_hackathon.gttgtt.domain.model.GroupTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.BeachGradient
 import com.ai_builder_hackathon.gttgtt.ui.theme.FamilyGradient
 import com.ai_builder_hackathon.gttgtt.ui.theme.FoodGradient
@@ -30,31 +30,34 @@ private val ThumbnailCorner = 18.dp
  */
 @Composable
 fun GroupThumbnail(
-    theme: GroupTheme,
+    theme: GradientTheme,
     modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier
             .size(ThumbnailSize)
             .clip(RoundedCornerShape(ThumbnailCorner))
-            .background(theme.toBrush())
+            .background(gradientOf(theme))
     )
 }
 
-private fun GroupTheme.toBrush(): Brush = when (this) {
-    GroupTheme.BEACH -> BeachGradient
-    GroupTheme.FOREST -> ForestGradient
-    GroupTheme.FOOD -> FoodGradient
-    GroupTheme.LAPTOP -> LaptopGradient
-    GroupTheme.FAMILY -> FamilyGradient
-    GroupTheme.SEA -> SeaGradient
-    GroupTheme.NIGHT -> NightGradient
+/** 그라디언트 테마 → Brush. 썸네일 말고 사진 placeholder 에서도 쓴다. */
+fun gradientOf(theme: GradientTheme): Brush = theme.toBrush()
+
+private fun GradientTheme.toBrush(): Brush = when (this) {
+    GradientTheme.BEACH -> BeachGradient
+    GradientTheme.FOREST -> ForestGradient
+    GradientTheme.FOOD -> FoodGradient
+    GradientTheme.LAPTOP -> LaptopGradient
+    GradientTheme.FAMILY -> FamilyGradient
+    GradientTheme.SEA -> SeaGradient
+    GradientTheme.NIGHT -> NightGradient
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun GroupThumbnailPreview() {
     GttgttTheme {
-        GroupThumbnail(theme = GroupTheme.BEACH)
+        GroupThumbnail(theme = GradientTheme.BEACH)
     }
 }

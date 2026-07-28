@@ -13,6 +13,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import com.ai_builder_hackathon.gttgtt.ui.screen.groupfeed.GroupFeedScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.grouplist.GroupListScreen
 
 /**
@@ -31,27 +33,41 @@ fun TraceArchiveNavHost(
         modifier = modifier,
     ) {
         composable<Route.Auth> {
-            Placeholder("S0 로그인") {
-                navController.navigate(Route.GroupList)
-            }
+            Placeholder("S0 로그인") { navController.navigate(Route.GroupList) }
         }
+
         composable<Route.GroupList> {
             GroupListScreen(
-                onGroupClick = { archiveId -> navController.navigate(Route.Chat(archiveId)) },
-                onProfileClick = { /* TODO: MY 화면 시안 나오면 연결 */ },
+                onGroupClick = { archiveId -> navController.navigate(Route.GroupFeed(archiveId)) },
+                onProfileClick = { /* TODO: MY 화면 */ },
             )
         }
-        composable<Route.Chat> {
-            Placeholder("S2 AI 대화 (홈)") {
-                navController.popBackStack()
-            }
+
+        composable<Route.GroupFeed> { entry ->
+            val archiveId = entry.toRoute<Route.GroupFeed>().archiveId
+            GroupFeedScreen(
+                onBackClick = { navController.popBackStack() },
+                onChatClick = { navController.navigate(Route.GroupChat(archiveId)) },
+                onAiSearchClick = { navController.navigate(Route.Chat(archiveId)) },
+            )
         }
+
+        composable<Route.GroupChat> {
+            Placeholder("그룹 채팅") { navController.popBackStack() }
+        }
+
+        composable<Route.Chat> {
+            Placeholder("S2 AI 추억 찾기") { navController.popBackStack() }
+        }
+
         composable<Route.Timeline> {
             Placeholder("S5 타임라인") { navController.popBackStack() }
         }
+
         composable<Route.MemoryDetail> {
             Placeholder("S3 기억 상세") { navController.popBackStack() }
         }
+
         composable<Route.MemoryCreate> {
             Placeholder("S4 기억 작성") { navController.popBackStack() }
         }

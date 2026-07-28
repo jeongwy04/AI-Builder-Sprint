@@ -1,7 +1,7 @@
 package com.ai_builder_hackathon.gttgtt.ui.screen.grouplist
 
 import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
-import com.ai_builder_hackathon.gttgtt.domain.model.GroupTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -86,7 +86,7 @@ class GroupListViewModelTest {
         name = "강릉 여행",
         lastMessagePreview = "민지: 바다 너무 예뻤어",
         lastActivityAtMillis = 2_000L,
-        theme = GroupTheme.BEACH,
+        theme = GradientTheme.BEACH,
         memberIds = listOf("u-minji"),
         totalMemberCount = 6,
     )
@@ -96,7 +96,7 @@ class GroupListViewModelTest {
         name = "가족",
         lastMessagePreview = "엄마: 주말에 만나자~",
         lastActivityAtMillis = 1_000L,
-        theme = GroupTheme.FAMILY,
+        theme = GradientTheme.FAMILY,
         memberIds = listOf("u-mom"),
         totalMemberCount = 4,
     )
