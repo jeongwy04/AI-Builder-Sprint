@@ -26,8 +26,8 @@ fun TraceArchiveNavHost(
 ) {
     NavHost(
         navController = navController,
-        // 로그인 붙기 전까지 목록 화면을 바로 띄운다. 인증 구현 시 Route.Auth 로 되돌린다.
-        startDestination = Route.GroupList,
+        // 구글 로그인이 붙어서 다시 Route.Auth 로 시작한다.
+        startDestination = Route.Auth,
         modifier = modifier,
     ) {
         composable<Route.Auth> {

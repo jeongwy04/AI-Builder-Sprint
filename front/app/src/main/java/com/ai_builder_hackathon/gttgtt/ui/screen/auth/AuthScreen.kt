@@ -24,6 +24,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +42,9 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.jan.supabase.compose.auth.composeAuth
+import io.github.jan.supabase.compose.auth.composable.NativeSignInResult
+import io.github.jan.supabase.compose.auth.composable.rememberSignInWithGoogle
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
@@ -61,8 +65,8 @@ private val FieldFontSize = 14.5.sp
  * ViewModel 은 여기서 주입받고, 실제 UI 는 상태만 받는 [AuthContent] 가 그린다
  * (@Preview 를 Hilt 없이 돌리기 위함 — 다른 화면과 동일 패턴).
  *
- * @param onAuthenticated 로그인 성공 시 (지금은 소셜/이메일 스텁에서 직접 호출하지 않음 —
- *   Repository 연결 시 성공 콜백에서 부른다). 내비게이션은 상위에서 처리.
+ * @param onAuthenticated 구글 로그인 성공 시 한 번 호출된다 (uiState.isAuthenticated 감시).
+ *   내비게이션은 상위(NavHost)에서 처리한다.
  */
 @Composable
 fun AuthScreen(
@@ -73,6 +77,35 @@ fun AuthScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // compose-auth 는 Composable 함수라서 여기서만 만들 수 있다 (AuthViewModel 상단 주석 참고).
+    // NativeSignInResult(compose-auth 타입)는 여기서 GoogleSignInOutcome 으로 바꿔서 넘긴다 —
+    // 패턴 매칭(is)만 하고 내부 데이터는 안 건드리므로 라이브러리 세부 구조가 바뀌어도 안전하다.
+    val googleSignInState = viewModel.supabase.composeAuth.rememberSignInWithGoogle(
+        onResult = { result ->
+            when (result) {
+                is NativeSignInResult.Success ->
+                    viewModel.onGoogleResult(GoogleSignInOutcome.SUCCESS)
+
+                is NativeSignInResult.ClosedByUser ->
+                    viewModel.onGoogleResult(GoogleSignInOutcome.CANCELLED)
+
+                // Error/NetworkError 내부 필드는 라이브러리 버전마다 달라질 수 있어 굳이 안 읽는다.
+                // 어차피 사용자에게 보여줄 메시지는 우리가 정하는 편이 안전하다.
+                is NativeSignInResult.Error ->
+                    viewModel.onGoogleResult(GoogleSignInOutcome.ERROR, "구글 로그인에 실패했어요.")
+
+                is NativeSignInResult.NetworkError ->
+                    viewModel.onGoogleResult(GoogleSignInOutcome.ERROR, "네트워크 연결을 확인해주세요.")
+            }
+        },
+    )
+
+    // 로그인 성공 시 한 번만 상위로 알린다. isAuthenticated 가 다시 false 로 돌아올 일은 없어서
+    // key 로 그대로 써도 중복 호출 걱정이 없다.
+    LaunchedEffect(uiState.isAuthenticated) {
+        if (uiState.isAuthenticated) onAuthenticated()
+    }
+
     AuthContent(
         uiState = uiState,
         onEmailChange = viewModel::onEmailChange,
@@ -80,7 +113,14 @@ fun AuthScreen(
         onTogglePasswordVisibility = viewModel::togglePasswordVisibility,
         onToggleKeepSignedIn = viewModel::toggleKeepSignedIn,
         onLoginClick = viewModel::onLoginClick,
-        onSocialClick = { viewModel.onSocialClick() },
+        onSocialClick = { provider ->
+            if (provider == "google") {
+                viewModel.onGoogleFlowStarted()
+                googleSignInState.startFlow()
+            } else {
+                viewModel.onSocialClick(provider)
+            }
+        },
         onForgotPasswordClick = { /* TODO: 비밀번호 찾기 */ },
         onSignUpClick = onSignUpClick,
         modifier = modifier,

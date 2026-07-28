@@ -8,6 +8,8 @@ import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.compose.auth.ComposeAuth
+import io.github.jan.supabase.compose.auth.googleNativeLogin
 import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.storage.Storage
@@ -42,6 +44,12 @@ object SupabaseModule {
             install(Postgrest)
             install(Storage)
             install(Functions)
+            install(ComposeAuth) {
+                // Web 클라이언트 ID를 넣는다 (Android 클라이언트 ID 아님) — Credential Manager 가
+                // 이 값을 audience 로 하는 ID 토큰을 요구한다. Google Cloud Console에 등록된
+                // Android OAuth 클라이언트(SHA-1)는 "이 앱+서명이 맞는지" 검증에만 쓰이고 코드엔 안 들어간다.
+                googleNativeLogin(serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID)
+            }
         }
     }
 }

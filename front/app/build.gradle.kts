@@ -101,6 +101,11 @@ dependencies {
     implementation(libs.supabase.compose.auth)
     implementation(libs.ktor.client.okhttp)
 
+    // Google 네이티브 로그인 (Credential Manager) — compose-auth 가 내부에서 호출한다.
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)

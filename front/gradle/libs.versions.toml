@@ -24,6 +24,9 @@ ktor = "3.2.3"
 exifinterface = "1.4.1"
 coroutinesTest = "1.10.2"
 mockk = "1.14.5"
+# Google 네이티브 로그인(Credential Manager) — compose-auth 가 내부적으로 이 API 를 쓴다.
+credentials = "1.6.0"
+googleid = "1.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -73,6 +76,12 @@ supabase-functions = { group = "io.github.jan-tennert.supabase", name = "functio
 supabase-compose-auth = { group = "io.github.jan-tennert.supabase", name = "compose-auth" }
 # supabase-kt는 Ktor 엔진을 포함하지 않는다. 빠뜨리면 컴파일은 되고 런타임에 죽는다.
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
+
+# Google 네이티브 로그인 — compose-auth 의 rememberSignInWithGoogle() 이 Credential Manager 를 통해 호출한다.
+# 없으면 컴파일은 되지만 런타임에 NoClassDefFoundError 로 죽는다.
+androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
+androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
+googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 
 # 테스트 — CLAUDE.md §11: 새 Repository/ViewModel에는 테스트 1개 필수
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
