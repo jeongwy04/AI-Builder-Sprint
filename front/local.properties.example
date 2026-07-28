@@ -1,0 +1,5 @@
+# 이 파일을 local.properties 로 복사한 뒤 값을 채운다. local.properties 는 커밋 금지.
+# Upstage 키는 여기 두지 않는다 — Edge Function의 supabase secrets 로만 관리한다 (CLAUDE.md §5.4).
+
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_ANON_KEY=eyJ...
