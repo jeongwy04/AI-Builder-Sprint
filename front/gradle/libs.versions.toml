@@ -21,6 +21,7 @@ serialization = "1.9.0"
 coil = "3.3.0"
 supabase = "3.2.5"
 ktor = "3.2.3"
+exifinterface = "1.4.1"
 coroutinesTest = "1.10.2"
 mockk = "1.14.5"
 
@@ -55,6 +56,9 @@ androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navig
 
 # 직렬화 — DTO의 snake_case 컬럼 매핑
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
+
+# 사진 촬영일(EXIF) 읽기 — memory_date 기본값을 채우는 데 쓴다 (CLAUDE.md §6.2)
+androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 
 # 이미지 — Storage signed URL 로딩
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }

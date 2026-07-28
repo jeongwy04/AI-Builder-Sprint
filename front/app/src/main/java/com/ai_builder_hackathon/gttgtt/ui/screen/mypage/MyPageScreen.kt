@@ -53,8 +53,6 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.MyPageHeaderGradient
 import com.ai_builder_hackathon.gttgtt.ui.theme.MyPageSettingsIcon
 import com.ai_builder_hackathon.gttgtt.ui.theme.MyPageSubText
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
-import com.ai_builder_hackathon.gttgtt.ui.theme.StatFavoriteBackground
-import com.ai_builder_hackathon.gttgtt.ui.theme.StatFavoriteIcon
 import com.ai_builder_hackathon.gttgtt.ui.theme.StatMediaBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.StatMediaIcon
 import com.ai_builder_hackathon.gttgtt.ui.theme.StatMemoryBackground
@@ -140,15 +138,6 @@ private fun MyPageContent(
                     label = "업로드한 사진 / 문서",
                     value = uiState.profile.mediaCount,
                 )
-                Spacer(Modifier.height(12.dp))
-                StatCard(
-                    iconRes = R.drawable.ic_star,
-                    iconBackground = StatFavoriteBackground,
-                    iconTint = StatFavoriteIcon,
-                    label = "즐겨찾기",
-                    value = uiState.profile.favoriteCount,
-                )
-
                 MenuCard(onSignOutClick = onSignOutClick)
                 Spacer(Modifier.height(24.dp))
             }
@@ -402,7 +391,6 @@ private fun MyPageContentPreview() {
                     statusMessage = "추억을 모으는 중 ✨",
                     memoryCount = 128,
                     mediaCount = 342,
-                    favoriteCount = 24,
                 ),
             ),
             onBackClick = {},

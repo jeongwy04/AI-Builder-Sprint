@@ -99,8 +99,6 @@ val MyPageSubText = Color(0xFF5F7A70)
 val StatMemoryBackground = Color(0xFFE3F4EE)
 val StatMediaBackground = Color(0xFFFFF1DC)
 val StatMediaIcon = Color(0xFF8A5A0F)
-val StatFavoriteBackground = Color(0xFFFCEDF3)
-val StatFavoriteIcon = Color(0xFFB23C68)
 
 /** .menucard a — 메뉴 항목 */
 val MenuItemText = Color(0xFF33313C)

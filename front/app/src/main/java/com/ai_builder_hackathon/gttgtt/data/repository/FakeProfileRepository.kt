@@ -22,7 +22,6 @@ class FakeProfileRepository @Inject constructor() : ProfileRepository {
                 statusMessage = "추억을 모으는 중 ✨",
                 memoryCount = 128,
                 mediaCount = 342,
-                favoriteCount = 24,
             )
         )
     }

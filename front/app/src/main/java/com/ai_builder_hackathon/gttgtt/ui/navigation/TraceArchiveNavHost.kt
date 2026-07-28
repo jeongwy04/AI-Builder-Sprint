@@ -17,6 +17,7 @@ import androidx.navigation.toRoute
 import com.ai_builder_hackathon.gttgtt.ui.screen.groupchat.GroupChatScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.groupfeed.GroupFeedScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.grouplist.GroupListScreen
+import com.ai_builder_hackathon.gttgtt.ui.screen.memorycreate.MemoryCreateScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.memorydetail.MemoryDetailScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.mypage.MyPageScreen
 
@@ -64,6 +65,7 @@ fun TraceArchiveNavHost(
                 onBackClick = { navController.popBackStack() },
                 onChatClick = { navController.navigate(Route.GroupChat(archiveId)) },
                 onMemoryClick = { memoryId -> navController.navigate(Route.MemoryDetail(memoryId)) },
+                onCreateMemoryClick = { navController.navigate(Route.MemoryCreate(archiveId)) },
             )
         }
 
@@ -71,16 +73,20 @@ fun TraceArchiveNavHost(
             GroupChatScreen(onBackClick = { navController.popBackStack() })
         }
 
-        composable<Route.Timeline> {
-            Placeholder("S5 타임라인") { navController.popBackStack() }
-        }
-
         composable<Route.MemoryDetail> {
             MemoryDetailScreen(onBackClick = { navController.popBackStack() })
         }
 
         composable<Route.MemoryCreate> {
-            Placeholder("S4 기억 작성") { navController.popBackStack() }
+            MemoryCreateScreen(
+                onBackClick = { navController.popBackStack() },
+                onSaved = { memoryId ->
+                    // 작성 화면을 백스택에서 걷어내고 방금 만든 기억으로 이동한다.
+                    // 뒤로가기로 작성 폼에 되돌아오면 안 되기 때문.
+                    navController.popBackStack()
+                    navController.navigate(Route.MemoryDetail(memoryId))
+                },
+            )
         }
     }
 }

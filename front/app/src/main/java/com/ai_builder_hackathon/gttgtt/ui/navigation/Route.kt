@@ -38,8 +38,4 @@ sealed interface Route {
     /** S4 기억 작성 */
     @Serializable
     data class MemoryCreate(val archiveId: String) : Route
-
-    /** S5 타임라인 */
-    @Serializable
-    data class Timeline(val archiveId: String) : Route
 }

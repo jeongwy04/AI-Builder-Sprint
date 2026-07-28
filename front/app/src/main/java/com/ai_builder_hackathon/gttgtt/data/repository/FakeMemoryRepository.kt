@@ -3,6 +3,7 @@ package com.ai_builder_hackathon.gttgtt.data.repository
 import com.ai_builder_hackathon.gttgtt.domain.model.Comment
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.domain.model.MemoryDetail
+import com.ai_builder_hackathon.gttgtt.domain.model.NewMemory
 import com.ai_builder_hackathon.gttgtt.domain.model.Participant
 import com.ai_builder_hackathon.gttgtt.domain.repository.MemoryRepository
 import kotlinx.coroutines.delay
@@ -28,6 +29,28 @@ class FakeMemoryRepository @Inject constructor() : MemoryRepository {
         val memory = memories[memoryId]
             ?: return Result.failure(NoSuchElementException("기억을 찾을 수 없습니다."))
         return Result.success(memory)
+    }
+
+    override suspend fun createMemory(memory: NewMemory): Result<String> {
+        delay(FAKE_UPLOAD_DELAY_MILLIS)
+
+        val id = "mem-${UUID.randomUUID()}"
+        memories[id] = MemoryDetail(
+            id = id,
+            archiveId = memory.archiveId,
+            memoryDateMillis = memory.memoryDateMillis,
+            title = memory.title,
+            body = memory.body,
+            // 실제 구현에서는 업로드한 사진 URL 이 들어간다.
+            // 지금은 장수만 맞춰 그라디언트 placeholder 로 채운다.
+            photos = List(memory.photoUris.size.coerceAtLeast(1)) {
+                PLACEHOLDER_THEMES[it % PLACEHOLDER_THEMES.size]
+            },
+            participants = memory.participantIds.map { Participant(it, it.removePrefix("u-")) },
+            relatedPhotos = emptyList(),
+            comments = emptyList(),
+        )
+        return Result.success(id)
     }
 
     override suspend fun addComment(memoryId: String, text: String): Result<Comment> {
@@ -140,7 +163,18 @@ class FakeMemoryRepository @Inject constructor() : MemoryRepository {
 
     private companion object {
         const val FAKE_NETWORK_DELAY_MILLIS = 300L
+
+        /** 업로드는 조회보다 오래 걸린다. 진행 표시가 실제로 보이는지 확인하려고 길게 잡았다. */
+        const val FAKE_UPLOAD_DELAY_MILLIS = 1_200L
+
         const val DEMO_ARCHIVE_ID = "archive-gangneung"
         const val ME_ID = "u-me"
+
+        val PLACEHOLDER_THEMES = listOf(
+            GradientTheme.SEA,
+            GradientTheme.FOOD,
+            GradientTheme.FOREST,
+            GradientTheme.NIGHT,
+        )
     }
 }

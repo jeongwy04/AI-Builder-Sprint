@@ -37,6 +37,8 @@ android {
         // Upstage 키는 절대 여기 두지 않는다 (§5.4).
         buildConfigField("String", "SUPABASE_URL", "\"${localProp("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProp("SUPABASE_ANON_KEY")}\"")
+        // Google 네이티브 로그인의 serverClientId (Web 클라이언트 ID)
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProp("GOOGLE_WEB_CLIENT_ID")}\"")
     }
 
     buildTypes {
@@ -82,6 +84,9 @@ dependencies {
 
     // 직렬화
     implementation(libs.kotlinx.serialization.json)
+
+    // 사진 EXIF (촬영일 추출)
+    implementation(libs.androidx.exifinterface)
 
     // 이미지
     implementation(libs.coil.compose)

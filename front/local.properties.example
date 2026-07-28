@@ -1,5 +1,9 @@
 # 이 파일을 local.properties 로 복사한 뒤 값을 채운다. local.properties 는 커밋 금지.
 # Upstage 키는 여기 두지 않는다 — Edge Function의 supabase secrets 로만 관리한다 (CLAUDE.md §5.4).
 
+# ⚠️ URL 은 베이스 주소만. 뒤에 /rest/v1/ 을 붙이지 않는다 (SDK가 알아서 붙임).
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_ANON_KEY=eyJ...
+
+# Google 네이티브 로그인용 Web 클라이언트 ID (serverClientId)
+GOOGLE_WEB_CLIENT_ID=xxxx.apps.googleusercontent.com

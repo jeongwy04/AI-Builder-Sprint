@@ -14,5 +14,4 @@ data class UserProfile(
     val statusMessage: String,
     val memoryCount: Int,
     val mediaCount: Int,
-    val favoriteCount: Int,
 )
