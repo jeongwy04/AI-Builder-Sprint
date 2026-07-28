@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>그때그때 · 리디자인 시안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+:root{
+  --canvas:#E9EBF0; --screen:#F5F6F8; --ink:#14141A; --sub:#9A9AA3;
+  --line:#EFEDE9; --brand:#12A575; --brand-d:#0B6B4E; --brand-soft:#E1F3EC;
+  --cardsoft:#ECEDF1;
+  --amber:#F6B24E; --amber-d:#8a5a0f; --coral:#F19A8E; --sky:#9CCDE6; --lilac:#C6B8F0;
+  --card:#FFFFFF; --r:26px;
+  --sh:0 6px 20px rgba(28,28,50,.06), 0 2px 6px rgba(0,0,0,.03);
+  --sh-sm:0 3px 12px rgba(28,28,50,.05);
+}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-font-smoothing:antialiased;}
+body{font-family:'Pretendard',system-ui,sans-serif; background:var(--canvas); color:var(--ink);
+  padding:44px 32px 64px;}
+.head{max-width:1600px; margin:0 auto 34px;}
+.head h1{font-size:30px; font-weight:800; letter-spacing:-.02em;}
+.head p{margin-top:8px; color:#615f6e; font-size:15px; font-weight:500; max-width:720px; line-height:1.6;}
+.legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:18px;}
+.legend span{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600; color:#524f61;
+  background:#fff; padding:7px 13px; border-radius:999px; box-shadow:var(--sh-sm);}
+.legend i{width:12px; height:12px; border-radius:4px; display:inline-block;}
+
+.rail{display:flex; gap:34px; overflow-x:auto; padding:6px 2px 30px; max-width:1600px; margin:0 auto; scroll-snap-type:x proximity;}
+.col{flex:0 0 auto; scroll-snap-align:center;}
+.cap{text-align:center; margin-bottom:16px;}
+.cap b{font-size:15px; font-weight:700;}
+.cap span{display:block; font-size:12.5px; color:#6d6b7a; font-weight:500; margin-top:3px;}
+
+.phone{width:308px; height:648px; background:#0E0D14; border-radius:46px; padding:11px;
+  box-shadow:0 30px 60px rgba(30,20,70,.22), 0 8px 20px rgba(0,0,0,.14); position:relative;}
+.scr{width:100%; height:100%; background:var(--screen); border-radius:36px; overflow:hidden; position:relative;
+  display:flex; flex-direction:column;}
+.notch{position:absolute; top:12px; left:50%; transform:translateX(-50%); width:104px; height:26px;
+  background:#0E0D14; border-radius:0 0 16px 16px; z-index:40;}
+.sb{display:flex; justify-content:space-between; align-items:center; padding:15px 24px 6px; font-size:13px; font-weight:700;}
+.sb .ic{display:flex; gap:5px; font-size:13px; color:#333;}
+.body{flex:1; overflow:hidden; position:relative;}
+.pad{padding:6px 20px 20px;}
+
+.tbar{padding:8px 20px; display:flex; align-items:center; gap:12px;}
+.tbar .bk{width:38px; height:38px; border-radius:13px; background:#fff; box-shadow:var(--sh-sm);
+  display:flex; align-items:center; justify-content:center; font-size:19px; color:#2a2836;}
+.tbar .tt{flex:1;}
+.tbar .tt b{font-size:18px; font-weight:900; letter-spacing:-.02em;}
+.tbar .tt span{display:block; font-size:12px; color:var(--sub); font-weight:600; margin-top:1px;}
+.round{width:38px; height:38px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:18px;}
+
+.logo{display:flex; align-items:center; gap:9px; flex:1;}
+.logo .mk{width:32px; height:32px; border-radius:11px; background:var(--brand); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:18px; transform:rotate(-8deg);}
+.logo b{font-size:25px; font-weight:900; font-style:italic; letter-spacing:-.04em; color:var(--brand);}
+.av{border-radius:50%; background-size:cover; background-position:center; flex:0 0 auto;}
+.search{margin:14px 20px 4px; background:var(--cardsoft); border-radius:16px;
+  display:flex; align-items:center; gap:10px; padding:14px 16px; color:var(--sub); font-size:14.5px; font-weight:600;}
+.micro{font-size:12px; font-weight:800; color:var(--sub); letter-spacing:.06em; text-transform:lowercase; margin:20px 20px 12px;}
+.live{color:var(--brand); font-weight:800;}
+
+.hero{margin:16px 20px; background:var(--brand); border-radius:24px; padding:20px 20px 18px; color:#fff;
+  box-shadow:0 14px 30px rgba(23,166,124,.34); position:relative; overflow:hidden;}
+.hero .blob{position:absolute; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,.13);
+  right:-30px; top:-40px;}
+.hero .blob2{position:absolute; width:80px; height:80px; border-radius:50%; background:rgba(255,255,255,.10);
+  right:40px; bottom:-34px;}
+.hero small{font-size:12px; font-weight:700; opacity:.9; letter-spacing:.02em;}
+.hero h3{font-size:23px; font-weight:800; letter-spacing:-.02em; margin:7px 0 4px; line-height:1.18;}
+.hero p{font-size:13px; font-weight:500; opacity:.92;}
+.hero .go{position:absolute; right:18px; bottom:18px; width:42px; height:42px; border-radius:50%;
+  background:#fff; color:var(--brand-d); display:flex; align-items:center; justify-content:center; font-size:20px;}
+
+.slbl{display:flex; align-items:center; justify-content:space-between; margin:6px 20px 12px;}
+.slbl b{font-size:17px; font-weight:900; letter-spacing:-.02em;}
+.slbl span{font-size:12.5px; color:var(--sub); font-weight:700;}
+
+.list{padding:0 20px; display:flex; flex-direction:column; gap:11px;}
+.gcard{background:var(--cardsoft); border-radius:22px; padding:13px; display:flex; gap:13px; align-items:center;}
+.gthumb{width:60px; height:60px; border-radius:18px; flex:0 0 auto; background-size:cover; background-position:center;}
+.gmeta{flex:1; min-width:0;}
+.gmeta b{font-size:17px; font-weight:900; letter-spacing:-.02em;}
+.gmeta p{font-size:12.5px; color:var(--sub); font-weight:600; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.grow{display:flex; align-items:center; justify-content:space-between; margin-top:8px;}
+.stack{display:flex;}
+.stack .av{border:2px solid #fff; margin-left:-8px;}
+.stack .av:first-child{margin-left:0;}
+.plusn{width:24px; height:24px; border-radius:50%; background:var(--brand-soft); color:var(--brand-d);
+  font-size:10.5px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #fff; margin-left:-8px;}
+.gtime{font-size:11.5px; color:#b6b4bf; font-weight:600;}
+.ub{flex:0 0 auto; min-width:22px; height:22px; padding:0 7px; border-radius:999px; background:var(--brand);
+  color:#fff; font-size:12px; display:flex; align-items:center; justify-content:center; align-self:flex-start; margin-top:4px;}
+
+.nav{position:absolute; left:20px; right:20px; bottom:16px; height:64px; background:#17161E; border-radius:26px;
+  display:flex; align-items:center; justify-content:space-around; box-shadow:0 16px 30px rgba(15,12,30,.34); z-index:30;}
+.nav a{color:#7E7C8C; font-size:22px; display:flex; align-items:center; justify-content:center; width:46px; height:46px;}
+.nav a.on{color:#fff;}
+.nav .add{width:52px; height:52px; border-radius:18px; background:var(--brand); color:#fff; font-size:26px;
+  box-shadow:0 10px 20px rgba(23,166,124,.5);}
+
+.pin{display:inline-flex; align-items:center; gap:6px; margin:6px 20px 0; background:#FFF4DE; color:var(--amber-d);
+  font-size:12px; font-weight:800; padding:7px 13px; border-radius:999px;}
+.post{background:#fff; border-radius:24px; box-shadow:var(--sh); margin:14px 20px; padding:14px 14px 12px;}
+.phdr{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+.phdr b{font-size:14px; font-weight:800;}
+.phdr span{font-size:11.5px; color:var(--sub); font-weight:600;}
+.pphoto{border-radius:18px; height:170px; background-size:cover; background-position:center;}
+.pgrid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;}
+.pgrid div{height:92px; border-radius:14px; background-size:cover; background-position:center;}
+.pcap{font-size:14px; font-weight:700; line-height:1.4; margin:12px 2px 12px; letter-spacing:-.01em;}
+.pfoot{display:flex; gap:10px; align-items:center;}
+.chip{display:inline-flex; align-items:center; gap:6px; background:#F4F3F0; color:#55535f; font-size:12.5px;
+  font-weight:700; padding:8px 13px; border-radius:999px;}
+.chip.like{background:#FCEDEA; color:#b64b39;}
+.pmore{margin-left:auto; color:#c2c0cb; font-size:20px;}
+.fabbar{position:absolute; left:20px; right:20px; bottom:18px; z-index:30;}
+.fabbar .b{background:var(--brand); color:#fff; border-radius:20px; height:56px; display:flex; align-items:center;
+  justify-content:center; gap:9px; font-size:15px; font-weight:800; box-shadow:0 14px 28px rgba(23,166,124,.44);}
+
+.datediv{text-align:center; margin:12px 0 14px;}
+.datediv span{background:#EBE9F3; color:#736f85; font-size:11.5px; font-weight:800; padding:6px 14px; border-radius:999px;}
+.chat{padding:2px 18px 0; display:flex; flex-direction:column; gap:14px;}
+.msg{display:flex; gap:9px; max-width:80%;}
+.msg .av{margin-top:2px;}
+.mwrap b{font-size:11.5px; font-weight:700; color:#6f6d7c; margin:0 0 5px 3px; display:block;}
+.bub{background:#fff; box-shadow:var(--sh-sm); padding:11px 14px; border-radius:6px 18px 18px 18px;
+  font-size:13.5px; font-weight:500; line-height:1.5;}
+.mtime{font-size:10.5px; color:#b8b6c1; font-weight:600; align-self:flex-end; margin:0 2px;}
+.me{align-self:flex-end; flex-direction:row-reverse; }
+.me .bub{background:var(--brand); color:#fff; border-radius:18px 6px 18px 18px; box-shadow:0 6px 14px rgba(23,166,124,.28);}
+.bub.photo{padding:6px; border-radius:16px; background:#fff;}
+.bub.photo div{width:150px; height:112px; border-radius:11px; background-size:cover; background-position:center;}
+.inbar{position:absolute; left:16px; right:16px; bottom:16px; background:#fff; border-radius:22px; box-shadow:var(--sh);
+  display:flex; align-items:center; gap:10px; padding:8px 8px 8px 16px; z-index:30;}
+.inbar .ph{flex:1; color:var(--sub); font-size:13.5px; font-weight:600;}
+.inbar .ico{color:#b7b5c0; font-size:20px;}
+.inbar .send{width:42px; height:42px; border-radius:15px; background:var(--brand); color:#fff; font-size:19px;
+  display:flex; align-items:center; justify-content:center;}
+
+.hero-photo{margin:6px 20px 0; height:210px; border-radius:24px; background-size:cover; background-position:center;
+  position:relative; box-shadow:var(--sh);}
+.hero-photo .count{position:absolute; top:12px; right:12px; background:rgba(20,16,30,.55); color:#fff; font-size:11.5px;
+  font-weight:700; padding:5px 11px; border-radius:999px; backdrop-filter:blur(4px);}
+.ddate{color:var(--brand-d); font-size:13px; font-weight:800; margin:16px 20px 0;}
+.dtitle{font-size:22px; font-weight:900; letter-spacing:-.03em; line-height:1.28; margin:7px 20px 0;}
+.dbody{font-size:13.5px; color:#57545f; font-weight:500; line-height:1.6; margin:10px 20px 0;}
+.dsec{font-size:13px; font-weight:800; margin:20px 20px 12px;}
+.people{display:flex; gap:14px; padding:0 20px;}
+.people .p{text-align:center;}
+.people .p span{display:block; font-size:11px; color:#6f6d7c; font-weight:600; margin-top:5px;}
+.relrow{display:flex; gap:8px; padding:0 20px; margin-top:2px;}
+.relrow div{width:74px; height:74px; border-radius:16px; background-size:cover; background-position:center; flex:0 0 auto;}
+.cmt{background:#fff; border-radius:18px; box-shadow:var(--sh-sm); margin:0 20px; padding:13px 15px;}
+.cmt .ch{display:flex; align-items:center; gap:9px; margin-bottom:8px;}
+.cmt .ch b{font-size:13px; font-weight:800;}
+.cmt p{font-size:13px; font-weight:500; color:#3d3b46; line-height:1.5;}
+.cmt .cf{display:flex; align-items:center; justify-content:space-between; margin-top:9px; font-size:11px; color:#b0aebb; font-weight:600;}
+
+.mp-head{background:linear-gradient(160deg,#Dff3ea,#EAF6F0 60%,#F4F1FA); padding:26px 24px 30px; border-radius:0 0 34px 34px; text-align:center; position:relative;}
+.mp-set{position:absolute; top:18px; right:20px; font-size:21px; color:#4a6d61;}
+.mp-av{width:92px; height:92px; border-radius:50%; margin:0 auto; background-size:cover; background-position:center;
+  border:4px solid #fff; box-shadow:var(--sh); position:relative;}
+.mp-cam{position:absolute; right:0; bottom:0; width:30px; height:30px; border-radius:50%; background:var(--brand);
+  color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; border:3px solid #fff;}
+.mp-name{font-size:23px; font-weight:900; margin-top:14px; letter-spacing:-.03em;}
+.mp-badge{display:inline-flex; align-items:center; gap:6px; background:#fff; color:var(--brand-d); font-size:12px;
+  font-weight:800; padding:6px 14px; border-radius:999px; margin-top:10px; box-shadow:var(--sh-sm);}
+.mp-sub{font-size:12.5px; color:#5f7a70; font-weight:600; margin-top:10px;}
+.statcard{background:#fff; border-radius:20px; box-shadow:var(--sh-sm); margin:12px 20px 0; padding:15px 17px;
+  display:flex; align-items:center; gap:13px;}
+.statcard .si{width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:19px;}
+.statcard b{flex:1; font-size:14.5px; font-weight:700;}
+.statcard .num{font-size:16px; font-weight:800;}
+.statcard .cv{color:#c9c7d2; font-size:17px; margin-left:8px;}
+.menucard{background:#fff; border-radius:20px; box-shadow:var(--sh-sm); margin:18px 20px 0; overflow:hidden;}
+.menucard a{display:flex; align-items:center; gap:12px; padding:15px 17px; font-size:14px; font-weight:600; color:#33313c;}
+.menucard a+a{border-top:1px solid #F1EFEC;}
+.menucard a i:first-child{font-size:19px; color:#7c7a88; width:22px;}
+.menucard a .cv{margin-left:auto; color:#cbc9d4; font-size:17px;}
+
+.logo b, .gmeta b, .slbl b, .tbar .tt b, .dtitle, .mp-name{
+  font-family:'Black Han Sans','Pretendard',sans-serif; font-weight:400; font-style:normal;
+  letter-spacing:-1px;}
+.logo b, .gmeta b, .slbl b, .tbar .tt b{display:inline-block; transform:scaleX(.8); transform-origin:left center;}
+.dtitle{transform:scaleX(.8); transform-origin:left; }
+.mp-name{transform:scaleX(.82); transform-origin:center;}
+.logo b{font-size:27px;}
+.micro, .en{font-family:'Anton','Pretendard',sans-serif; font-weight:400; letter-spacing:.02em;}
+.statcard .num, .mp-badge{letter-spacing:.01em;}
+.statcard .num{font-family:'Anton',sans-serif; font-weight:400; font-size:19px;}
+.beach{background:linear-gradient(155deg,#ffd79b,#ff9f77 42%,#c76fa0 72%,#6f58bd);}
+.forest{background:linear-gradient(155deg,#b3d9a1,#63a06f 55%,#2f6b4d);}
+.food{background:linear-gradient(155deg,#ecb56e,#cd7a31 55%,#804321);}
+.laptop{background:linear-gradient(155deg,#d3d8de,#99a2ad 55%,#5b6470);}
+.family{background:linear-gradient(155deg,#f6cda9,#e39c86 55%,#b06a79);}
+.sea{background:linear-gradient(155deg,#c3e6f0,#6fc0d6 55%,#2f8cb0);}
+.night{background:linear-gradient(155deg,#8f7fc9,#5b4aa0 55%,#2c2154);}
+.a1{background:linear-gradient(135deg,#ffb37a,#e8637f);}
+.a2{background:linear-gradient(135deg,#7fd1b0,#2f9e86);}
+.a3{background:linear-gradient(135deg,#9cc4f0,#5f7ed8);}
+.a4{background:linear-gradient(135deg,#f0a6c6,#c86a9e);}
+.a5{background:linear-gradient(135deg,#f6cf7a,#e0a24a);}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <h1>그때그때 · UI 리디자인 시안</h1>
+  <p>SETLOG의 무드를 반영해 다듬었습니다 — 굵은 이탤릭 워드마크, 더 크고 무거운 헤딩(900), 깨끗한 니어화이트 배경 + 소프트 그레이 플랫 카드, 하나의 비비드 브랜드 그린 액센트, 소문자 마이크로 라벨. 여백·라운드·굵은 타이포 골격은 유지했습니다.</p>
+  <div class="legend">
+    <span><i style="background:#F5F6F8;border:1px solid #e2e2e6"></i>니어화이트 배경</span>
+    <span><i style="background:#ECEDF1"></i>소프트 그레이 카드</span>
+    <span><i style="background:#12A575"></i>비비드 그린</span>
+    <span><i style="background:#14141A"></i>블랙 헤딩 900</span>
+  </div>
+</div>
+
+<div class="rail">
+
+  <!-- 1. 홈 -->
+  <div class="col">
+    <div class="cap"><b>홈 · 채팅방 목록</b><span>채팅방 검색 · 우상단 MY</span></div>
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sb"><span>9:41</span><span class="ic"><i class="ti ti-signal-4g"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="body" style="overflow-y:auto">
+        <div class="pad" style="padding-bottom:0">
+          <div class="logo" style="padding:6px 0 2px"><b>그때그때</b>
+            <div style="position:relative;width:40px;height:40px;border-radius:14px;background:#fff;box-shadow:var(--sh-sm);display:flex;align-items:center;justify-content:center;font-size:20px;color:#2a2836"><i class="ti ti-bell"></i>
+              <span style="position:absolute;top:-6px;right:-6px;background:var(--brand);color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;border:2px solid var(--screen)">12</span></div>
+            <div class="en" style="width:46px;height:40px;border-radius:14px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;letter-spacing:.04em;box-shadow:0 6px 14px rgba(18,165,117,.4)">MY</div></div>
+        </div>
+        <div class="search"><i class="ti ti-search"></i>채팅방 검색</div>
+        <div class="micro">채팅방</div>
+        <div class="list">
+          <div class="gcard"><div class="gthumb beach"></div><div class="gmeta"><b>강릉 여행</b><p>민지: 바다 너무 예뻤어</p>
+            <div class="grow"><div class="stack"><div class="av a1" style="width:24px;height:24px"></div><div class="av a2" style="width:24px;height:24px"></div><div class="av a3" style="width:24px;height:24px"></div><div class="plusn">+3</div></div><div class="gtime">오후 8:45</div></div></div>
+            <div class="ub en">3</div></div>
+          <div class="gcard"><div class="gthumb forest"></div><div class="gmeta"><b>우리 대학 동기들</b><p>현우: 다음에 또 보자 ㅋㅋ</p>
+            <div class="grow"><div class="stack"><div class="av a2" style="width:24px;height:24px"></div><div class="av a5" style="width:24px;height:24px"></div><div class="plusn">+4</div></div><div class="gtime">오후 8:30</div></div></div>
+            <div class="ub en">12</div></div>
+          <div class="gcard"><div class="gthumb family"></div><div class="gmeta"><b>가족</b><p>엄마: 주말에 만나자~</p>
+            <div class="grow"><div class="stack"><div class="av a4" style="width:24px;height:24px"></div><div class="av a1" style="width:24px;height:24px"></div><div class="plusn">+2</div></div><div class="gtime">오후 12:10</div></div></div></div>
+          <div class="gcard"><div class="gthumb laptop"></div><div class="gmeta"><b>개발팀</b><p>지훈: PR 리뷰 부탁드려요!</p>
+            <div class="grow"><div class="stack"><div class="av a3" style="width:24px;height:24px"></div><div class="av a2" style="width:24px;height:24px"></div><div class="plusn">+3</div></div><div class="gtime">오후 5:20</div></div></div>
+            <div class="ub en">1</div></div>
+        </div>
+        <div style="height:16px"></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- 2. 피드 -->
+  <div class="col">
+    <div class="cap"><b>그룹 피드</b><span>AI 찾기 버튼 · 컬러 칩</span></div>
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sb"><span>9:41</span><span class="ic"><i class="ti ti-signal-4g"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="body" style="overflow-y:auto">
+        <div class="tbar"><div class="bk"><i class="ti ti-chevron-left"></i></div><div class="tt"><b>강릉 여행</b><span>멤버 5명</span></div><div class="round" style="background:var(--brand-soft);color:var(--brand-d)"><i class="ti ti-message-2"></i></div></div>
+        <div class="pin"><i class="ti ti-pin"></i>고정 게시물</div>
+        <div class="post"><div class="phdr"><div class="av a4" style="width:34px;height:34px"></div><div style="flex:1"><b>민지</b><span> · 2025.12.22</span></div><i class="ti ti-dots pmore"></i></div>
+          <div class="pphoto beach"></div>
+          <p class="pcap">시험 끝나고 치킨 먹다 다 같이 울었던 날 🥹</p>
+          <div class="pfoot"><span class="chip like"><i class="ti ti-heart"></i>12</span><span class="chip"><i class="ti ti-message-circle"></i>5</span></div></div>
+        <div class="post"><div class="phdr"><div class="av a2" style="width:34px;height:34px"></div><div style="flex:1"><b>현우</b><span> · 2025.12.21</span></div><i class="ti ti-dots pmore"></i></div>
+          <div class="pgrid"><div class="sea"></div><div class="beach"></div><div class="forest"></div></div>
+          <p class="pcap">바다 진짜 예뻤다! 날씨도 완벽 ☀️</p>
+          <div class="pfoot"><span class="chip like"><i class="ti ti-heart"></i>8</span><span class="chip"><i class="ti ti-message-circle"></i>2</span></div></div>
+      </div>
+      <div style="position:absolute;right:20px;bottom:20px;z-index:30;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="width:64px;height:64px;border-radius:24px;background:linear-gradient(140deg,#34c48f,#17a67c 55%,#0c6e52);color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 16px 30px rgba(23,166,124,.5)"><i class="ti ti-sparkles"></i></div>
+        <span style="font-size:11px;font-weight:800;color:var(--brand-d);background:#fff;padding:3px 10px;border-radius:999px;box-shadow:var(--sh-sm)">AI 추억 찾기</span></div>
+    </div></div>
+  </div>
+
+  <!-- 3. 채팅 -->
+  <div class="col">
+    <div class="cap"><b>그룹 채팅</b><span>버블 · 그린 필</span></div>
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sb"><span>9:41</span><span class="ic"><i class="ti ti-signal-4g"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="body" style="background:#F4F3F8; overflow-y:auto">
+        <div class="tbar" style="background:var(--screen)"><div class="bk"><i class="ti ti-chevron-left"></i></div><div class="tt"><b>강릉 여행</b><span>멤버 5명</span></div><div class="round" style="background:var(--brand-soft);color:var(--brand-d)"><i class="ti ti-search"></i></div></div>
+        <div class="datediv"><span>2025년 12월 22일 (일)</span></div>
+        <div class="chat">
+          <div class="msg"><div class="av a4" style="width:32px;height:32px"></div><div class="mwrap"><b>민지</b><div class="bub">여러분! 저 밤에 치킨 먹다 울었던 사진 찾아봤는데 너무 웃겨 ㅋㅋ</div></div><span class="mtime">6:31</span></div>
+          <div class="msg me"><div class="mwrap"><div class="bub">ㅋㅋㅋㅋㅋ 진짜 추억이다 그때</div></div><span class="mtime">6:33</span></div>
+          <div class="msg"><div class="av a2" style="width:32px;height:32px"></div><div class="mwrap"><b>현우</b><div class="bub">나 그때 좀 울었지.. ㅋㅋ</div></div><span class="mtime">6:33</span></div>
+          <div class="msg"><div class="av a5" style="width:32px;height:32px"></div><div class="mwrap"><b>지훈</b><div class="bub photo"><div class="food"></div></div></div><span class="mtime">6:34</span></div>
+          <div class="msg me"><div class="mwrap"><div class="bub">이거 진짜 레전드 사진 ㅋㅋ</div></div><span class="mtime">6:34</span></div>
+        </div>
+      </div>
+      <div class="inbar"><i class="ti ti-photo ico"></i><span class="ph">메시지 입력…</span><i class="ti ti-mood-smile ico"></i><div class="send"><i class="ti ti-arrow-up"></i></div></div>
+    </div></div>
+  </div>
+
+  <!-- 4. 상세 -->
+  <div class="col">
+    <div class="cap"><b>추억 상세</b><span>히어로 포토 · 함께한 사람</span></div>
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sb"><span>9:41</span><span class="ic"><i class="ti ti-signal-4g"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="body" style="overflow-y:auto">
+        <div class="tbar"><div class="bk"><i class="ti ti-chevron-left"></i></div><div class="tt" style="text-align:center"><b>추억 상세</b></div><div class="round" style="background:#fff;box-shadow:var(--sh-sm)"><i class="ti ti-dots"></i></div></div>
+        <div class="hero-photo beach"><div class="count">1 / 8</div></div>
+        <div class="ddate">2025.12.22</div>
+        <div class="dtitle">시험 끝나고 치킨 먹다 울었던 날</div>
+        <div class="dbody">치킨 먹다 졸업 얘기 나와서 다 같이 울었던 날. 정말 잊지 못할 추억 ❤️</div>
+        <div class="dsec">함께한 사람</div>
+        <div class="people">
+          <div class="p"><div class="av a3" style="width:44px;height:44px"></div><span>나</span></div>
+          <div class="p"><div class="av a4" style="width:44px;height:44px"></div><span>민지</span></div>
+          <div class="p"><div class="av a2" style="width:44px;height:44px"></div><span>현우</span></div>
+          <div class="p"><div class="av a5" style="width:44px;height:44px"></div><span>지훈</span></div>
+          <div class="p"><div class="av a1" style="width:44px;height:44px"></div><span>소연</span></div>
+        </div>
+        <div class="dsec" style="display:flex;justify-content:space-between"><span>관련 사진</span><span style="color:var(--brand-d);font-weight:700">전체 보기</span></div>
+        <div class="relrow"><div class="sea"></div><div class="food"></div><div class="forest"></div><div class="night"></div></div>
+        <div class="dsec">댓글 5</div>
+        <div class="cmt"><div class="ch"><div class="av a4" style="width:30px;height:30px"></div><b>민지</b><span style="font-size:11px;color:#b0aebb;font-weight:600;margin-left:auto">12.22</span></div>
+          <p>진짜 그때 생각하면 아직도 울컥 😢</p><div class="cf"><span>답글 달기</span><span><i class="ti ti-heart"></i> 2</span></div></div>
+        <div style="height:76px"></div>
+      </div>
+      <div class="inbar"><span class="ph">댓글을 입력하세요…</span><i class="ti ti-mood-smile ico"></i><div class="send"><i class="ti ti-arrow-up"></i></div></div>
+    </div></div>
+  </div>
+
+  <!-- 5. 마이페이지 -->
+  <div class="col">
+    <div class="cap"><b>마이페이지</b><span>민트 헤더 · 통계 카드</span></div>
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="sb"><span>9:41</span><span class="ic"><i class="ti ti-signal-4g"></i><i class="ti ti-wifi"></i><i class="ti ti-battery-3"></i></span></div>
+      <div class="body" style="overflow-y:auto">
+        <div class="mp-head"><i class="ti ti-settings mp-set"></i>
+          <div class="mp-av a4"><div class="mp-cam"><i class="ti ti-camera"></i></div></div>
+          <div class="mp-name">김그때</div>
+          <div class="mp-badge"><i class="ti ti-flame"></i>그때그때 120일째</div>
+          <div class="mp-sub">추억을 모으는 중 ✨</div>
+        </div>
+        <div class="statcard"><div class="si" style="background:#E3F4EE;color:var(--brand-d)"><i class="ti ti-notebook"></i></div><b>내가 남긴 추억</b><span class="num">128</span><i class="ti ti-chevron-right cv"></i></div>
+        <div class="statcard"><div class="si" style="background:#FFF1DC;color:var(--amber-d)"><i class="ti ti-photo"></i></div><b>업로드한 사진 / 문서</b><span class="num">342</span><i class="ti ti-chevron-right cv"></i></div>
+        <div class="statcard"><div class="si" style="background:#FCEDF3;color:#b23c68"><i class="ti ti-star"></i></div><b>즐겨찾기</b><span class="num">24</span><i class="ti ti-chevron-right cv"></i></div>
+        <div class="menucard">
+          <a><i class="ti ti-settings"></i>설정<i class="ti ti-chevron-right cv"></i></a>
+          <a><i class="ti ti-help-circle"></i>도움말<i class="ti ti-chevron-right cv"></i></a>
+          <a><i class="ti ti-logout"></i>로그아웃<i class="ti ti-chevron-right cv"></i></a>
+        </div>
+        <div style="height:24px"></div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+</body>
+</html>

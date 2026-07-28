@@ -233,7 +233,7 @@ supabase.functions.invoke("chat", body = ChatRequest(archiveId, message))
 
 ## 7. 데이터 모델
 
-테이블은 다음 8개다. **임의로 추가하지 말고 먼저 제안한다.**
+테이블은 다음 12개다. **임의로 추가하지 말고 먼저 제안한다.**
 
 | 테이블 | 용도 | archive_id |
 |---|---|---|
@@ -245,6 +245,10 @@ supabase.functions.invoke("chat", body = ChatRequest(archiveId, message))
 | `media_assets` | Storage 미디어 메타 | ✅ |
 | `notes` | 메모·문구 (memory 1:N) | ✅ |
 | `chat_sessions` / `chat_messages` | AI 대화 이력 | ✅ |
+| `messages` | 멤버 그룹 채팅 (AI 대화와 별개) | ✅ |
+| `chat_reads` | 채팅방별 마지막 읽은 시점 (안 읽음 배지) | ✅ |
+| `reactions` | 게시물(memory) 좋아요 (memory 1:N, 사용자당 1) | ✅ |
+| `memory_people` | 기억에 "함께한 사람" 태깅 | ✅ |
 
 - Supabase Auth를 쓰므로 `users` 테이블을 직접 만들지 않는다. `auth.users` 를 참조하는 `profiles` 를 쓴다.
 - 스키마 변경은 `supabase migration new` 로만 한다. 대시보드에서 직접 수정 금지 (이력이 남지 않는다).
@@ -375,8 +379,9 @@ $$;
 - ❌ 음성 STT
 - ❌ 지역 공개 보관소, 공개 열람
 - ❌ 멤버 역할·권한 등급
-- ❌ 리액션, 좋아요
-- ❌ SSE 스트리밍 응답
+- ❌ 즐겨찾기(북마크), "지금 활발한 채팅방" 랭킹, 고정 게시물
+- ❌ SSE 스트리밍 / 실시간 푸시 — 채팅·안 읽음은 일반 요청 + 새로고침/폴링으로 처리
+- ✅ (범위에 포함됨) 멤버 그룹 채팅(`messages`), 채팅방 안 읽음 배지(`chat_reads`·`unread_counts()`), 게시물 좋아요(`reactions`), 함께한 사람 태깅(`memory_people`)
 - ❌ iOS / 웹 클라이언트
 - ⏸ 과거 사진 알림 / 푸시 — **보류.** 별도 지시가 있을 때만 착수한다.
 
