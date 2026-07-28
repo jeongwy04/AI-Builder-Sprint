@@ -14,10 +14,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
@@ -168,6 +169,12 @@ private fun GroupFeedContent(
     onDismissInviteDialog: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    // 패널 높이를 fillMaxHeight(fraction) 으로 구하면 부모 Column 의 imePadding() 때문에
+    // "지금 남은 공간의 58%" 로 계산돼서, 키보드가 뜨면 그 남은 공간 자체가 줄어든 만큼
+    // 패널도 같이 쪼그라들어 버 (버튼 위쪽에 뜬 배경이 그대로 비치는 빈 틈이 생겼던 원인).
+    // 화면 전체 높이를 기준으로 고정 dp 값을 구해 키보드 유무와 무관하게 패널 크기를 고정한다.
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -213,8 +220,14 @@ private fun GroupFeedContent(
         }
 
         // 바와 패널을 한 Column 에 쌓아서, 패널이 펼쳐지면 바가 그 위에 얹혀 함께 올라간다.
+        // imePadding() 을 패널 안쪽이 아니라 여기(바+패널 전체)에 걸어야 한다 — 패널은
+        // 화면 높이의 고정 비율(58%)이라, 안쪽 컨텐츠만 밀어봤자 패널 자체의 화면상 위치는
+        // 그대로라 키보드가 뜨면 패널 아랫부분이 키보드 밑에 깔린다. 바+패널 전체를 통째로
+        // 밀어 올려야 패널이 키보드 위로 완전히 벗어난다.
         Column(
-            modifier = Modifier.align(Alignment.BottomCenter),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .imePadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             GroupBottomNavBar(
@@ -235,7 +248,7 @@ private fun GroupFeedContent(
                     onMemoryClick = onMemoryClickFromAi,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(AI_PANEL_HEIGHT_FRACTION),
+                        .height(screenHeightDp * AI_PANEL_HEIGHT_FRACTION),
                 )
             }
         }

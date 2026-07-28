@@ -32,7 +32,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
@@ -488,8 +487,8 @@ private fun CommentInputBar(
             modifier = Modifier
                 .size(42.dp)
                 .clip(RoundedCornerShape(15.dp))
-                .background(BrandGreen)
-                .alpha(if (canSubmit) 1f else 0.4f)
+                // GroupChatScreen 과 같은 이유로 alpha() 대신 색 자체에 투명도를 넣는다.
+                .background(if (canSubmit) BrandGreen else BrandGreen.copy(alpha = 0.4f))
                 .clickable(enabled = canSubmit, onClick = onSubmit),
             contentAlignment = Alignment.Center,
         ) {

@@ -28,9 +28,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
@@ -95,9 +97,16 @@ private fun GroupChatContent(
 ) {
     val listState = rememberLazyListState()
 
-    // 메시지가 늘어나면 항상 최신 메시지가 보이게 내려준다.
+    // 채팅창을 처음 열었을 때는 스크롤 애니메이션 없이 바로 맨 아래로 가 있어야 자연스럽다.
+    // (위에서부터 스크롤해 내려오는 게 보이면 어색하다.) 그 이후 새 메시지가 오면 그때는 애니메이션.
+    var hasScrolledToInitialBottom by rememberSaveable { mutableStateOf(false) }
+
     LaunchedEffect(uiState.items.size) {
-        if (uiState.items.isNotEmpty()) {
+        if (uiState.items.isEmpty()) return@LaunchedEffect
+        if (!hasScrolledToInitialBottom) {
+            listState.scrollToItem(uiState.items.lastIndex)
+            hasScrolledToInitialBottom = true
+        } else {
             listState.animateScrollToItem(uiState.items.lastIndex)
         }
     }
@@ -335,9 +344,11 @@ private fun InputBar(
             modifier = Modifier
                 .size(42.dp)
                 .clip(RoundedCornerShape(15.dp))
-                .background(BrandGreen)
-                // 보낼 내용이 없으면 눌러도 아무 일이 없다는 걸 흐리게 표시한다.
-                .alpha(if (canSend) 1f else 0.4f)
+                // Modifier.alpha() 로 흐리게 처리하면 graphicsLayer 합성이 하나 더 생기는데,
+                // 일부 기기(특히 One UI)에서 IME 인셋이 바뀌는 재배치 시점과 겹치면
+                // 이 레이어가 통째로 안 그려지는 경우가 있었다. 그래서 alpha 대신
+                // 색 자체에 투명도를 넣어 배경색 한 번만 그리도록 바꿨다.
+                .background(if (canSend) BrandGreen else BrandGreen.copy(alpha = 0.4f))
                 .clickable(enabled = canSend, onClick = onSendClick),
             contentAlignment = Alignment.Center,
         ) {
