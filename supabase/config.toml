@@ -1,0 +1,24 @@
+# Supabase 로컬 설정 — 프로젝트 링크 후 project_id를 실제 ref로 교체한다.
+project_id = "trace-archive"
+
+[db]
+port = 54322
+major_version = 15
+
+[api]
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+# 딥링크(초대 링크) 복귀용. 실제 스킴은 앱 확정 후 반영.
+additional_redirect_urls = ["trace-archive://auth-callback"]
+
+[auth.external.google]
+enabled = true
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"
