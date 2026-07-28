@@ -17,6 +17,7 @@ import androidx.navigation.toRoute
 import com.ai_builder_hackathon.gttgtt.ui.screen.groupchat.GroupChatScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.groupfeed.GroupFeedScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.grouplist.GroupListScreen
+import com.ai_builder_hackathon.gttgtt.ui.screen.mypage.MyPageScreen
 
 /**
  * 화면 그래프. 각 composable 블록의 내용은 디자인 시안이 확정되는 대로
@@ -40,7 +41,19 @@ fun TraceArchiveNavHost(
         composable<Route.GroupList> {
             GroupListScreen(
                 onGroupClick = { archiveId -> navController.navigate(Route.GroupFeed(archiveId)) },
-                onProfileClick = { /* TODO: MY 화면 */ },
+                onProfileClick = { navController.navigate(Route.MyPage) },
+            )
+        }
+
+        composable<Route.MyPage> {
+            MyPageScreen(
+                onBackClick = { navController.popBackStack() },
+                onSignedOut = {
+                    // 로그아웃하면 뒤로가기로 되돌아올 수 없어야 한다.
+                    navController.navigate(Route.Auth) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
             )
         }
 

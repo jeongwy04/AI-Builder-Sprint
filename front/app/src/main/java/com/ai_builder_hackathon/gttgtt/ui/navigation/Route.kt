@@ -16,6 +16,10 @@ sealed interface Route {
     @Serializable
     data object GroupList : Route
 
+    /** 마이페이지 — 홈 우상단 MY 버튼으로 진입 */
+    @Serializable
+    data object MyPage : Route
+
     /** 그룹 피드 — 그룹에 들어가면 처음 보이는 화면 */
     @Serializable
     data class GroupFeed(val archiveId: String) : Route

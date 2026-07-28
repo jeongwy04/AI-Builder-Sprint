@@ -67,6 +67,37 @@ val MessageTimeText = Color(0xFFB8B6C1)
 /** .inbar .ico — 입력바의 사진·이모지 아이콘 */
 val InputBarIcon = Color(0xFFB7B5C0)
 
+// ── 마이페이지 ──
+/** .mp-head — 민트에서 연보라로 넘어가는 헤더 배경 (160deg) */
+val MyPageHeaderGradient = Brush.linearGradient(
+    colorStops = arrayOf(
+        0f to Color(0xFFDFF3EA),
+        0.6f to Color(0xFFEAF6F0),
+        1f to Color(0xFFF4F1FA),
+    )
+)
+
+/** .mp-set — 헤더 우상단 설정 아이콘 */
+val MyPageSettingsIcon = Color(0xFF4A6D61)
+
+/** .mp-sub — 상태 문구 */
+val MyPageSubText = Color(0xFF5F7A70)
+
+// .statcard .si — 통계 카드 아이콘 칩. 배경/전경 짝으로 쓴다.
+val StatMemoryBackground = Color(0xFFE3F4EE)
+val StatMediaBackground = Color(0xFFFFF1DC)
+val StatMediaIcon = Color(0xFF8A5A0F)
+val StatFavoriteBackground = Color(0xFFFCEDF3)
+val StatFavoriteIcon = Color(0xFFB23C68)
+
+/** .menucard a — 메뉴 항목 */
+val MenuItemText = Color(0xFF33313C)
+val MenuItemIcon = Color(0xFF7C7A88)
+val MenuDivider = Color(0xFFF1EFEC)
+
+/** .cv — 우측 꺾쇠 */
+val ChevronIcon = Color(0xFFC9C7D2)
+
 /** AI 추억 찾기 FAB 그라디언트 (140deg) */
 val AiFabGradient = Brush.linearGradient(
     colorStops = arrayOf(

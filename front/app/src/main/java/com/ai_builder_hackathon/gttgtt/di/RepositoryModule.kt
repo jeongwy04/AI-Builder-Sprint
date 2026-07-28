@@ -4,10 +4,12 @@ import com.ai_builder_hackathon.gttgtt.data.repository.FakeAiChatRepository
 import com.ai_builder_hackathon.gttgtt.data.repository.FakeArchiveRepository
 import com.ai_builder_hackathon.gttgtt.data.repository.FakeChatRepository
 import com.ai_builder_hackathon.gttgtt.data.repository.FakePostRepository
+import com.ai_builder_hackathon.gttgtt.data.repository.FakeProfileRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.AiChatRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.ChatRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.PostRepository
+import com.ai_builder_hackathon.gttgtt.domain.repository.ProfileRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -37,4 +39,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAiChatRepository(impl: FakeAiChatRepository): AiChatRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindProfileRepository(impl: FakeProfileRepository): ProfileRepository
 }
