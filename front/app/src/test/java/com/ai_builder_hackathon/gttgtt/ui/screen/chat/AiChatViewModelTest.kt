@@ -3,6 +3,7 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.chat
 import androidx.lifecycle.SavedStateHandle
 import com.ai_builder_hackathon.gttgtt.domain.model.AiMessage
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.model.MemoryHit
 import com.ai_builder_hackathon.gttgtt.domain.repository.AiChatRepository
 import io.mockk.coEvery
@@ -105,7 +106,7 @@ class AiChatViewModelTest {
         role = AiMessage.Role.ASSISTANT,
         text = "이런 기억을 찾았어요.",
         results = listOf(
-            MemoryHit("m1", "바다 진짜 예뻤던 강릉 첫날", 0L, GradientTheme.SEA)
+            MemoryHit("m1", "바다 진짜 예뻤던 강릉 첫날", 0L, GradientTheme.SEA.asPhoto())
         ),
     )
 

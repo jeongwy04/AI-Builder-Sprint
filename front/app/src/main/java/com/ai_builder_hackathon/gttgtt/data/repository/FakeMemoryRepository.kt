@@ -2,6 +2,7 @@ package com.ai_builder_hackathon.gttgtt.data.repository
 
 import com.ai_builder_hackathon.gttgtt.domain.model.Comment
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.model.MemoryDetail
 import com.ai_builder_hackathon.gttgtt.domain.model.NewMemory
 import com.ai_builder_hackathon.gttgtt.domain.model.Participant
@@ -44,7 +45,7 @@ class FakeMemoryRepository @Inject constructor() : MemoryRepository {
             // 실제 구현에서는 업로드한 사진 URL 이 들어간다.
             // 지금은 장수만 맞춰 그라디언트 placeholder 로 채운다.
             photos = List(memory.photoUris.size.coerceAtLeast(1)) {
-                PLACEHOLDER_THEMES[it % PLACEHOLDER_THEMES.size]
+                PLACEHOLDER_THEMES[it % PLACEHOLDER_THEMES.size].asPhoto()
             },
             participants = memory.participantIds.map { Participant(it, it.removePrefix("u-")) },
             relatedPhotos = emptyList(),
@@ -80,10 +81,10 @@ class FakeMemoryRepository @Inject constructor() : MemoryRepository {
             title = "시험 끝나고 치킨 먹다 울었던 날",
             body = "치킨 먹다 졸업 얘기 나와서 다 같이 울었던 날. 정말 잊지 못할 추억 ❤️",
             photos = listOf(
-                GradientTheme.FOOD,
-                GradientTheme.NIGHT,
-                GradientTheme.BEACH,
-                GradientTheme.SEA,
+                GradientTheme.FOOD.asPhoto(),
+                GradientTheme.NIGHT.asPhoto(),
+                GradientTheme.BEACH.asPhoto(),
+                GradientTheme.SEA.asPhoto(),
             ),
             participants = listOf(
                 Participant(ME_ID, "나"),
@@ -93,10 +94,10 @@ class FakeMemoryRepository @Inject constructor() : MemoryRepository {
                 Participant("u-seoyeon", "소연"),
             ),
             relatedPhotos = listOf(
-                GradientTheme.SEA,
-                GradientTheme.FOOD,
-                GradientTheme.FOREST,
-                GradientTheme.NIGHT,
+                GradientTheme.SEA.asPhoto(),
+                GradientTheme.FOOD.asPhoto(),
+                GradientTheme.FOREST.asPhoto(),
+                GradientTheme.NIGHT.asPhoto(),
             ),
             comments = listOf(
                 Comment(
@@ -123,13 +124,13 @@ class FakeMemoryRepository @Inject constructor() : MemoryRepository {
             memoryDateMillis = dateOf(2025, 12, 21),
             title = "바다 진짜 예뻤던 강릉 첫날",
             body = "날씨도 완벽했고 파도 소리도 좋았다. 다음에 또 가자 ☀️",
-            photos = listOf(GradientTheme.SEA, GradientTheme.BEACH, GradientTheme.FOREST),
+            photos = listOf(GradientTheme.SEA.asPhoto(), GradientTheme.BEACH.asPhoto(), GradientTheme.FOREST.asPhoto()),
             participants = listOf(
                 Participant(ME_ID, "나"),
                 Participant("u-hyunwoo", "현우"),
                 Participant("u-minji", "민지"),
             ),
-            relatedPhotos = listOf(GradientTheme.BEACH, GradientTheme.NIGHT, GradientTheme.FOOD),
+            relatedPhotos = listOf(GradientTheme.BEACH.asPhoto(), GradientTheme.NIGHT.asPhoto(), GradientTheme.FOOD.asPhoto()),
             comments = listOf(
                 Comment(
                     id = "c3",
@@ -147,13 +148,13 @@ class FakeMemoryRepository @Inject constructor() : MemoryRepository {
             memoryDateMillis = dateOf(2025, 12, 20),
             title = "숙소에서 야식 먹으며 새벽까지",
             body = "다들 안 잔다고 버티다가 결국 네 시에 잠들었다. 그 수다가 제일 기억에 남아.",
-            photos = listOf(GradientTheme.NIGHT, GradientTheme.FOOD),
+            photos = listOf(GradientTheme.NIGHT.asPhoto(), GradientTheme.FOOD.asPhoto()),
             participants = listOf(
                 Participant(ME_ID, "나"),
                 Participant("u-jihun", "지훈"),
                 Participant("u-seoyeon", "소연"),
             ),
-            relatedPhotos = listOf(GradientTheme.FOOD, GradientTheme.SEA),
+            relatedPhotos = listOf(GradientTheme.FOOD.asPhoto(), GradientTheme.SEA.asPhoto()),
             comments = emptyList(),
         ),
     )

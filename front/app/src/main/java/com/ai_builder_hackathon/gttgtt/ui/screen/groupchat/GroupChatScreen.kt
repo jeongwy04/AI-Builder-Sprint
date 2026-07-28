@@ -43,10 +43,11 @@ import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.domain.model.ChatListItem
 import com.ai_builder_hackathon.gttgtt.domain.model.ChatMessage
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.ui.component.AppTopBar
 import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
+import com.ai_builder_hackathon.gttgtt.ui.component.PhotoImage
 import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
-import com.ai_builder_hackathon.gttgtt.ui.component.gradientOf
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenSoft
@@ -238,11 +239,10 @@ private fun Bubble(message: ChatMessage) {
                 .background(SurfaceWhite)
                 .padding(6.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(width = 150.dp, height = 112.dp)
-                    .clip(RoundedCornerShape(11.dp))
-                    .background(gradientOf(requireNotNull(message.photo)))
+            PhotoImage(
+                photo = requireNotNull(message.photo),
+                corner = 11.dp,
+                modifier = Modifier.size(width = 150.dp, height = 112.dp),
             )
         }
         return
@@ -407,7 +407,7 @@ private fun GroupChatContentPreview() {
                         ChatMessage(
                             id = "3", archiveId = "a", senderId = "u-jihun", senderName = "지훈",
                             sentAtMillis = base + 180_000,
-                            photo = GradientTheme.FOOD,
+                            photo = GradientTheme.FOOD.asPhoto(),
                         )
                     ),
                 ),

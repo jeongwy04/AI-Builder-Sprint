@@ -2,6 +2,7 @@ package com.ai_builder_hackathon.gttgtt.data.repository
 
 import com.ai_builder_hackathon.gttgtt.domain.model.AiMessage
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.model.MemoryHit
 import com.ai_builder_hackathon.gttgtt.domain.repository.AiChatRepository
 import kotlinx.coroutines.delay
@@ -90,19 +91,19 @@ class FakeAiChatRepository @Inject constructor() : AiChatRepository {
                 memoryId = "mem-chicken",
                 title = "시험 끝나고 치킨 먹다 울었던 날",
                 memoryDateMillis = dateOf(2025, 12, 22),
-                theme = GradientTheme.FOOD,
+                thumbnail = GradientTheme.FOOD.asPhoto(),
             ),
             MemoryHit(
                 memoryId = "mem-sea",
                 title = "바다 진짜 예뻤던 강릉 첫날",
                 memoryDateMillis = dateOf(2025, 12, 21),
-                theme = GradientTheme.SEA,
+                thumbnail = GradientTheme.SEA.asPhoto(),
             ),
             MemoryHit(
                 memoryId = "mem-night",
                 title = "숙소에서 야식 먹으며 새벽까지",
                 memoryDateMillis = dateOf(2025, 12, 20),
-                theme = GradientTheme.NIGHT,
+                thumbnail = GradientTheme.NIGHT.asPhoto(),
             ),
         )
 

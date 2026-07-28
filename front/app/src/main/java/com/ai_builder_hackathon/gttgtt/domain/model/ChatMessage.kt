@@ -3,7 +3,7 @@ package com.ai_builder_hackathon.gttgtt.domain.model
 /**
  * 그룹 채팅의 메시지 하나. (멤버들끼리의 대화이며, AI 대화는 별도다.)
  *
- * 사진은 Storage 가 붙기 전까지 [GradientTheme] 플레이스홀더로 둔다.
+ * 사진은 [Photo] — signed URL 이 없으면 그라디언트 fallback 으로 그려진다.
  */
 data class ChatMessage(
     val id: String,
@@ -12,7 +12,7 @@ data class ChatMessage(
     val senderName: String,
     val sentAtMillis: Long,
     val text: String? = null,
-    val photo: GradientTheme? = null,
+    val photo: Photo? = null,
     /** 내가 보낸 메시지면 오른쪽에 그린 말풍선으로 그린다. */
     val isMine: Boolean = false,
 ) {

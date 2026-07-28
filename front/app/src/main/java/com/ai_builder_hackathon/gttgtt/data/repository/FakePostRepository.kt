@@ -1,6 +1,7 @@
 package com.ai_builder_hackathon.gttgtt.data.repository
 
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.model.Post
 import com.ai_builder_hackathon.gttgtt.domain.repository.PostRepository
 import kotlinx.coroutines.delay
@@ -47,7 +48,7 @@ class FakePostRepository @Inject constructor() : PostRepository {
             authorId = "u-minji",
             authorName = "민지",
             memoryDateMillis = dateOf(2025, 12, 22),
-            photos = listOf(GradientTheme.BEACH),
+            photos = listOf(GradientTheme.BEACH.asPhoto()),
             caption = "시험 끝나고 치킨 먹다 다 같이 울었던 날 🥹",
             likeCount = 12,
             commentCount = 5,
@@ -58,7 +59,7 @@ class FakePostRepository @Inject constructor() : PostRepository {
             authorId = "u-hyunwoo",
             authorName = "현우",
             memoryDateMillis = dateOf(2025, 12, 21),
-            photos = listOf(GradientTheme.SEA, GradientTheme.BEACH, GradientTheme.FOREST),
+            photos = listOf(GradientTheme.SEA.asPhoto(), GradientTheme.BEACH.asPhoto(), GradientTheme.FOREST.asPhoto()),
             caption = "바다 진짜 예뻤다! 날씨도 완벽 ☀️",
             likeCount = 8,
             commentCount = 2,
@@ -69,7 +70,7 @@ class FakePostRepository @Inject constructor() : PostRepository {
             authorId = "u-jihun",
             authorName = "지훈",
             memoryDateMillis = dateOf(2025, 12, 20),
-            photos = listOf(GradientTheme.NIGHT, GradientTheme.FOOD),
+            photos = listOf(GradientTheme.NIGHT.asPhoto(), GradientTheme.FOOD.asPhoto()),
             caption = "숙소에서 야식 먹으면서 새벽까지 수다 떨었던 거 기억나?",
             likeCount = 5,
             commentCount = 1,

@@ -3,6 +3,7 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.groupfeed
 import androidx.lifecycle.SavedStateHandle
 import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.model.Post
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.PostRepository
@@ -107,7 +108,7 @@ class GroupFeedViewModelTest {
         authorId = "u-minji",
         authorName = "민지",
         memoryDateMillis = 0L,
-        photos = listOf(GradientTheme.BEACH),
+        photos = listOf(GradientTheme.BEACH.asPhoto()),
         caption = "시험 끝나고 치킨 먹다 다 같이 울었던 날 🥹",
         likeCount = 12,
         commentCount = 5,

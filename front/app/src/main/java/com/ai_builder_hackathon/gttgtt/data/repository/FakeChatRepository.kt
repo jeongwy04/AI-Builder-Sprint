@@ -2,6 +2,8 @@ package com.ai_builder_hackathon.gttgtt.data.repository
 
 import com.ai_builder_hackathon.gttgtt.domain.model.ChatMessage
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.Photo
+import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.repository.ChatRepository
 import kotlinx.coroutines.delay
 import java.time.LocalDate
@@ -76,7 +78,7 @@ class FakeChatRepository @Inject constructor() : ChatRepository {
             senderId = "u-jihun",
             senderName = "지훈",
             at = timeOn(2025, 12, 22, 18, 34),
-            photo = GradientTheme.FOOD,
+            photo = GradientTheme.FOOD.asPhoto(),
         ),
         message(
             id = "m5",
@@ -94,7 +96,7 @@ class FakeChatRepository @Inject constructor() : ChatRepository {
         senderName: String,
         at: Long,
         text: String? = null,
-        photo: GradientTheme? = null,
+        photo: Photo? = null,
         mine: Boolean = false,
     ) = ChatMessage(
         id = id,

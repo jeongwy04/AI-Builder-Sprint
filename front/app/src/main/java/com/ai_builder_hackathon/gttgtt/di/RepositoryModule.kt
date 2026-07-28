@@ -21,8 +21,17 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * Repository 구현체 바인딩.
- * 실제 Supabase 구현이 생기면 여기 한 줄씩만 바꾸면 된다 — ViewModel은 손대지 않는다.
+ * Repository 구현체 바인딩. 한 줄씩 바꿔 Fake ↔ Supabase 를 스위칭한다.
+ *
+ * ⚠️ Supabase 구현은 로그인 세션이 있어야 동작한다 (RLS).
+ * 로그인 완성 전까지 Fake 를 유지하고, 완성되면 아래 주석의 구현으로 교체:
+ *   - ArchiveRepository → SupabaseArchiveRepository  (작성 완료)
+ *   - AiChatRepository  → SupabaseAiChatRepository   (작성 완료)
+ *   - MemoryRepository  → SupabaseMemoryRepository   (작성 완료, MediaUploader 필요)
+ *   - PostRepository    → SupabasePostRepository     (작성 완료, MediaUploader 필요)
+ *   - ChatRepository    → SupabaseChatRepository      (작성 완료, MediaUploader 필요)
+ *   - ProfileRepository → SupabaseProfileRepository   (작성 완료)
+ * 6개 전부 작성 끝. 로그인 붙으면 이 파일 6줄만 바꾸면 된다.
  */
 @Module
 @InstallIn(SingletonComponent::class)

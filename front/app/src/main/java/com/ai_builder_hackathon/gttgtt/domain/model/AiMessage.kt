@@ -29,5 +29,5 @@ data class MemoryHit(
     val title: String,
     /** "2025.12.22" 로 보여줄 추억 날짜 */
     val memoryDateMillis: Long,
-    val theme: GradientTheme,
+    val thumbnail: Photo,
 )

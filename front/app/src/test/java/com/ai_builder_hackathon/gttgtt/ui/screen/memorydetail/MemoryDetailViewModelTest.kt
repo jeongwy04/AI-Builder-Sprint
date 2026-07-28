@@ -3,6 +3,7 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.memorydetail
 import androidx.lifecycle.SavedStateHandle
 import com.ai_builder_hackathon.gttgtt.domain.model.Comment
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.model.MemoryDetail
 import com.ai_builder_hackathon.gttgtt.domain.model.Participant
 import com.ai_builder_hackathon.gttgtt.domain.repository.MemoryRepository
@@ -118,9 +119,9 @@ class MemoryDetailViewModelTest {
         memoryDateMillis = 0L,
         title = "시험 끝나고 치킨 먹다 울었던 날",
         body = "정말 잊지 못할 추억",
-        photos = listOf(GradientTheme.FOOD, GradientTheme.NIGHT, GradientTheme.BEACH),
+        photos = listOf(GradientTheme.FOOD.asPhoto(), GradientTheme.NIGHT.asPhoto(), GradientTheme.BEACH.asPhoto()),
         participants = listOf(Participant("u-me", "나")),
-        relatedPhotos = listOf(GradientTheme.SEA),
+        relatedPhotos = listOf(GradientTheme.SEA.asPhoto()),
         comments = listOf(
             Comment("c1", "u-minji", "민지", "진짜 그때 생각하면 아직도 울컥 😢", 0L, 2)
         ),

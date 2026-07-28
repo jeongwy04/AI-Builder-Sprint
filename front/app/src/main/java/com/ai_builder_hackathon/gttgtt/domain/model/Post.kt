@@ -2,9 +2,7 @@ package com.ai_builder_hackathon.gttgtt.domain.model
 
 /**
  * 그룹 피드의 게시물 하나.
- *
- * 사진은 아직 Storage 가 없어 [GradientTheme] 플레이스홀더로 둔다.
- * 실제 미디어가 붙으면 [photos] 타입만 URL 목록으로 바꾸면 된다.
+ * 사진은 [Photo] — signed URL 이 없으면 그라디언트 fallback 으로 그려진다.
  */
 data class Post(
     val id: String,
@@ -13,7 +11,7 @@ data class Post(
     val authorName: String,
     /** 추억이 일어난 날. 업로드 시각(created_at)과 혼용하지 않는다 (CLAUDE.md §6.2). */
     val memoryDateMillis: Long,
-    val photos: List<GradientTheme>,
+    val photos: List<Photo>,
     val caption: String,
     val likeCount: Int,
     val commentCount: Int,

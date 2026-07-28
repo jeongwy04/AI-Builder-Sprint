@@ -46,11 +46,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.domain.model.Comment
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.Photo
+import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.model.MemoryDetail
 import com.ai_builder_hackathon.gttgtt.domain.model.Participant
 import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
+import com.ai_builder_hackathon.gttgtt.ui.component.PhotoImage
 import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
-import com.ai_builder_hackathon.gttgtt.ui.component.gradientOf
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
 import com.ai_builder_hackathon.gttgtt.ui.theme.CommentMetaText
@@ -240,11 +242,10 @@ private fun DetailBody(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(memory.relatedPhotos.size) { index ->
-                        Box(
-                            modifier = Modifier
-                                .size(74.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(gradientOf(memory.relatedPhotos[index]))
+                        PhotoImage(
+                            photo = memory.relatedPhotos[index],
+                            corner = 16.dp,
+                            modifier = Modifier.size(74.dp),
                         )
                     }
                 }
@@ -275,7 +276,7 @@ private fun DetailBody(
 /** 시안 .hero-photo — 좌우로 넘기고 우상단에 "1 / 8" 이 뜬다. */
 @Composable
 private fun HeroPhotos(
-    photos: List<GradientTheme>,
+    photos: List<Photo>,
     currentIndex: Int,
     onIndexChange: (Int) -> Unit,
 ) {
@@ -295,10 +296,10 @@ private fun HeroPhotos(
             .clip(RoundedCornerShape(24.dp))
     ) {
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(gradientOf(photos[page]))
+            PhotoImage(
+                photo = photos[page],
+                corner = 0.dp,
+                modifier = Modifier.fillMaxSize(),
             )
         }
         if (photos.size > 1) {
@@ -531,9 +532,9 @@ private fun MemoryDetailContentPreview() {
                     title = "시험 끝나고 치킨 먹다 울었던 날",
                     body = "치킨 먹다 졸업 얘기 나와서 다 같이 울었던 날. 정말 잊지 못할 추억 ❤️",
                     photos = listOf(
-                        GradientTheme.FOOD,
-                        GradientTheme.NIGHT,
-                        GradientTheme.BEACH,
+                        GradientTheme.FOOD.asPhoto(),
+                        GradientTheme.NIGHT.asPhoto(),
+                        GradientTheme.BEACH.asPhoto(),
                     ),
                     participants = listOf(
                         Participant("u-me", "나"),
@@ -543,10 +544,10 @@ private fun MemoryDetailContentPreview() {
                         Participant("u-seoyeon", "소연"),
                     ),
                     relatedPhotos = listOf(
-                        GradientTheme.SEA,
-                        GradientTheme.FOOD,
-                        GradientTheme.FOREST,
-                        GradientTheme.NIGHT,
+                        GradientTheme.SEA.asPhoto(),
+                        GradientTheme.FOOD.asPhoto(),
+                        GradientTheme.FOREST.asPhoto(),
+                        GradientTheme.NIGHT.asPhoto(),
                     ),
                     comments = listOf(
                         Comment(

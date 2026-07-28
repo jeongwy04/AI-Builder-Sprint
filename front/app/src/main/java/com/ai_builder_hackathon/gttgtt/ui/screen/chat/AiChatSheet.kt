@@ -42,8 +42,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.domain.model.AiMessage
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.model.MemoryHit
-import com.ai_builder_hackathon.gttgtt.ui.component.gradientOf
+import com.ai_builder_hackathon.gttgtt.ui.component.PhotoImage
 import com.ai_builder_hackathon.gttgtt.ui.theme.AiFabGradient
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
@@ -263,11 +264,10 @@ private fun MemoryHitCard(hit: MemoryHit, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(13.dp))
-                .background(gradientOf(hit.theme))
+        PhotoImage(
+            photo = hit.thumbnail,
+            corner = 13.dp,
+            modifier = Modifier.size(44.dp),
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -393,14 +393,8 @@ private fun AiChatSheetContentPreview() {
                         AiMessage(
                             "3", AiMessage.Role.ASSISTANT, "이런 기억을 찾았어요.",
                             results = listOf(
-                                MemoryHit(
-                                    "m1", "바다 진짜 예뻤던 강릉 첫날",
-                                    1_766_275_200_000L, GradientTheme.SEA,
-                                ),
-                                MemoryHit(
-                                    "m2", "시험 끝나고 치킨 먹다 울었던 날",
-                                    1_766_361_600_000L, GradientTheme.FOOD,
-                                ),
+                                MemoryHit("m1", "바다 진짜 예뻤던 강릉 첫날", 1_766_275_200_000L, GradientTheme.SEA.asPhoto()),
+                                MemoryHit("m2", "시험 끝나고 치킨 먹다 울었던 날", 1_766_361_600_000L, GradientTheme.FOOD.asPhoto()),
                             ),
                         ),
                     ),

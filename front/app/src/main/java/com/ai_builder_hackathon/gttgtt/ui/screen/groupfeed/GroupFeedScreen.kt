@@ -40,7 +40,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -48,12 +47,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.model.Post
 import com.ai_builder_hackathon.gttgtt.ui.component.AppTopBar
 import com.ai_builder_hackathon.gttgtt.ui.component.GroupBottomNavBar
 import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
+import com.ai_builder_hackathon.gttgtt.ui.component.PhotoImage
 import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
-import com.ai_builder_hackathon.gttgtt.ui.component.gradientOf
 import com.ai_builder_hackathon.gttgtt.ui.screen.chat.AiChatPanel
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.ChipBackground
@@ -291,8 +291,8 @@ private fun PostHeader(post: Post) {
 @Composable
 private fun PostPhotos(post: Post) {
     if (post.hasSinglePhoto) {
-        PhotoPlaceholder(
-            theme = post.photos.first(),
+        PhotoImage(
+            photo = post.photos.first(),
             corner = 18.dp,
             modifier = Modifier
                 .fillMaxWidth()
@@ -300,9 +300,9 @@ private fun PostPhotos(post: Post) {
         )
     } else {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            post.photos.take(3).forEach { theme ->
-                PhotoPlaceholder(
-                    theme = theme,
+            post.photos.take(3).forEach { photo ->
+                PhotoImage(
+                    photo = photo,
                     corner = 14.dp,
                     modifier = Modifier
                         .weight(1f)
@@ -315,20 +315,6 @@ private fun PostPhotos(post: Post) {
             }
         }
     }
-}
-
-/** 실제 사진이 붙기 전까지 쓰는 그라디언트 placeholder. */
-@Composable
-private fun PhotoPlaceholder(
-    theme: GradientTheme,
-    corner: Dp,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(corner))
-            .background(gradientOf(theme))
-    )
 }
 
 @Composable
@@ -430,7 +416,7 @@ private fun GroupFeedContentPreview() {
                         authorId = "u-minji",
                         authorName = "민지",
                         memoryDateMillis = 1_766_361_600_000L,
-                        photos = listOf(GradientTheme.BEACH),
+                        photos = listOf(GradientTheme.BEACH.asPhoto()),
                         caption = "시험 끝나고 치킨 먹다 다 같이 울었던 날 🥹",
                         likeCount = 12,
                         commentCount = 5,
@@ -442,9 +428,9 @@ private fun GroupFeedContentPreview() {
                         authorName = "현우",
                         memoryDateMillis = 1_766_275_200_000L,
                         photos = listOf(
-                            GradientTheme.SEA,
-                            GradientTheme.BEACH,
-                            GradientTheme.FOREST,
+                            GradientTheme.SEA.asPhoto(),
+                            GradientTheme.BEACH.asPhoto(),
+                            GradientTheme.FOREST.asPhoto(),
                         ),
                         caption = "바다 진짜 예뻤다! 날씨도 완벽 ☀️",
                         likeCount = 8,

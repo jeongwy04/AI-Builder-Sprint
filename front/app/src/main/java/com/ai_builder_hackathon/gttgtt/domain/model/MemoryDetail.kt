@@ -3,7 +3,7 @@ package com.ai_builder_hackathon.gttgtt.domain.model
 /**
  * 추억 상세 화면에 필요한 전체 정보.
  *
- * 사진은 Storage 가 붙기 전까지 [GradientTheme] 플레이스홀더다.
+ * 사진은 [Photo] — signed URL 이 없으면 그라디언트 fallback 으로 그려진다.
  */
 data class MemoryDetail(
     val id: String,
@@ -13,10 +13,10 @@ data class MemoryDetail(
     val title: String,
     val body: String,
     /** 히어로 영역에 넘겨볼 사진들. 첫 장이 대표. */
-    val photos: List<GradientTheme>,
+    val photos: List<Photo>,
     val participants: List<Participant>,
     /** 같은 그룹의 다른 기억에서 가져온 연관 사진 */
-    val relatedPhotos: List<GradientTheme>,
+    val relatedPhotos: List<Photo>,
     val comments: List<Comment>,
 ) {
     val photoCount: Int get() = photos.size
