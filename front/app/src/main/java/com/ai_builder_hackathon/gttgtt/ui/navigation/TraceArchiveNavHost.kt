@@ -17,6 +17,7 @@ import androidx.navigation.toRoute
 import com.ai_builder_hackathon.gttgtt.ui.screen.groupchat.GroupChatScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.groupfeed.GroupFeedScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.grouplist.GroupListScreen
+import com.ai_builder_hackathon.gttgtt.ui.screen.memorydetail.MemoryDetailScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.mypage.MyPageScreen
 
 /**
@@ -75,7 +76,7 @@ fun TraceArchiveNavHost(
         }
 
         composable<Route.MemoryDetail> {
-            Placeholder("S3 기억 상세") { navController.popBackStack() }
+            MemoryDetailScreen(onBackClick = { navController.popBackStack() })
         }
 
         composable<Route.MemoryCreate> {

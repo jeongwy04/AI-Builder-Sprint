@@ -95,6 +95,7 @@ fun GroupFeedScreen(
         onChatClick = onChatClick,
         onAiSearchClick = { isAiSheetOpen = true },
         onLikeClick = viewModel::onLikeClick,
+        onPostClick = onMemoryClick,
         modifier = modifier,
     )
 
@@ -117,6 +118,7 @@ private fun GroupFeedContent(
     onChatClick: () -> Unit,
     onAiSearchClick: () -> Unit,
     onLikeClick: (String) -> Unit,
+    onPostClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -144,7 +146,11 @@ private fun GroupFeedContent(
                 uiState.isLoading -> LoadingState()
                 uiState.errorMessage != null -> MessageState(uiState.errorMessage)
                 uiState.isEmpty -> MessageState("아직 올라온 추억이 없어요.")
-                else -> PostList(posts = uiState.posts, onLikeClick = onLikeClick)
+                else -> PostList(
+                    posts = uiState.posts,
+                    onLikeClick = onLikeClick,
+                    onPostClick = onPostClick,
+                )
             }
         }
 
@@ -161,6 +167,7 @@ private fun GroupFeedContent(
 private fun PostList(
     posts: List<Post>,
     onLikeClick: (String) -> Unit,
+    onPostClick: (String) -> Unit,
 ) {
     LazyColumn(
         // FAB 에 마지막 카드가 가리지 않도록 아래를 넉넉히 비운다.
@@ -172,7 +179,11 @@ private fun PostList(
                 if (post.isPinned) {
                     PinnedBadge(modifier = Modifier.padding(start = ScreenPadding, bottom = 8.dp))
                 }
-                PostCard(post = post, onLikeClick = { onLikeClick(post.id) })
+                PostCard(
+                    post = post,
+                    onLikeClick = { onLikeClick(post.id) },
+                    onClick = { onPostClick(post.id) },
+                )
             }
         }
     }
@@ -209,6 +220,7 @@ private fun PinnedBadge(modifier: Modifier = Modifier) {
 private fun PostCard(
     post: Post,
     onLikeClick: () -> Unit,
+    onClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -217,6 +229,7 @@ private fun PostCard(
             .shadow(elevation = 6.dp, shape = RoundedCornerShape(24.dp), clip = false)
             .clip(RoundedCornerShape(24.dp))
             .background(SurfaceWhite)
+            .clickable(onClick = onClick)
             .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 12.dp)
     ) {
         PostHeader(post)
@@ -479,6 +492,7 @@ private fun GroupFeedContentPreview() {
             onChatClick = {},
             onAiSearchClick = {},
             onLikeClick = {},
+            onPostClick = {},
         )
     }
 }

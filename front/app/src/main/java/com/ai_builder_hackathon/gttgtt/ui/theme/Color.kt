@@ -67,6 +67,22 @@ val MessageTimeText = Color(0xFFB8B6C1)
 /** .inbar .ico — 입력바의 사진·이모지 아이콘 */
 val InputBarIcon = Color(0xFFB7B5C0)
 
+// ── 추억 상세 ──
+/** .hero-photo .count — 사진 위에 얹는 "1 / 8" 배지 */
+val PhotoCountBackground = Color(0x8C14101E)
+
+/** .dbody — 본문 */
+val DetailBodyText = Color(0xFF57545F)
+
+/** .people .p span — 참여자 이름 */
+val ParticipantNameText = Color(0xFF6F6D7C)
+
+/** .cmt p — 댓글 본문 */
+val CommentText = Color(0xFF3D3B46)
+
+/** .cmt .cf — 댓글 하단 메타 */
+val CommentMetaText = Color(0xFFB0AEBB)
+
 // ── 마이페이지 ──
 /** .mp-head — 민트에서 연보라로 넘어가는 헤더 배경 (160deg) */
 val MyPageHeaderGradient = Brush.linearGradient(

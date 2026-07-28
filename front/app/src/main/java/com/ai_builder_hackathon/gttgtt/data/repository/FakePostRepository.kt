@@ -46,7 +46,7 @@ class FakePostRepository @Inject constructor() : PostRepository {
 
     private fun seedPosts(): List<Post> = listOf(
         Post(
-            id = "post-chicken",
+            id = "mem-chicken",
             archiveId = DEMO_ARCHIVE_ID,
             authorId = "u-minji",
             authorName = "민지",
@@ -58,7 +58,7 @@ class FakePostRepository @Inject constructor() : PostRepository {
             isPinned = true,
         ),
         Post(
-            id = "post-sea",
+            id = "mem-sea",
             archiveId = DEMO_ARCHIVE_ID,
             authorId = "u-hyunwoo",
             authorName = "현우",
@@ -69,7 +69,7 @@ class FakePostRepository @Inject constructor() : PostRepository {
             commentCount = 2,
         ),
         Post(
-            id = "post-night",
+            id = "mem-night",
             archiveId = DEMO_ARCHIVE_ID,
             authorId = "u-jihun",
             authorName = "지훈",
