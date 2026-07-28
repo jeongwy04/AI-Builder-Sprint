@@ -1,19 +1,13 @@
 package com.ai_builder_hackathon.gttgtt.ui.navigation
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.ai_builder_hackathon.gttgtt.ui.screen.auth.AuthScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.groupchat.GroupChatScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.groupfeed.GroupFeedScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.grouplist.GroupListScreen
@@ -37,7 +31,15 @@ fun TraceArchiveNavHost(
         modifier = modifier,
     ) {
         composable<Route.Auth> {
-            Placeholder("S0 로그인") { navController.navigate(Route.GroupList) }
+            AuthScreen(
+                onAuthenticated = {
+                    navController.navigate(Route.GroupList) {
+                        // 로그인 화면을 백스택에서 제거 → 뒤로가기로 로그인에 안 돌아옴
+                        popUpTo(Route.Auth) { inclusive = true }
+                    }
+                },
+                onSignUpClick = { /* TODO: 회원가입 화면 */ },
+            )
         }
 
         composable<Route.GroupList> {
@@ -88,17 +90,5 @@ fun TraceArchiveNavHost(
                 },
             )
         }
-    }
-}
-
-@Composable
-private fun Placeholder(label: String, onNext: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(text = label, style = MaterialTheme.typography.headlineSmall)
-        TextButton(onClick = onNext) { Text("뒤로") }
     }
 }
