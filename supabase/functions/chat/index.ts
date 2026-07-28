@@ -45,24 +45,25 @@ const HISTORY_LIMIT = 8;
 const SEARCH_LIMIT = 6;
 
 // ---- 프롬프트 로드 ----------------------------------------------------------
-// 소스 오브 트루스는 prompts/search_agent_v1.md (버전 관리 대상).
+// 소스 오브 트루스는 prompts/search_agent_v2.md (버전 관리 대상).
 // 배포 번들에서 파일을 못 읽으면 최소 인라인 프롬프트로 폴백해 항상 동작시킨다.
 
 const PROMPT_URL = new URL(
-  "../../../prompts/search_agent_v1.md",
+  "../../../prompts/search_agent_v2.md",
   import.meta.url,
 );
 
 const FALLBACK_SYSTEM =
   "당신은 소그룹 공유 다이어리에서 추억을 함께 찾아 주는 대화 상대입니다. " +
-  "조건이 부족하면 한 번 되묻고, 충분하면 search_memories 도구를 호출합니다. " +
+  "장소·활동·사물·시기·사람·감정 중 단서가 하나라도 있으면(단어 하나여도) 되묻지 말고 " +
+  "즉시 search_memories 도구를 호출합니다. 단서가 전혀 없을 때만 한 번 되묻습니다. " +
   "도구 결과 안에서만 답하고, 없는 기억을 지어내지 않습니다.";
 
 const SEARCH_TOOL: ToolSchema = {
   type: "function",
   function: {
     name: "search_memories",
-    description: "그룹의 기억을 의미 기반으로 검색한다. 조건이 충분할 때만 호출한다.",
+    description: "그룹의 기억을 의미 기반으로 검색한다. 사용자가 장소·활동·사물·시기·사람·감정 등 단서를 조금이라도 주면(단어 하나여도) 호출한다. 되묻기보다 검색을 우선한다.",
     parameters: {
       type: "object",
       properties: {

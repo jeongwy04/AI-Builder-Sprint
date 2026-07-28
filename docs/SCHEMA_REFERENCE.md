@@ -6,6 +6,7 @@
 > - `20260727120000_init.sql` — 9테이블 + `is_member()` + RLS + Storage + `match_memories()`/`accept_invitation()`
 > - `20260727130000_create_archive_rpc.sql` — `create_archive()`
 > - `20260727140000_social_features.sql` — `messages` / `chat_reads`+`unread_counts()` / `reactions` / `memory_people`
+> - `20260728120000_comments.sql` — `comments` (게시물 댓글)
 
 ---
 
@@ -181,6 +182,20 @@
 | memory_id | uuid | NN | PK(복합) |
 | archive_id | uuid | NN | |
 | user_id | uuid | NN | PK(복합) |
+
+### comments (게시물 댓글)
+| 컬럼 | 타입 | Null | 비고 |
+|---|---|---|---|
+| id | uuid | NN | PK |
+| memory_id | uuid | NN | |
+| archive_id | uuid | NN | |
+| author_id | uuid | NN | default auth.uid() |
+| body | text | NN | FE `Comment.text` ↔ `body` 매핑 |
+| created_at | timestamptz | NN | |
+
+> notes 와 별개 — 댓글은 검색(embedding)에 관여하지 않는다.
+> 조회·작성은 멤버 누구나, 수정·삭제는 작성자 본인만.
+> FE `Comment.authorName` 은 `profiles.display_name` 조인, `likeCount` 는 현재 UI 기본값(댓글 좋아요 테이블 없음).
 
 ---
 

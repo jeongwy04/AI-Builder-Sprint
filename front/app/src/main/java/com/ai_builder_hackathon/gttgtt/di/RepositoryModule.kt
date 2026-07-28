@@ -1,7 +1,7 @@
 package com.ai_builder_hackathon.gttgtt.di
 
 import com.ai_builder_hackathon.gttgtt.data.remote.AndroidPhotoMetadataReader
-import com.ai_builder_hackathon.gttgtt.data.repository.FakeAiChatRepository
+import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseAiChatRepository
 import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseArchiveRepository
 import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseChatRepository
 import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseMemoryRepository
@@ -44,10 +44,10 @@ abstract class RepositoryModule {
     @Singleton
     abstract fun bindChatRepository(impl: SupabaseChatRepository): ChatRepository
 
-    // TODO: chat/embed-memory Edge Function 배포 확인되면 SupabaseAiChatRepository 로 교체.
+    // chat/embed-memory Edge Function 배포 확인됨 → 실제 Solar Pro 3 연동으로 전환.
     @Binds
     @Singleton
-    abstract fun bindAiChatRepository(impl: FakeAiChatRepository): AiChatRepository
+    abstract fun bindAiChatRepository(impl: SupabaseAiChatRepository): AiChatRepository
 
     @Binds
     @Singleton
