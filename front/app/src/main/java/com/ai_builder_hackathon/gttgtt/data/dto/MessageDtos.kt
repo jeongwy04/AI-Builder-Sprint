@@ -30,3 +30,15 @@ data class MessageInsert(
 data class IdOnlyDto(
     @SerialName("id") val id: String,
 )
+
+/**
+ * chat_reads upsert 요청 바디. `user_id` 는 DB 기본값(auth.uid())에 맡긴다 —
+ * 어차피 RLS(`user_id = auth.uid()`)로만 내 행이 걸리니 명시할 필요가 없다.
+ * `last_read_at` 은 반드시 명시한다 — upsert 충돌(on conflict) 시 값을 보낸 컬럼만 갱신되기 때문에,
+ * 빠뜨리면 기존 값이 그대로 남아 안 읽음 배지가 줄지 않는다.
+ */
+@Serializable
+data class ChatReadUpsertDto(
+    @SerialName("archive_id") val archiveId: String,
+    @SerialName("last_read_at") val lastReadAt: String,
+)

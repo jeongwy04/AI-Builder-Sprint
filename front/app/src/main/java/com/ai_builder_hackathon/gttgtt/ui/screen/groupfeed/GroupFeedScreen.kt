@@ -2,6 +2,9 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.groupfeed
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -148,6 +151,13 @@ fun GroupFeedScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // 그룹 사진 변경 — 한 장만 고르면 되니 단일 선택 Photo Picker. 저장소 권한이 필요 없다.
+    val coverImagePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) viewModel.onCoverImagePicked(uri.toString())
+    }
+
     GroupFeedContent(
         uiState = uiState,
         isAiSheetOpen = isAiSheetOpen,
@@ -168,6 +178,12 @@ fun GroupFeedScreen(
         onRenameClick = viewModel::onRenameClick,
         onDeleteClick = viewModel::onDeleteClick,
         onInviteClick = viewModel::onInviteClick,
+        onChangeCoverImageClick = {
+            coverImagePicker.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        },
+        onDismissCoverImageError = viewModel::onDismissCoverImageError,
         onRenameTextChange = viewModel::onRenameTextChange,
         onDismissRenameDialog = viewModel::onDismissRenameDialog,
         onConfirmRename = viewModel::onConfirmRename,
@@ -200,6 +216,8 @@ private fun GroupFeedContent(
     onRenameClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
     onInviteClick: () -> Unit = {},
+    onChangeCoverImageClick: () -> Unit = {},
+    onDismissCoverImageError: () -> Unit = {},
     onRenameTextChange: (String) -> Unit = {},
     onDismissRenameDialog: () -> Unit = {},
     onConfirmRename: () -> Unit = {},
@@ -239,6 +257,22 @@ private fun GroupFeedContent(
                     )
                 },
             )
+
+            if (uiState.isCoverImageUpdating) {
+                CoverImageStatusBanner(
+                    text = "그룹 사진을 올리는 중이에요…",
+                    isError = false,
+                    onDismiss = null,
+                    modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp),
+                )
+            } else if (uiState.coverImageError != null) {
+                CoverImageStatusBanner(
+                    text = uiState.coverImageError,
+                    isError = true,
+                    onDismiss = onDismissCoverImageError,
+                    modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp),
+                )
+            }
 
             when {
                 uiState.isLoading -> LoadingState()
@@ -285,6 +319,7 @@ private fun GroupFeedContent(
                 onAiClick = onAiSearchClick,
                 onChatClick = onChatClick,
                 onCreateMemoryClick = onCreateMemoryClick,
+                chatUnreadCount = uiState.chatUnreadCount,
                 modifier = Modifier.padding(bottom = 12.dp),
             )
 
@@ -307,6 +342,7 @@ private fun GroupFeedContent(
         GroupSettingsSheet(
             onRenameClick = onRenameClick,
             onInviteClick = onInviteClick,
+            onChangeCoverImageClick = onChangeCoverImageClick,
             onDeleteClick = onDeleteClick,
             onDismiss = onDismissSettingsSheet,
         )
@@ -357,6 +393,7 @@ private fun GroupFeedContent(
 private fun GroupSettingsSheet(
     onRenameClick: () -> Unit,
     onInviteClick: () -> Unit,
+    onChangeCoverImageClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -376,8 +413,57 @@ private fun GroupSettingsSheet(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             )
             SettingsMenuRow(label = "그룹 이름 변경", onClick = onRenameClick)
+            SettingsMenuRow(label = "그룹 사진 변경", onClick = onChangeCoverImageClick)
             SettingsMenuRow(label = "그룹에 친구 추가", onClick = onInviteClick)
             SettingsMenuRow(label = "그룹 삭제", labelColor = DangerColor, onClick = onDeleteClick)
+        }
+    }
+}
+
+/**
+ * 그룹 사진 변경 진행/실패 상태를 알려주는 작은 배너.
+ * 이전엔 상태만 들고 있고 화면에 아무것도 그리지 않아서, 실패해도 "아무 반응 없음"으로
+ * 보이는 문제가 있었다 — 업로드 중/실패를 여기서 눈에 보이게 알린다.
+ */
+@Composable
+private fun CoverImageStatusBanner(
+    text: String,
+    isError: Boolean,
+    onDismiss: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (isError) DangerColor.copy(alpha = 0.1f) else ChipBackground)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        if (!isError) {
+            CircularProgressIndicator(
+                color = BrandGreen,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(14.dp),
+            )
+        }
+        Text(
+            text = text,
+            color = if (isError) DangerColor else TextPrimary,
+            fontSize = 12.5.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
+        )
+        if (onDismiss != null) {
+            Icon(
+                painter = painterResource(R.drawable.ic_x),
+                contentDescription = "닫기",
+                tint = TextSecondary,
+                modifier = Modifier
+                    .size(16.dp)
+                    .clickable(onClick = onDismiss),
+            )
         }
     }
 }

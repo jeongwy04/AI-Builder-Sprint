@@ -11,6 +11,13 @@ interface ArchiveRepository {
     suspend fun getMyArchives(): Result<List<ArchiveSummary>>
 
     /**
+     * 그룹 하나만 필요한 화면(그룹 피드/채팅 상단바)에서 쓴다.
+     * [getMyArchives] 를 통째로 다시 불러와 그중 하나만 골라 쓰면, 화면 하나 열 때마다
+     * 내 모든 그룹의 마지막 메시지를 전부 다시 조회하는 낭비가 생긴다 — 그래서 따로 둔다.
+     */
+    suspend fun getArchive(archiveId: String): Result<ArchiveSummary>
+
+    /**
      * 새 그룹을 만들고 나를 첫 멤버로 넣는다.
      * ⚠️ Supabase 구현은 `archives` 에 직접 insert 하지 않고 `create_archive` RPC 로만 만든다
      * (직접 insert 시 RLS readback 함정에 걸린다 — 백엔드 계약).
@@ -22,6 +29,13 @@ interface ArchiveRepository {
      * 역할 구분 없이 멤버 누구나 바꿀 수 있다 (CLAUDE.md §6.1 — 역할 개념 없음).
      */
     suspend fun renameArchive(archiveId: String, newName: String): Result<Unit>
+
+    /**
+     * 그룹 대표 사진 변경. [imageUri] 는 기기 로컬 URI 문자열(Photo Picker 결과)이다.
+     * Storage 업로드 → `archives.cover_image_path` 갱신 → 이전 사진이 있었으면 지우는 순서로 처리한다.
+     * 이름 변경과 같은 정책(`is_member`)이라 역할 구분 없이 멤버 누구나 바꿀 수 있다.
+     */
+    suspend fun updateCoverImage(archiveId: String, imageUri: String): Result<Unit>
 
     /**
      * 그룹(보관소) 삭제. `archives_delete_member` 정책도 `is_member(id)` 라 멤버 누구나 지울 수 있다.

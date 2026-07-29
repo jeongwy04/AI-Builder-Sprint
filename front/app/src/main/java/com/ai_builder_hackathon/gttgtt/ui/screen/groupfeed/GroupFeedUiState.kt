@@ -8,6 +8,8 @@ data class GroupFeedUiState(
     val memberCount: Int = 0,
     val posts: List<Post> = emptyList(),
     val errorMessage: String? = null,
+    /** 하단 네비게이션 바 채팅 버튼 우측 상단 배지 — 이 그룹방의 안 읽은 메시지 수. */
+    val chatUnreadCount: Int = 0,
 
     // ── 그룹 설정 (우측 상단 톱니 버튼) ──
     val isSettingsSheetOpen: Boolean = false,
@@ -17,6 +19,11 @@ data class GroupFeedUiState(
     val renameText: String = "",
     val isRenaming: Boolean = false,
     val renameError: String? = null,
+
+    // 그룹 대표 사진 변경
+    val coverImageUrl: String? = null,
+    val isCoverImageUpdating: Boolean = false,
+    val coverImageError: String? = null,
 
     // 삭제
     val isDeleteConfirmOpen: Boolean = false,

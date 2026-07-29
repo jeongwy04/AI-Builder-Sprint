@@ -20,6 +20,27 @@ data class GroupListUiState(
     val joinCode: String = "",
     val isJoining: Boolean = false,
     val joinError: String? = null,
+    /** 그룹 카드 우측 상단 점 세개를 누르면 뜨는 "그룹 설정" 시트 — 이름 변경 · 친구 초대 · 삭제. */
+    val settingsArchiveId: String? = null,
+    val settingsArchiveName: String = "",
+    /** 이름 변경 다이얼로그 상태. */
+    val renamingArchiveId: String? = null,
+    val renameText: String = "",
+    val isRenaming: Boolean = false,
+    val renameError: String? = null,
+    /** 친구 초대 다이얼로그 상태. */
+    val invitingArchiveId: String? = null,
+    val isInviteLoading: Boolean = false,
+    val inviteToken: String? = null,
+    val inviteError: String? = null,
+    /** 그룹 삭제 확인 다이얼로그 상태. */
+    val deletingArchiveId: String? = null,
+    val deletingArchiveName: String = "",
+    val isDeleting: Boolean = false,
+    val deleteError: String? = null,
+    /** 그룹 사진 변경 — Photo Picker 로 고른 뒤 업로드가 끝날 때까지 그 그룹 id 가 담긴다. */
+    val updatingCoverImageArchiveId: String? = null,
+    val coverImageError: String? = null,
 ) {
     val isEmpty: Boolean
         get() = !isLoading && groups.isEmpty()
@@ -29,4 +50,19 @@ data class GroupListUiState(
 
     val canConfirmJoin: Boolean
         get() = !isJoining && joinCode.isNotBlank()
+
+    val isSettingsSheetOpen: Boolean
+        get() = settingsArchiveId != null
+
+    val isRenameDialogOpen: Boolean
+        get() = renamingArchiveId != null
+
+    val canConfirmRename: Boolean
+        get() = !isRenaming && renameText.isNotBlank()
+
+    val isInviteDialogOpen: Boolean
+        get() = invitingArchiveId != null
+
+    val isDeleteConfirmOpen: Boolean
+        get() = deletingArchiveId != null
 }

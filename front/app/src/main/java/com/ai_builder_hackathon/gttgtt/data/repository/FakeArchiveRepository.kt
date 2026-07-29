@@ -27,6 +27,13 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
         return Result.success(archives.values.toList())
     }
 
+    override suspend fun getArchive(archiveId: String): Result<ArchiveSummary> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        val found = archives[archiveId]
+            ?: return Result.failure(NoSuchElementException("그룹을 찾을 수 없습니다."))
+        return Result.success(found)
+    }
+
     override suspend fun createArchive(name: String, groupType: GroupType): Result<ArchiveSummary> {
         delay(FAKE_NETWORK_DELAY_MILLIS)
         val trimmed = name.trim()
@@ -56,6 +63,15 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
         val existing = archives[archiveId]
             ?: return Result.failure(NoSuchElementException("그룹을 찾을 수 없습니다."))
         archives[archiveId] = existing.copy(name = trimmed)
+        return Result.success(Unit)
+    }
+
+    override suspend fun updateCoverImage(archiveId: String, imageUri: String): Result<Unit> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        val existing = archives[archiveId]
+            ?: return Result.failure(NoSuchElementException("그룹을 찾을 수 없습니다."))
+        // Fake 는 Storage 가 없어 signed URL 발급 없이 로컬 Photo Picker URI 를 그대로 화면에 쓴다.
+        archives[archiveId] = existing.copy(coverImageUrl = imageUri)
         return Result.success(Unit)
     }
 
@@ -106,6 +122,7 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
                     theme = GradientTheme.BEACH,
                     memberIds = listOf("u-minji", "u-seoyeon", "u-jaehun"),
                     totalMemberCount = 6,
+                    unreadCount = 3,
                 ),
                 ArchiveSummary(
                     id = "archive-univ",
@@ -115,6 +132,7 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
                     theme = GradientTheme.FOREST,
                     memberIds = listOf("u-hyunwoo", "u-doyun"),
                     totalMemberCount = 6,
+                    unreadCount = 12,
                 ),
                 ArchiveSummary(
                     id = "archive-devteam",

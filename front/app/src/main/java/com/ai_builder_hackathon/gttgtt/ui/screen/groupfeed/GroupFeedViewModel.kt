@@ -8,6 +8,7 @@ import com.ai_builder_hackathon.gttgtt.domain.repository.ChatRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.MemoryRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.PostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -204,6 +205,41 @@ class GroupFeedViewModel @Inject constructor(
         _uiState.update { it.copy(isInviteDialogOpen = false) }
     }
 
+    // ── 그룹 대표 사진 변경 ──
+
+    /**
+     * Photo Picker 로 고른 로컬 [imageUri] 를 표지 사진으로 올린다.
+     * 업로드가 끝나면 signed URL 을 다시 받아와야 실제로 화면에 뜬다 —
+     * [imageUri] 는 로컬 content:// URI 라 앱을 나갔다 오면 더는 못 읽는다.
+     */
+    fun onCoverImagePicked(imageUri: String) {
+        _uiState.update { it.copy(isSettingsSheetOpen = false, isCoverImageUpdating = true, coverImageError = null) }
+        viewModelScope.launch {
+            archiveRepository.updateCoverImage(archiveId, imageUri)
+                .onSuccess {
+                    val refreshed = archiveRepository.getArchive(archiveId).getOrNull()
+                    _uiState.update {
+                        it.copy(
+                            isCoverImageUpdating = false,
+                            coverImageUrl = refreshed?.coverImageUrl ?: imageUri,
+                        )
+                    }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isCoverImageUpdating = false,
+                            coverImageError = throwable.message ?: "그룹 사진을 변경하지 못했습니다.",
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onDismissCoverImageError() {
+        _uiState.update { it.copy(coverImageError = null) }
+    }
+
     // ── 게시물(기억) 삭제 — 카드 우상단 점 세개 버튼 ──
 
     fun onPostDeleteClick(postId: String) {
@@ -281,11 +317,13 @@ class GroupFeedViewModel @Inject constructor(
     private fun loadFeed() {
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {
-            val group = archiveRepository.getMyArchives()
-                .getOrNull()
-                ?.firstOrNull { it.id == archiveId }
+            // 그룹 메타(이름/인원/안읽음)와 게시물 목록은 서로 의존하지 않는 조회라
+            // 순서대로 기다릴 이유가 없다 — 동시에 시작해 둘 다 끝나면 화면을 채운다.
+            val groupDeferred = async { archiveRepository.getArchive(archiveId).getOrNull() }
+            val feedDeferred = async { postRepository.getFeed(archiveId) }
 
-            postRepository.getFeed(archiveId)
+            val group = groupDeferred.await()
+            feedDeferred.await()
                 .onSuccess { posts ->
                     _uiState.update {
                         it.copy(
@@ -293,6 +331,8 @@ class GroupFeedViewModel @Inject constructor(
                             groupName = group?.name.orEmpty(),
                             memberCount = group?.totalMemberCount ?: 0,
                             posts = posts,
+                            chatUnreadCount = group?.unreadCount ?: 0,
+                            coverImageUrl = group?.coverImageUrl,
                         )
                     }
                 }

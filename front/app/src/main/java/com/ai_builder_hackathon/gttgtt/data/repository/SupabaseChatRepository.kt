@@ -1,5 +1,6 @@
 package com.ai_builder_hackathon.gttgtt.data.repository
 
+import com.ai_builder_hackathon.gttgtt.data.dto.ChatReadUpsertDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MediaAssetDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MemoryDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MessageDto
@@ -15,6 +16,8 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -41,21 +44,31 @@ class SupabaseChatRepository @Inject constructor(
             }
             .decodeList<MessageDto>()
 
-        val nameById = fetchNames(rows.map { it.senderId })
-        val previewByMemoryId = resolveSharedMemoryPreviews(rows.mapNotNull { it.sharedMemoryId })
+        coroutineScope {
+            // 이름/공유 미리보기 조회와 메시지별 채팅 사진(signed URL 발급)은 서로 무관하니
+            // 전부 동시에 시작한다 — 사진이 실린 메시지가 여러 개면 예전엔 순서대로 기다렸다.
+            val namesDeferred = async { fetchNames(rows.map { it.senderId }) }
+            val previewsDeferred = async { resolveSharedMemoryPreviews(rows.mapNotNull { it.sharedMemoryId }) }
+            val photoDeferredById = rows.associate { row ->
+                row.id to async { row.imagePath?.let { media.toPhoto(it) } }
+            }
 
-        rows.map { row ->
-            ChatMessage(
-                id = row.id,
-                archiveId = row.archiveId,
-                senderId = row.senderId,
-                senderName = nameById[row.senderId] ?: "멤버",
-                sentAtMillis = parseMillis(row.createdAt),
-                text = row.body,
-                photo = row.imagePath?.let { media.toPhoto(it) },
-                sharedMemory = row.sharedMemoryId?.let { previewByMemoryId[it] ?: deletedMemoryPreview(it) },
-                isMine = myId != null && row.senderId == myId,
-            )
+            val nameById = namesDeferred.await()
+            val previewByMemoryId = previewsDeferred.await()
+
+            rows.map { row ->
+                ChatMessage(
+                    id = row.id,
+                    archiveId = row.archiveId,
+                    senderId = row.senderId,
+                    senderName = nameById[row.senderId] ?: "멤버",
+                    sentAtMillis = parseMillis(row.createdAt),
+                    text = row.body,
+                    photo = photoDeferredById.getValue(row.id).await(),
+                    sharedMemory = row.sharedMemoryId?.let { previewByMemoryId[it] ?: deletedMemoryPreview(it) },
+                    isMine = myId != null && row.senderId == myId,
+                )
+            }
         }
     }
 
@@ -101,6 +114,14 @@ class SupabaseChatRepository @Inject constructor(
         )
     }
 
+    override suspend fun markRead(archiveId: String): Result<Unit> = runCatching {
+        supabase.postgrest.from("chat_reads")
+            .upsert(ChatReadUpsertDto(archiveId = archiveId, lastReadAt = OffsetDateTime.now().toString())) {
+                onConflict = "archive_id,user_id"
+            }
+        Unit
+    }
+
     /**
      * 메시지에 딸린 공유 기억 미리보기를 한꺼번에 조립한다 (메시지마다 왕복하면 N+1).
      * SupabasePostRepository.buildPosts() 와 같은 title/photo 계산 규칙을 쓴다.
@@ -118,35 +139,49 @@ class SupabaseChatRepository @Inject constructor(
 
         val foundIds = memories.map { it.id }
 
-        val firstNoteByMemory = supabase.postgrest.from("notes")
-            .select(Columns.raw("id,memory_id,archive_id,author_id,body,created_at")) {
-                filter { isIn("memory_id", foundIds) }
-                order("created_at", Order.ASCENDING)
+        return coroutineScope {
+            // 노트/사진 조회는 서로 무관해 동시에 시작한다.
+            val notesDeferred = async {
+                supabase.postgrest.from("notes")
+                    .select(Columns.raw("id,memory_id,archive_id,author_id,body,created_at")) {
+                        filter { isIn("memory_id", foundIds) }
+                        order("created_at", Order.ASCENDING)
+                    }
+                    .decodeList<NoteDto>()
+                    .groupBy { it.memoryId }
+                    .mapValues { (_, notes) -> notes.firstOrNull()?.body.orEmpty() }
             }
-            .decodeList<NoteDto>()
-            .groupBy { it.memoryId }
-            .mapValues { (_, notes) -> notes.firstOrNull()?.body.orEmpty() }
 
-        val firstPhotoPathByMemory = supabase.postgrest.from("media_assets")
-            .select(Columns.raw("id,memory_id,storage_path,media_type,created_at")) {
-                filter { isIn("memory_id", foundIds) }
-                order("created_at", Order.ASCENDING)
+            val photoPathDeferred = async {
+                supabase.postgrest.from("media_assets")
+                    .select(Columns.raw("id,memory_id,storage_path,media_type,created_at")) {
+                        filter { isIn("memory_id", foundIds) }
+                        order("created_at", Order.ASCENDING)
+                    }
+                    .decodeList<MediaAssetDto>()
+                    .groupBy { it.memoryId }
+                    .mapValues { (_, assets) -> assets.firstOrNull()?.storagePath }
             }
-            .decodeList<MediaAssetDto>()
-            .groupBy { it.memoryId }
-            .mapValues { (_, assets) -> assets.firstOrNull()?.storagePath }
 
-        return memories.associate { memory ->
-            val storedBody = firstNoteByMemory[memory.id].orEmpty()
-            val title = storedBody.lineSequence().firstOrNull { it.isNotBlank() }?.take(TITLE_MAX)
-                ?: "제목 없는 기억"
-            val photo = firstPhotoPathByMemory[memory.id]?.let { media.toPhoto(it) }
-            memory.id to SharedMemoryPreview(
-                memoryId = memory.id,
-                title = title,
-                photo = photo,
-                memoryDateMillis = parseMemoryDateMillis(memory.memoryDate),
-            )
+            val firstNoteByMemory = notesDeferred.await()
+            val firstPhotoPathByMemory = photoPathDeferred.await()
+
+            // 기억마다 signed URL 발급도 순서대로 기다리지 않고 한꺼번에 병렬로 돌린다.
+            val photoDeferredByMemory = memories.associate { memory ->
+                memory.id to async { firstPhotoPathByMemory[memory.id]?.let { media.toPhoto(it) } }
+            }
+
+            memories.associate { memory ->
+                val storedBody = firstNoteByMemory[memory.id].orEmpty()
+                val title = storedBody.lineSequence().firstOrNull { it.isNotBlank() }?.take(TITLE_MAX)
+                    ?: "제목 없는 기억"
+                memory.id to SharedMemoryPreview(
+                    memoryId = memory.id,
+                    title = title,
+                    photo = photoDeferredByMemory.getValue(memory.id).await(),
+                    memoryDateMillis = parseMemoryDateMillis(memory.memoryDate),
+                )
+            }
         }
     }
 

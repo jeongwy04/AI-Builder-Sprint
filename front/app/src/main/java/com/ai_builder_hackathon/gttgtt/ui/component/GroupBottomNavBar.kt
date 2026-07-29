@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -20,9 +22,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ai_builder_hackathon.gttgtt.R
+import com.ai_builder_hackathon.gttgtt.ui.theme.AbodeBlue
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
@@ -47,6 +53,7 @@ fun GroupBottomNavBar(
     onCreateMemoryClick: () -> Unit,
     modifier: Modifier = Modifier,
     isChatSelected: Boolean = false,
+    chatUnreadCount: Int = 0,
 ) {
     Row(
         modifier = modifier
@@ -72,6 +79,7 @@ fun GroupBottomNavBar(
             contentDescription = "그룹 채팅",
             isSelected = isChatSelected,
             onClick = onChatClick,
+            unreadCount = chatUnreadCount,
         )
     }
 }
@@ -83,6 +91,7 @@ private fun NavItem(
     contentDescription: String,
     isSelected: Boolean,
     onClick: () -> Unit,
+    unreadCount: Int = 0,
 ) {
     // 탭 순간 색이 뚝 바뀌지 않고 부드럽게 차오르게.
     val background by animateColorAsState(
@@ -100,6 +109,7 @@ private fun NavItem(
         background = background,
         iconTint = iconTint,
         onClick = onClick,
+        unreadCount = unreadCount,
     )
 }
 
@@ -125,6 +135,7 @@ private fun NavItemBox(
     background: Color,
     iconTint: Color,
     onClick: () -> Unit,
+    unreadCount: Int = 0,
 ) {
     Box(
         modifier = Modifier
@@ -141,6 +152,38 @@ private fun NavItemBox(
             tint = iconTint,
             modifier = Modifier.size(23.dp),
         )
+
+        if (unreadCount > 0) {
+            NavBadge(
+                count = unreadCount,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 2.dp, end = 6.dp),
+            )
+        }
+    }
+}
+
+/** 네비게이션 아이콘 우측 상단에 얹는 안 읽음 배지. 타원이 아닌 정원(正圓) 고정. 99개 넘으면 "99+". */
+@Composable
+private fun NavBadge(count: Int, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(16.dp)
+            .clip(CircleShape)
+            .background(AbodeBlue),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = if (count > 99) "99+" else count.toString(),
+            color = SurfaceWhite,
+            fontSize = 8.sp,
+            fontWeight = FontWeight.Black,
+            lineHeight = 8.sp,
+            style = LocalTextStyle.current.copy(
+                platformStyle = PlatformTextStyle(includeFontPadding = false),
+            ),
+        )
     }
 }
 
@@ -153,6 +196,7 @@ private fun GroupBottomNavBarPreview() {
             onAiClick = {},
             onChatClick = {},
             onCreateMemoryClick = {},
+            chatUnreadCount = 5,
         )
     }
 }

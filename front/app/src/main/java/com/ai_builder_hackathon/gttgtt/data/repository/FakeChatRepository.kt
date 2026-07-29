@@ -73,6 +73,11 @@ class FakeChatRepository @Inject constructor() : ChatRepository {
         return Result.success(sent)
     }
 
+    override suspend fun markRead(archiveId: String): Result<Unit> {
+        // Fake 는 안 읽음 배지 자체를 계산하지 않는다 — 화면 흐름만 확인하면 되니 조용히 성공 처리.
+        return Result.success(Unit)
+    }
+
     private fun seedMessages(): List<ChatMessage> = listOf(
         message(
             id = "m1",

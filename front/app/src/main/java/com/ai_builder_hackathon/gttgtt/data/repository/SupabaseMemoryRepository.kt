@@ -27,6 +27,8 @@ import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import java.time.Instant
 import java.time.LocalDate
 import java.time.OffsetDateTime
@@ -45,75 +47,100 @@ class SupabaseMemoryRepository @Inject constructor(
 ) : MemoryRepository {
 
     override suspend fun getDetail(memoryId: String): Result<MemoryDetail> = runCatching {
-        val memory = supabase.postgrest.from("memories")
-            // embedding 은 select 하지 않는다 (4096차원).
-            .select(Columns.raw("id,archive_id,author_id,memory_date,place_name,search_text,created_at")) {
-                filter { eq("id", memoryId) }
+        coroutineScope {
+            // memories/media_assets/notes/memory_people/reactions 다섯 조회 모두 서로 무관하니
+            // 순서대로 기다리지 않고 동시에 시작한다.
+            val memoryDeferred = async {
+                supabase.postgrest.from("memories")
+                    // embedding 은 select 하지 않는다 (4096차원).
+                    .select(Columns.raw("id,archive_id,author_id,memory_date,place_name,search_text,created_at")) {
+                        filter { eq("id", memoryId) }
+                    }
+                    .decodeSingle<MemoryDto>()
             }
-            .decodeSingle<MemoryDto>()
 
-        val assets = supabase.postgrest.from("media_assets")
-            .select(Columns.raw("id,memory_id,storage_path,media_type,created_at")) {
-                filter { eq("memory_id", memoryId) }
-                order("created_at", Order.ASCENDING)
+            val assetsDeferred = async {
+                supabase.postgrest.from("media_assets")
+                    .select(Columns.raw("id,memory_id,storage_path,media_type,created_at")) {
+                        filter { eq("memory_id", memoryId) }
+                        order("created_at", Order.ASCENDING)
+                    }
+                    .decodeList<MediaAssetDto>()
             }
-            .decodeList<MediaAssetDto>()
 
-        val notes = supabase.postgrest.from("notes")
-            .select(Columns.raw("id,memory_id,archive_id,author_id,body,created_at")) {
-                filter { eq("memory_id", memoryId) }
-                order("created_at", Order.ASCENDING)
+            val notesDeferred = async {
+                supabase.postgrest.from("notes")
+                    .select(Columns.raw("id,memory_id,archive_id,author_id,body,created_at")) {
+                        filter { eq("memory_id", memoryId) }
+                        order("created_at", Order.ASCENDING)
+                    }
+                    .decodeList<NoteDto>()
             }
-            .decodeList<NoteDto>()
 
-        val people = supabase.postgrest.from("memory_people")
-            .select(Columns.raw("memory_id,user_id")) {
-                filter { eq("memory_id", memoryId) }
+            val peopleDeferred = async {
+                supabase.postgrest.from("memory_people")
+                    .select(Columns.raw("memory_id,user_id")) {
+                        filter { eq("memory_id", memoryId) }
+                    }
+                    .decodeList<MemoryPersonDto>()
             }
-            .decodeList<MemoryPersonDto>()
 
-        // 좋아요 — 피드(SupabasePostRepository.buildPosts())와 같은 reactions 테이블을 읽는다.
-        val myId = supabase.auth.currentUserOrNull()?.id
-        val reactions = supabase.postgrest.from("reactions")
-            .select(Columns.raw("id,memory_id,user_id")) {
-                filter { eq("memory_id", memoryId) }
+            // 좋아요 — 피드(SupabasePostRepository.buildPosts())와 같은 reactions 테이블을 읽는다.
+            val reactionsDeferred = async {
+                supabase.postgrest.from("reactions")
+                    .select(Columns.raw("id,memory_id,user_id")) {
+                        filter { eq("memory_id", memoryId) }
+                    }
+                    .decodeList<ReactionDto>()
             }
-            .decodeList<ReactionDto>()
 
-        val nameById = fetchNames(notes.map { it.authorId } + people.map { it.userId })
+            val memory = memoryDeferred.await()
+            val assets = assetsDeferred.await()
+            val notes = notesDeferred.await()
+            val people = peopleDeferred.await()
+            val reactions = reactionsDeferred.await()
 
-        // 첫 note 가 본문, 나머지는 댓글처럼 취급한다.
-        // 스키마에 comments 테이블이 없어 notes 를 겸용하는 구조다.
-        val storedBody = notes.firstOrNull()?.body.orEmpty()
-        val title = storedBody.lineSequence().firstOrNull { it.isNotBlank() }?.take(TITLE_MAX)
-            ?: "제목 없는 기억"
-        val comments = notes.drop(1).map { note ->
-            Comment(
-                id = note.id,
-                authorId = note.authorId,
-                authorName = nameById[note.authorId] ?: "멤버",
-                text = note.body,
-                createdAtMillis = parseMillis(note.createdAt),
+            val myId = supabase.auth.currentUserOrNull()?.id
+            val nameById = fetchNames(notes.map { it.authorId } + people.map { it.userId })
+
+            // 첫 note 가 본문, 나머지는 댓글처럼 취급한다.
+            // 스키마에 comments 테이블이 없어 notes 를 겸용하는 구조다.
+            val storedBody = notes.firstOrNull()?.body.orEmpty()
+            val title = storedBody.lineSequence().firstOrNull { it.isNotBlank() }?.take(TITLE_MAX)
+                ?: "제목 없는 기억"
+            val comments = notes.drop(1).map { note ->
+                Comment(
+                    id = note.id,
+                    authorId = note.authorId,
+                    authorName = nameById[note.authorId] ?: "멤버",
+                    text = note.body,
+                    createdAtMillis = parseMillis(note.createdAt),
+                )
+            }
+
+            // 사진마다 signed URL 발급도 순서대로 기다리지 않고 병렬로 돌린다.
+            val photos = assets
+                .map { asset -> async { media.toPhoto(asset.id, asset.storagePath) } }
+                .map { it.await() }
+
+            MemoryDetail(
+                id = memory.id,
+                archiveId = memory.archiveId,
+                memoryDateMillis = parseDateMillis(memory.memoryDate),
+                title = title,
+                // storedBody 는 저장용 원문이라 title 이 첫 줄에 접혀 들어가 있다.
+                // 화면엔 title 을 따로 보여주므로, 본문에서는 그 줄을 떼어내야 안 겹친다.
+                body = stripTitleLine(title, storedBody),
+                photos = photos,
+                participants = people.map { p ->
+                    Participant(id = p.userId, name = nameById[p.userId] ?: "멤버")
+                },
+                relatedPhotos = emptyList(), // 연관 사진은 후순위 기능
+                comments = comments,
+                likeCount = reactions.size,
+                likedByMe = myId != null && reactions.any { it.userId == myId },
             )
         }
-
-        MemoryDetail(
-            id = memory.id,
-            archiveId = memory.archiveId,
-            memoryDateMillis = parseDateMillis(memory.memoryDate),
-            title = title,
-            // storedBody 는 저장용 원문이라 title 이 첫 줄에 접혀 들어가 있다.
-            // 화면엔 title 을 따로 보여주므로, 본문에서는 그 줄을 떼어내야 안 겹친다.
-            body = stripTitleLine(title, storedBody),
-            photos = assets.map { asset -> media.toPhoto(asset.id, asset.storagePath) },
-            participants = people.map { p ->
-                Participant(id = p.userId, name = nameById[p.userId] ?: "멤버")
-            },
-            relatedPhotos = emptyList(), // 연관 사진은 후순위 기능
-            comments = comments,
-            likeCount = reactions.size,
-            likedByMe = myId != null && reactions.any { it.userId == myId },
-        )
     }
 
     override suspend fun getMyMemories(): Result<List<MemorySummary>> = runCatching {
@@ -306,7 +333,7 @@ class SupabaseMemoryRepository @Inject constructor(
                     filter { isIn("id", removedPhotoIds) }
                 }
                 .decodeList<MediaAssetDto>()
-            media.deleteMemoryPhotos(toRemove.map { it.storagePath })
+            media.deleteStorageObjects(toRemove.map { it.storagePath })
             supabase.postgrest.from("media_assets").delete { filter { isIn("id", removedPhotoIds) } }
         }
 

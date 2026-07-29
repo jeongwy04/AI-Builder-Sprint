@@ -1,5 +1,7 @@
 package com.ai_builder_hackathon.gttgtt.data.repository
 
+import com.ai_builder_hackathon.gttgtt.data.dto.ArchiveCoverImageUpdateDto
+import com.ai_builder_hackathon.gttgtt.data.dto.ArchiveCoverPathDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ArchiveRenameDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ArchiveRowDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ArchiveWithMembersDto
@@ -7,6 +9,8 @@ import com.ai_builder_hackathon.gttgtt.data.dto.InvitationInsert
 import com.ai_builder_hackathon.gttgtt.data.dto.InvitationRowDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MessagePreviewDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ProfileDto
+import com.ai_builder_hackathon.gttgtt.data.dto.UnreadCountDto
+import com.ai_builder_hackathon.gttgtt.data.remote.MediaUploader
 import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.domain.model.GroupType
@@ -16,6 +20,8 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -32,6 +38,7 @@ import kotlin.math.absoluteValue
  */
 class SupabaseArchiveRepository @Inject constructor(
     private val supabase: SupabaseClient,
+    private val media: MediaUploader,
 ) : ArchiveRepository {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -39,19 +46,35 @@ class SupabaseArchiveRepository @Inject constructor(
     override suspend fun getMyArchives(): Result<List<ArchiveSummary>> = runCatching {
         // RLS: 내가 멤버인 archives 만 내려온다. memberships 는 내장 조인.
         val archives = supabase.postgrest.from("archives")
-            .select(Columns.raw("id,name,group_type,created_at,memberships(user_id)"))
+            .select(Columns.raw("id,name,group_type,cover_image_path,created_at,memberships(user_id)"))
             .decodeList<ArchiveWithMembersDto>()
 
         if (archives.isEmpty()) return@runCatching emptyList()
 
-        // 미리보기 작성자 이름용 프로필을 한 번에 당겨온다.
+        // 미리보기 작성자 이름 / 안 읽음 개수 / 그룹별 마지막 메시지 / 표지 사진 signed URL 을
+        // 전부 동시에 당겨온다. 예전엔 그룹마다 fetchLastMessage 를 순서대로 기다려서(N번 순차 왕복)
+        // 그룹이 많을수록 목록 화면이 느려졌다 — 서로 독립적인 조회라 병렬로 돌려도 안전하다.
         val allMemberIds = archives.flatMap { a -> a.memberships.map { it.userId } }.distinct()
-        val nameById = fetchProfileNames(allMemberIds)
+        val loaded = coroutineScope {
+            val namesDeferred = async { fetchProfileNames(allMemberIds) }
+            val unreadDeferred = async { fetchUnreadCounts() }
+            val lastMessageDeferreds = archives.map { archive -> archive.id to async { fetchLastMessage(archive.id) } }
+            val coverUrlDeferreds = archives.map { archive ->
+                archive.id to async { archive.coverImagePath?.let { media.signedUrl(it) } }
+            }
+
+            ArchiveListLoad(
+                nameById = namesDeferred.await(),
+                unreadByArchiveId = unreadDeferred.await(),
+                lastMessageByArchiveId = lastMessageDeferreds.associate { (id, deferred) -> id to deferred.await() },
+                coverUrlByArchiveId = coverUrlDeferreds.associate { (id, deferred) -> id to deferred.await() },
+            )
+        }
 
         archives.map { archive ->
-            val lastMessage = fetchLastMessage(archive.id)
+            val lastMessage = loaded.lastMessageByArchiveId[archive.id]
             val preview = lastMessage?.let { msg ->
-                val sender = nameById[msg.senderId] ?: "멤버"
+                val sender = loaded.nameById[msg.senderId] ?: "멤버"
                 val content = msg.body ?: "사진을 보냈어요"
                 "$sender: $content"
             } ?: "아직 대화가 없어요"
@@ -64,8 +87,60 @@ class SupabaseArchiveRepository @Inject constructor(
                 theme = themeFor(archive.groupType, archive.id),
                 memberIds = archive.memberships.map { it.userId },
                 totalMemberCount = archive.memberships.size,
+                unreadCount = loaded.unreadByArchiveId[archive.id] ?: 0,
+                coverImageUrl = loaded.coverUrlByArchiveId[archive.id],
             )
         }.sortedByDescending { it.lastActivityAtMillis }
+    }
+
+    /** [getMyArchives] 의 병렬 조회 결과 묶음 — 이종 타입 4개를 리스트 destructuring 대신 명시적 필드로 받는다. */
+    private data class ArchiveListLoad(
+        val nameById: Map<String, String>,
+        val unreadByArchiveId: Map<String, Int>,
+        val lastMessageByArchiveId: Map<String, MessagePreviewDto?>,
+        val coverUrlByArchiveId: Map<String, String?>,
+    )
+
+    override suspend fun getArchive(archiveId: String): Result<ArchiveSummary> = runCatching {
+        // decodeSingle() 은 내부적으로 List.single() 이라 결과가 0건이면 "List is empty." 처럼
+        // 원인을 알 수 없는 메시지를 그대로 던진다. RLS 타이밍(방금 막 멤버가 됐거나, 세션이
+        // 잠깐 갱신 중인 경우 등)으로 0건이 오는 경우를 구분해 알아볼 수 있는 메시지로 바꾼다.
+        val archive = supabase.postgrest.from("archives")
+            .select(Columns.raw("id,name,group_type,cover_image_path,created_at,memberships(user_id)")) {
+                filter { eq("id", archiveId) }
+            }
+            .decodeList<ArchiveWithMembersDto>()
+            .firstOrNull()
+            ?: throw NoSuchElementException("그룹을 찾을 수 없습니다. (id=$archiveId)")
+
+        // unread_counts() 는 내 그룹 전체를 한 번에 계산하는 RPC라 그룹 하나만 걸러 받을 방법이
+        // 없다 — 그래도 쿼리 자체는 1번이라 getMyArchives() 의 N+1(그룹마다 fetchLastMessage)과는
+        // 성격이 다르다. 마지막 메시지 조회 / 표지 사진 signed URL 과는 서로 독립적이니 병렬로 돌린다.
+        val (lastMessage, unreadByArchiveId, coverUrl) = coroutineScope {
+            val lastMessageDeferred = async { fetchLastMessage(archiveId) }
+            val unreadDeferred = async { fetchUnreadCounts() }
+            val coverUrlDeferred = async { archive.coverImagePath?.let { media.signedUrl(it) } }
+            Triple(lastMessageDeferred.await(), unreadDeferred.await(), coverUrlDeferred.await())
+        }
+
+        val nameById = lastMessage?.let { fetchProfileNames(listOf(it.senderId)) } ?: emptyMap()
+        val preview = lastMessage?.let { msg ->
+            val sender = nameById[msg.senderId] ?: "멤버"
+            val content = msg.body ?: "사진을 보냈어요"
+            "$sender: $content"
+        } ?: "아직 대화가 없어요"
+
+        ArchiveSummary(
+            id = archive.id,
+            name = archive.name,
+            lastMessagePreview = preview,
+            lastActivityAtMillis = parseMillis(lastMessage?.createdAt ?: archive.createdAt),
+            theme = themeFor(archive.groupType, archive.id),
+            memberIds = archive.memberships.map { it.userId },
+            totalMemberCount = archive.memberships.size,
+            unreadCount = unreadByArchiveId[archive.id] ?: 0,
+            coverImageUrl = coverUrl,
+        )
     }
 
     override suspend fun createArchive(name: String, groupType: GroupType): Result<ArchiveSummary> = runCatching {
@@ -110,6 +185,35 @@ class SupabaseArchiveRepository @Inject constructor(
             .update(ArchiveRenameDto(name = trimmed)) {
                 filter { eq("id", archiveId) }
             }
+    }
+
+    override suspend fun updateCoverImage(archiveId: String, imageUri: String): Result<Unit> = runCatching {
+        // 이전 사진 경로를 먼저 알아둔다 — 업로드/갱신이 끝난 뒤 orphan 오브젝트로 지우기 위해서다.
+        // ⚠️ decodeSingle() 은 0건이면 "List is empty." 를 던진다 — 이전 경로를 못 구했다고
+        // 사진 변경 자체를 실패시킬 이유는 없다(정리를 못 할 뿐 갱신은 계속 진행되어야 한다),
+        // 그래서 실패해도 조용히 null 로 넘어간다.
+        val previous = runCatching {
+            supabase.postgrest.from("archives")
+                .select(Columns.raw("cover_image_path")) {
+                    filter { eq("id", archiveId) }
+                }
+                .decodeList<ArchiveCoverPathDto>()
+                .firstOrNull()
+                ?.coverImagePath
+        }.getOrNull()
+
+        val uploadedPath = media.uploadGroupCoverImage(archiveId, imageUri)
+            ?: error("사진 업로드에 실패했습니다.")
+
+        // archives_update_member 정책 = is_member(id) → 이름 변경과 같이 멤버 누구나 바꿀 수 있다.
+        supabase.postgrest.from("archives")
+            .update(ArchiveCoverImageUpdateDto(coverImagePath = uploadedPath)) {
+                filter { eq("id", archiveId) }
+            }
+
+        if (previous != null && previous != uploadedPath) {
+            media.deleteStorageObjects(listOf(previous))
+        }
     }
 
     override suspend fun deleteArchive(archiveId: String): Result<Unit> = runCatching {
@@ -159,7 +263,17 @@ class SupabaseArchiveRepository @Inject constructor(
             .associate { it.id to (it.displayName ?: "이름없음") }
     }
 
-    /** 그룹당 1건이라 N번 호출되지만, 소그룹 서비스 특성상 N이 작아 허용한다. */
+    /**
+     * archive_id → 안 읽은 메시지 수. `unread_counts()` RPC (호출자 RLS로 이미 내 그룹만 계산됨).
+     * 배지 하나 못 그린다고 그룹 목록 전체가 실패하면 안 되니, 실패하면 조용히 빈 맵으로 넘어간다.
+     */
+    private suspend fun fetchUnreadCounts(): Map<String, Int> = runCatching {
+        supabase.postgrest.rpc("unread_counts", buildJsonObject {})
+            .decodeList<UnreadCountDto>()
+            .associate { it.archiveId to it.unread }
+    }.getOrDefault(emptyMap())
+
+    /** 그룹당 1건씩 호출된다 — 호출부(getMyArchives/getArchive)에서 항상 async 로 병렬 실행한다. */
     private suspend fun fetchLastMessage(archiveId: String): MessagePreviewDto? =
         supabase.postgrest.from("messages")
             .select(Columns.raw("body,image_path,sender_id,created_at")) {

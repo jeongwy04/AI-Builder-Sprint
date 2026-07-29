@@ -8,6 +8,7 @@ import com.ai_builder_hackathon.gttgtt.domain.model.ChatMessage
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.ChatRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -70,11 +71,14 @@ class GroupChatViewModel @Inject constructor(
     private fun loadMessages() {
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {
-            val group = archiveRepository.getMyArchives()
-                .getOrNull()
-                ?.firstOrNull { it.id == archiveId }
+            // 그룹 이름/인원(상단바)과 메시지 목록은 서로 무관한 조회다 — 순서대로 기다리지 않고
+            // 동시에 시작한다. getArchive() 는 내 그룹 전체를 다시 훑는 getMyArchives() 대신
+            // 이 방 하나만 조회해 화면 진입 때마다의 불필요한 왕복을 줄인다.
+            val groupDeferred = async { archiveRepository.getArchive(archiveId).getOrNull() }
+            val messagesDeferred = async { chatRepository.getMessages(archiveId) }
 
-            chatRepository.getMessages(archiveId)
+            val group = groupDeferred.await()
+            messagesDeferred.await()
                 .onSuccess { loaded ->
                     messages = loaded
                     _uiState.update {
@@ -85,6 +89,9 @@ class GroupChatViewModel @Inject constructor(
                             items = loaded.toListItems(),
                         )
                     }
+                    // 방을 열었으니 안 읽음 배지 기준(chat_reads)을 갱신한다. 실패해도 채팅 자체는
+                    // 이미 보여준 뒤라 화면에 영향 없다 — 다음에 열 때 다시 시도된다.
+                    chatRepository.markRead(archiveId)
                 }
                 .onFailure { throwable ->
                     _uiState.update {
