@@ -7,6 +7,7 @@ import com.ai_builder_hackathon.gttgtt.data.dto.InvitationInsert
 import com.ai_builder_hackathon.gttgtt.data.dto.InvitationRowDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MessagePreviewDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ProfileDto
+import com.ai_builder_hackathon.gttgtt.data.dto.UnreadCountDto
 import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.domain.model.GroupType
@@ -47,6 +48,7 @@ class SupabaseArchiveRepository @Inject constructor(
         // 미리보기 작성자 이름용 프로필을 한 번에 당겨온다.
         val allMemberIds = archives.flatMap { a -> a.memberships.map { it.userId } }.distinct()
         val nameById = fetchProfileNames(allMemberIds)
+        val unreadByArchiveId = fetchUnreadCounts()
 
         archives.map { archive ->
             val lastMessage = fetchLastMessage(archive.id)
@@ -64,6 +66,7 @@ class SupabaseArchiveRepository @Inject constructor(
                 theme = themeFor(archive.groupType, archive.id),
                 memberIds = archive.memberships.map { it.userId },
                 totalMemberCount = archive.memberships.size,
+                unreadCount = unreadByArchiveId[archive.id] ?: 0,
             )
         }.sortedByDescending { it.lastActivityAtMillis }
     }
@@ -158,6 +161,16 @@ class SupabaseArchiveRepository @Inject constructor(
             .decodeList<ProfileDto>()
             .associate { it.id to (it.displayName ?: "이름없음") }
     }
+
+    /**
+     * archive_id → 안 읽은 메시지 수. `unread_counts()` RPC (호출자 RLS로 이미 내 그룹만 계산됨).
+     * 배지 하나 못 그린다고 그룹 목록 전체가 실패하면 안 되니, 실패하면 조용히 빈 맵으로 넘어간다.
+     */
+    private suspend fun fetchUnreadCounts(): Map<String, Int> = runCatching {
+        supabase.postgrest.rpc("unread_counts", buildJsonObject {})
+            .decodeList<UnreadCountDto>()
+            .associate { it.archiveId to it.unread }
+    }.getOrDefault(emptyMap())
 
     /** 그룹당 1건이라 N번 호출되지만, 소그룹 서비스 특성상 N이 작아 허용한다. */
     private suspend fun fetchLastMessage(archiveId: String): MessagePreviewDto? =

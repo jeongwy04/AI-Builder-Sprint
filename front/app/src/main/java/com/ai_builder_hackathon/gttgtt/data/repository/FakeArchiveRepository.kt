@@ -106,6 +106,7 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
                     theme = GradientTheme.BEACH,
                     memberIds = listOf("u-minji", "u-seoyeon", "u-jaehun"),
                     totalMemberCount = 6,
+                    unreadCount = 3,
                 ),
                 ArchiveSummary(
                     id = "archive-univ",
@@ -115,6 +116,7 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
                     theme = GradientTheme.FOREST,
                     memberIds = listOf("u-hyunwoo", "u-doyun"),
                     totalMemberCount = 6,
+                    unreadCount = 12,
                 ),
                 ArchiveSummary(
                     id = "archive-devteam",

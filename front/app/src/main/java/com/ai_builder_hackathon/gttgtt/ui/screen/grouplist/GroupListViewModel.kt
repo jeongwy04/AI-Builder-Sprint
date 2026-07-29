@@ -97,6 +97,18 @@ class GroupListViewModel @Inject constructor(
         _uiState.update { it.copy(isJoinDialogOpen = true, joinCode = "", joinError = null) }
     }
 
+    /** "새 그룹 만들기" 다이얼로그 안에서 "코드로 참여하기"로 전환할 때. */
+    fun onSwitchToJoinByCode() {
+        _uiState.update {
+            it.copy(
+                isCreateDialogOpen = false,
+                isJoinDialogOpen = true,
+                joinCode = "",
+                joinError = null,
+            )
+        }
+    }
+
     fun onDismissJoinDialog() {
         if (_uiState.value.isJoining) return
         _uiState.update { it.copy(isJoinDialogOpen = false) }
@@ -126,6 +138,145 @@ class GroupListViewModel @Inject constructor(
                         it.copy(
                             isJoining = false,
                             joinError = throwable.message ?: "유효하지 않은 코드예요.",
+                        )
+                    }
+                }
+        }
+    }
+
+    // ── 그룹 카드 우측 상단 점 세개 → 그룹 설정 시트 (이름 변경 · 친구 초대 · 삭제) ──
+
+    fun onGroupSettingsClick(archiveId: String) {
+        val name = allGroups.firstOrNull { it.id == archiveId }?.name ?: return
+        _uiState.update { it.copy(settingsArchiveId = archiveId, settingsArchiveName = name) }
+    }
+
+    fun onDismissSettingsSheet() {
+        _uiState.update { it.copy(settingsArchiveId = null) }
+    }
+
+    // ── 이름 변경 ──
+
+    fun onRenameClick() {
+        val state = _uiState.value
+        val archiveId = state.settingsArchiveId ?: return
+        _uiState.update {
+            it.copy(
+                settingsArchiveId = null,
+                renamingArchiveId = archiveId,
+                renameText = state.settingsArchiveName,
+                renameError = null,
+            )
+        }
+    }
+
+    fun onRenameTextChange(value: String) {
+        _uiState.update { it.copy(renameText = value, renameError = null) }
+    }
+
+    fun onDismissRenameDialog() {
+        if (_uiState.value.isRenaming) return
+        _uiState.update { it.copy(renamingArchiveId = null) }
+    }
+
+    fun onConfirmRename() {
+        val state = _uiState.value
+        val archiveId = state.renamingArchiveId ?: return
+        if (!state.canConfirmRename) {
+            _uiState.update { it.copy(renameError = "그룹 이름을 입력해주세요.") }
+            return
+        }
+
+        val newName = state.renameText
+        _uiState.update { it.copy(isRenaming = true, renameError = null) }
+        viewModelScope.launch {
+            archiveRepository.renameArchive(archiveId, newName)
+                .onSuccess {
+                    allGroups = allGroups.map { group ->
+                        if (group.id == archiveId) group.copy(name = newName.trim()) else group
+                    }
+                    _uiState.update { it.copy(isRenaming = false, renamingArchiveId = null) }
+                    applyFilter()
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isRenaming = false,
+                            renameError = throwable.message ?: "이름을 변경하지 못했습니다.",
+                        )
+                    }
+                }
+        }
+    }
+
+    // ── 친구 초대 ──
+
+    fun onInviteClick() {
+        val archiveId = _uiState.value.settingsArchiveId ?: return
+        _uiState.update {
+            it.copy(
+                settingsArchiveId = null,
+                invitingArchiveId = archiveId,
+                isInviteLoading = true,
+                inviteToken = null,
+                inviteError = null,
+            )
+        }
+        viewModelScope.launch {
+            archiveRepository.createInvitation(archiveId)
+                .onSuccess { token ->
+                    _uiState.update { it.copy(isInviteLoading = false, inviteToken = token) }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isInviteLoading = false,
+                            inviteError = throwable.message ?: "초대 코드를 만들지 못했습니다.",
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onDismissInviteDialog() {
+        _uiState.update { it.copy(invitingArchiveId = null) }
+    }
+
+    // ── 그룹 삭제 ──
+
+    fun onDeleteClick() {
+        val state = _uiState.value
+        val archiveId = state.settingsArchiveId ?: return
+        _uiState.update {
+            it.copy(
+                settingsArchiveId = null,
+                deletingArchiveId = archiveId,
+                deletingArchiveName = state.settingsArchiveName,
+                deleteError = null,
+            )
+        }
+    }
+
+    fun onDismissDeleteConfirm() {
+        if (_uiState.value.isDeleting) return
+        _uiState.update { it.copy(deletingArchiveId = null) }
+    }
+
+    fun onConfirmDelete() {
+        val archiveId = _uiState.value.deletingArchiveId ?: return
+        _uiState.update { it.copy(isDeleting = true, deleteError = null) }
+        viewModelScope.launch {
+            archiveRepository.deleteArchive(archiveId)
+                .onSuccess {
+                    allGroups = allGroups.filterNot { it.id == archiveId }
+                    _uiState.update { it.copy(isDeleting = false, deletingArchiveId = null) }
+                    applyFilter()
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isDeleting = false,
+                            deleteError = throwable.message ?: "그룹을 삭제하지 못했습니다.",
                         )
                     }
                 }

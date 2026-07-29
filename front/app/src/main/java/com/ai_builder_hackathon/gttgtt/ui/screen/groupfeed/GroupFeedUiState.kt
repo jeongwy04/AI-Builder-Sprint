@@ -8,6 +8,8 @@ data class GroupFeedUiState(
     val memberCount: Int = 0,
     val posts: List<Post> = emptyList(),
     val errorMessage: String? = null,
+    /** 하단 네비게이션 바 채팅 버튼 우측 상단 배지 — 이 그룹방의 안 읽은 메시지 수. */
+    val chatUnreadCount: Int = 0,
 
     // ── 그룹 설정 (우측 상단 톱니 버튼) ──
     val isSettingsSheetOpen: Boolean = false,

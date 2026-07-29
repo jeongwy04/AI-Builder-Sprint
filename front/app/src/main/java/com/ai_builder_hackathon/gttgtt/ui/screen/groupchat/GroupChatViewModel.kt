@@ -85,6 +85,9 @@ class GroupChatViewModel @Inject constructor(
                             items = loaded.toListItems(),
                         )
                     }
+                    // 방을 열었으니 안 읽음 배지 기준(chat_reads)을 갱신한다. 실패해도 채팅 자체는
+                    // 이미 보여준 뒤라 화면에 영향 없다 — 다음에 열 때 다시 시도된다.
+                    chatRepository.markRead(archiveId)
                 }
                 .onFailure { throwable ->
                     _uiState.update {

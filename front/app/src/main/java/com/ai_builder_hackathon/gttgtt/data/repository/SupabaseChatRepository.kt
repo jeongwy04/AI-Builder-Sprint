@@ -1,5 +1,6 @@
 package com.ai_builder_hackathon.gttgtt.data.repository
 
+import com.ai_builder_hackathon.gttgtt.data.dto.ChatReadUpsertDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MediaAssetDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MemoryDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MessageDto
@@ -99,6 +100,14 @@ class SupabaseChatRepository @Inject constructor(
             sharedMemory = preview,
             isMine = true,
         )
+    }
+
+    override suspend fun markRead(archiveId: String): Result<Unit> = runCatching {
+        supabase.postgrest.from("chat_reads")
+            .upsert(ChatReadUpsertDto(archiveId = archiveId, lastReadAt = OffsetDateTime.now().toString())) {
+                onConflict = "archive_id,user_id"
+            }
+        Unit
     }
 
     /**

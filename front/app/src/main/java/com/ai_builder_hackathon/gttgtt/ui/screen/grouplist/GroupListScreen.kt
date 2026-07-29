@@ -1,5 +1,6 @@
 package com.ai_builder_hackathon.gttgtt.ui.screen.grouplist
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,8 +31,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -52,8 +57,8 @@ import com.ai_builder_hackathon.gttgtt.domain.model.GroupType
 import com.ai_builder_hackathon.gttgtt.ui.component.GroupAvatarStack
 import com.ai_builder_hackathon.gttgtt.ui.component.GroupThumbnail
 import com.ai_builder_hackathon.gttgtt.ui.component.SearchField
+import com.ai_builder_hackathon.gttgtt.ui.theme.AbodeBlue
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
-import androidx.compose.ui.draw.shadow
 import com.ai_builder_hackathon.gttgtt.ui.component.AlbumLoader
 import com.ai_builder_hackathon.gttgtt.ui.component.bounceClick
 import com.ai_builder_hackathon.gttgtt.ui.theme.CardShadow
@@ -73,6 +78,7 @@ import java.util.Locale
 // 시안 .pad / .search / .list 의 좌우 여백은 모두 20
 private val ScreenPadding = 20.dp
 private const val VISIBLE_AVATAR_COUNT = 3
+private val DangerColor = Color(0xFFB64B39)
 
 /**
  * S1 그룹(채팅방) 목록.
@@ -115,6 +121,18 @@ fun GroupListScreen(
         onDismissJoinDialog = viewModel::onDismissJoinDialog,
         onJoinCodeChange = viewModel::onJoinCodeChange,
         onConfirmJoin = viewModel::onConfirmJoin,
+        onSwitchToJoinByCode = viewModel::onSwitchToJoinByCode,
+        onGroupSettingsClick = viewModel::onGroupSettingsClick,
+        onDismissSettingsSheet = viewModel::onDismissSettingsSheet,
+        onRenameClick = viewModel::onRenameClick,
+        onDismissRenameDialog = viewModel::onDismissRenameDialog,
+        onRenameTextChange = viewModel::onRenameTextChange,
+        onConfirmRename = viewModel::onConfirmRename,
+        onInviteClick = viewModel::onInviteClick,
+        onDismissInviteDialog = viewModel::onDismissInviteDialog,
+        onDeleteClick = viewModel::onDeleteClick,
+        onDismissDeleteConfirm = viewModel::onDismissDeleteConfirm,
+        onConfirmDelete = viewModel::onConfirmDelete,
         modifier = modifier,
     )
 }
@@ -134,6 +152,18 @@ private fun GroupListContent(
     onDismissJoinDialog: () -> Unit = {},
     onJoinCodeChange: (String) -> Unit = {},
     onConfirmJoin: () -> Unit = {},
+    onSwitchToJoinByCode: () -> Unit = {},
+    onGroupSettingsClick: (String) -> Unit = {},
+    onDismissSettingsSheet: () -> Unit = {},
+    onRenameClick: () -> Unit = {},
+    onDismissRenameDialog: () -> Unit = {},
+    onRenameTextChange: (String) -> Unit = {},
+    onConfirmRename: () -> Unit = {},
+    onInviteClick: () -> Unit = {},
+    onDismissInviteDialog: () -> Unit = {},
+    onDeleteClick: () -> Unit = {},
+    onDismissDeleteConfirm: () -> Unit = {},
+    onConfirmDelete: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -163,21 +193,6 @@ private fun GroupListContent(
                 ),
             )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = ScreenPadding, end = ScreenPadding, top = 10.dp),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                Text(
-                    text = "코드로 그룹 참여하기",
-                    color = TextSecondary,
-                    fontSize = 12.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable(onClick = onJoinByCodeClick),
-                )
-            }
-
             Spacer(Modifier.height(8.dp))
 
             when {
@@ -190,6 +205,7 @@ private fun GroupListContent(
                 else -> GroupList(
                     groups = uiState.groups,
                     onGroupClick = onGroupClick,
+                    onGroupSettingsClick = onGroupSettingsClick,
                 )
             }
         }
@@ -212,6 +228,7 @@ private fun GroupListContent(
             onTypeSelect = onCreateGroupTypeSelect,
             onConfirm = onConfirmCreateGroup,
             onDismiss = onDismissCreateDialog,
+            onJoinByCodeClick = onSwitchToJoinByCode,
         )
     }
 
@@ -224,6 +241,400 @@ private fun GroupListContent(
             onConfirm = onConfirmJoin,
             onDismiss = onDismissJoinDialog,
         )
+    }
+
+    if (uiState.isSettingsSheetOpen) {
+        GroupSettingsSheet(
+            onRenameClick = onRenameClick,
+            onInviteClick = onInviteClick,
+            onDeleteClick = onDeleteClick,
+            onDismiss = onDismissSettingsSheet,
+        )
+    }
+
+    if (uiState.isRenameDialogOpen) {
+        RenameGroupDialog(
+            name = uiState.renameText,
+            isRenaming = uiState.isRenaming,
+            errorMessage = uiState.renameError,
+            onNameChange = onRenameTextChange,
+            onConfirm = onConfirmRename,
+            onDismiss = onDismissRenameDialog,
+        )
+    }
+
+    if (uiState.isInviteDialogOpen) {
+        InviteFriendDialog(
+            isLoading = uiState.isInviteLoading,
+            token = uiState.inviteToken,
+            errorMessage = uiState.inviteError,
+            onDismiss = onDismissInviteDialog,
+        )
+    }
+
+    if (uiState.isDeleteConfirmOpen) {
+        DeleteGroupConfirmDialog(
+            groupName = uiState.deletingArchiveName,
+            isDeleting = uiState.isDeleting,
+            errorMessage = uiState.deleteError,
+            onConfirm = onConfirmDelete,
+            onDismiss = onDismissDeleteConfirm,
+        )
+    }
+}
+
+/** 점 세개 버튼을 누르면 뜨는 그룹 설정 메뉴. 이름 변경 · 친구 초대 · 삭제 세 가지. */
+@Composable
+private fun GroupSettingsSheet(
+    onRenameClick: () -> Unit,
+    onInviteClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(SurfaceWhite)
+                .padding(vertical = 8.dp),
+        ) {
+            Text(
+                text = "그룹 설정",
+                color = TextPrimary,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            )
+            SettingsMenuRow(label = "그룹 이름 변경", onClick = onRenameClick)
+            SettingsMenuRow(label = "그룹에 친구 추가", onClick = onInviteClick)
+            SettingsMenuRow(label = "그룹 삭제", labelColor = DangerColor, onClick = onDeleteClick)
+        }
+    }
+}
+
+@Composable
+private fun SettingsMenuRow(
+    label: String,
+    onClick: () -> Unit,
+    labelColor: Color = TextPrimary,
+) {
+    Text(
+        text = label,
+        color = labelColor,
+        fontSize = 15.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+    )
+}
+
+/** 친구 초대 코드 다이얼로그. 발급 중엔 스피너, 끝나면 코드 + 복사/공유. */
+@Composable
+private fun InviteFriendDialog(
+    isLoading: Boolean,
+    token: String?,
+    errorMessage: String?,
+    onDismiss: () -> Unit,
+) {
+    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(SurfaceWhite)
+                .padding(24.dp),
+        ) {
+            Text(
+                text = "친구 초대",
+                color = TextPrimary,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Black,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "아래 코드를 친구에게 보내주세요. \"코드로 그룹 참여하기\"에서 입력하면 바로 들어와요.",
+                color = TextSecondary,
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 17.sp,
+            )
+
+            Spacer(Modifier.height(18.dp))
+
+            when {
+                isLoading -> Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(color = BrandGreen, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+                }
+
+                errorMessage != null -> Text(
+                    text = errorMessage,
+                    color = DangerColor,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                token != null -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(ScreenBackground)
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = token,
+                            color = TextPrimary,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.05.em,
+                        )
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(CardBackground)
+                                .clickable { clipboard.setText(AnnotatedString(token)) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(text = "코드 복사", color = TextSecondary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(BrandGreen)
+                                .clickable {
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(
+                                            Intent.EXTRA_TEXT,
+                                            "그때그때 그룹에 초대할게요! 코드: $token",
+                                        )
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "초대 코드 공유"))
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(text = "공유하기", color = SurfaceWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable(onClick = onDismiss),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = "닫기", color = TextSecondary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+/** 그룹 삭제 확인 다이얼로그. 되돌릴 수 없다는 걸 분명히 알린다. */
+@Composable
+private fun DeleteGroupConfirmDialog(
+    groupName: String,
+    isDeleting: Boolean,
+    errorMessage: String?,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(SurfaceWhite)
+                .padding(24.dp),
+        ) {
+            Text(
+                text = "그룹을 삭제할까요?",
+                color = TextPrimary,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Black,
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = "\"$groupName\"의 모든 추억과 대화가 함께 삭제되고, 되돌릴 수 없어요.",
+                color = TextSecondary,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 19.sp,
+            )
+
+            if (errorMessage != null) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = errorMessage,
+                    color = DangerColor,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(CardBackground)
+                        .clickable(enabled = !isDeleting, onClick = onDismiss),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(text = "취소", color = TextSecondary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(DangerColor)
+                        .clickable(enabled = !isDeleting, onClick = onConfirm),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(
+                            color = SurfaceWhite,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    } else {
+                        Text(text = "삭제", color = SurfaceWhite, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 그룹 카드 우측 상단 점 세개 → 그룹 이름 변경 다이얼로그. CreateGroupDialog 와 같은 카드 스타일. */
+@Composable
+private fun RenameGroupDialog(
+    name: String,
+    isRenaming: Boolean,
+    errorMessage: String?,
+    onNameChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(SurfaceWhite)
+                .padding(24.dp),
+        ) {
+            Text(
+                text = "그룹 이름 변경",
+                color = TextPrimary,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Black,
+            )
+
+            Spacer(Modifier.height(18.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(ScreenBackground)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+            ) {
+                if (name.isEmpty()) {
+                    Text(
+                        text = "그룹 이름",
+                        color = TextSecondary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                BasicTextField(
+                    value = name,
+                    onValueChange = onNameChange,
+                    singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(
+                        color = TextPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            if (errorMessage != null) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = errorMessage,
+                    color = DangerColor,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(CardBackground)
+                        .clickable(enabled = !isRenaming, onClick = onDismiss),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(text = "취소", color = TextSecondary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(BrandGreen)
+                        .clickable(enabled = !isRenaming, onClick = onConfirm),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isRenaming) {
+                        CircularProgressIndicator(
+                            color = SurfaceWhite,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    } else {
+                        Text(text = "저장", color = SurfaceWhite, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -286,7 +697,7 @@ private fun JoinByCodeDialog(
                 Spacer(Modifier.height(12.dp))
                 Text(
                     text = errorMessage,
-                    color = Color(0xFFB64B39),
+                    color = DangerColor,
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -365,6 +776,7 @@ private fun CreateGroupDialog(
     onTypeSelect: (GroupType) -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    onJoinByCodeClick: () -> Unit = {},
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Column(
@@ -435,7 +847,7 @@ private fun CreateGroupDialog(
                 Spacer(Modifier.height(12.dp))
                 Text(
                     text = errorMessage,
-                    color = Color(0xFFB64B39),
+                    color = DangerColor,
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -484,6 +896,22 @@ private fun CreateGroupDialog(
                         )
                     }
                 }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = !isCreating, onClick = onJoinByCodeClick),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = "코드로 그룹 참여하기",
+                    color = TextSecondary,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
     }
@@ -571,6 +999,7 @@ private fun MyButton(onClick: () -> Unit) {
 private fun GroupList(
     groups: List<ArchiveSummary>,
     onGroupClick: (String) -> Unit,
+    onGroupSettingsClick: (String) -> Unit = {},
 ) {
     LazyColumn(
         contentPadding = PaddingValues(
@@ -582,7 +1011,11 @@ private fun GroupList(
         verticalArrangement = Arrangement.spacedBy(11.dp),
     ) {
         items(groups, key = { it.id }) { group ->
-            GroupCard(group = group, onClick = { onGroupClick(group.id) })
+            GroupCard(
+                group = group,
+                onClick = { onGroupClick(group.id) },
+                onSettingsClick = { onGroupSettingsClick(group.id) },
+            )
         }
     }
 }
@@ -591,8 +1024,9 @@ private fun GroupList(
 private fun GroupCard(
     group: ArchiveSummary,
     onClick: () -> Unit,
+    onSettingsClick: () -> Unit = {},
 ) {
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             // Abode 카드: 흰색 + 소프트 섀도우 + 큰 라운드
@@ -601,53 +1035,103 @@ private fun GroupCard(
             .background(SurfaceWhite)
             .bounceClick(onClick = onClick)
             .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(13.dp),
     ) {
-        GroupThumbnail(theme = group.theme)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(13.dp),
+        ) {
+            GroupThumbnail(theme = group.theme)
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = group.name,
-                style = TextStyle(
-                    color = TextPrimary,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = (-0.02).em,
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(3.dp))
-            Text(
-                text = group.lastMessagePreview,
-                color = TextSecondary,
-                fontSize = 12.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(8.dp))
-
-            val shownMembers = group.memberIds.take(VISIBLE_AVATAR_COUNT)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                GroupAvatarStack(
-                    memberIds = shownMembers,
-                    // "+N" 의 N 은 전체 인원에서 실제로 그린 아바타 수를 뺀 값이다.
-                    hiddenCount = group.hiddenMemberCount(shownMembers.size),
-                )
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = formatTime(group.lastActivityAtMillis),
-                    color = TextMuted,
-                    fontSize = 11.5.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    text = group.name,
+                    style = TextStyle(
+                        color = TextPrimary,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.02).em,
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    // 우측 상단 점 세개 버튼과 겹치지 않도록 자리를 비운다.
+                    modifier = Modifier.padding(end = 22.dp),
                 )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    text = group.lastMessagePreview,
+                    color = TextSecondary,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(8.dp))
+
+                val shownMembers = group.memberIds.take(VISIBLE_AVATAR_COUNT)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    GroupAvatarStack(
+                        memberIds = shownMembers,
+                        // "+N" 의 N 은 전체 인원에서 실제로 그린 아바타 수를 뺀 값이다.
+                        hiddenCount = group.hiddenMemberCount(shownMembers.size),
+                    )
+                    Text(
+                        text = formatTime(group.lastActivityAtMillis),
+                        color = TextMuted,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
+
+        // 점 세개 = 그룹 설정(이름 변경 · 친구 초대 · 삭제). 카드 전체 탭(bounceClick) 위에
+        // 얹혀도 nested clickable 이 안쪽 우선이라 이것만 반응한다.
+        Icon(
+            painter = painterResource(R.drawable.ic_dots),
+            contentDescription = "그룹 설정",
+            tint = TextMuted,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(28.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onSettingsClick)
+                .padding(4.dp),
+        )
+
+        // 안 읽은 메시지 수. 점 세개(우상단)와 시간(우하단) 사이, 우측 가장자리에 세로 중앙 정렬.
+        if (group.unreadCount > 0) {
+            UnreadCountBadge(
+                count = group.unreadCount,
+                modifier = Modifier.align(Alignment.CenterEnd),
+            )
+        }
+    }
+}
+
+/** 그룹 카드 우측, 점 세개와 시간 사이에 뜨는 안 읽음 개수 배지. 타원이 아닌 정원(正圓) 고정. 99개 넘으면 "99+". */
+@Composable
+private fun UnreadCountBadge(count: Int, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(20.dp)
+            .clip(CircleShape)
+            .background(AbodeBlue),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = if (count > 99) "99+" else count.toString(),
+            color = SurfaceWhite,
+            fontSize = 9.5.sp,
+            fontWeight = FontWeight.Black,
+            lineHeight = 9.5.sp,
+            style = LocalTextStyle.current.copy(
+                platformStyle = PlatformTextStyle(includeFontPadding = false),
+            ),
+        )
     }
 }
 
@@ -701,6 +1185,7 @@ private fun GroupListContentPreview() {
                         theme = GradientTheme.BEACH,
                         memberIds = listOf("u-minji", "u-seoyeon", "u-jaehun"),
                         totalMemberCount = 6,
+                        unreadCount = 3,
                     ),
                     ArchiveSummary(
                         id = "2",
@@ -710,6 +1195,7 @@ private fun GroupListContentPreview() {
                         theme = GradientTheme.FOREST,
                         memberIds = listOf("u-hyunwoo", "u-doyun"),
                         totalMemberCount = 6,
+                        unreadCount = 128,
                     ),
                     ArchiveSummary(
                         id = "3",

@@ -285,6 +285,7 @@ private fun GroupFeedContent(
                 onAiClick = onAiSearchClick,
                 onChatClick = onChatClick,
                 onCreateMemoryClick = onCreateMemoryClick,
+                chatUnreadCount = uiState.chatUnreadCount,
                 modifier = Modifier.padding(bottom = 12.dp),
             )
 

@@ -17,6 +17,8 @@ data class ArchiveSummary(
     /** 아바타로 표시할 멤버 id. 색은 id 해시로 정해진다. */
     val memberIds: List<String>,
     val totalMemberCount: Int,
+    /** 내가 안 읽은 메시지 수. `unread_counts()` RPC 결과 — 방을 열 때 chat_reads 가 갱신되면 줄어든다. */
+    val unreadCount: Int = 0,
 ) {
     /** 아바타를 [visibleCount]개만 보여줄 때 뒤에 붙는 "+N" 의 N */
     fun hiddenMemberCount(visibleCount: Int): Int =

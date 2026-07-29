@@ -293,6 +293,7 @@ class GroupFeedViewModel @Inject constructor(
                             groupName = group?.name.orEmpty(),
                             memberCount = group?.totalMemberCount ?: 0,
                             posts = posts,
+                            chatUnreadCount = group?.unreadCount ?: 0,
                         )
                     }
                 }
