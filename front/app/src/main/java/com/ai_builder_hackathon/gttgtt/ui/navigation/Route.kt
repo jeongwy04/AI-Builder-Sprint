@@ -12,6 +12,10 @@ sealed interface Route {
     @Serializable
     data object Auth : Route
 
+    /** S0-B 회원가입 — 닉네임을 받고 구글 계정으로 가입한다. */
+    @Serializable
+    data object SignUp : Route
+
     /** S1 그룹(보관소) 선택 */
     @Serializable
     data object GroupList : Route

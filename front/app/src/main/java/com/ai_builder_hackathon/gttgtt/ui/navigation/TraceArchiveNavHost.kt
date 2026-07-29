@@ -14,6 +14,7 @@ import com.ai_builder_hackathon.gttgtt.ui.screen.grouplist.GroupListScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.memorycreate.MemoryCreateScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.memorydetail.MemoryDetailScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.mypage.MyPageScreen
+import com.ai_builder_hackathon.gttgtt.ui.screen.signup.SignUpScreen
 
 /**
  * 화면 그래프. 각 composable 블록의 내용은 디자인 시안이 확정되는 대로
@@ -38,7 +39,19 @@ fun TraceArchiveNavHost(
                         popUpTo(Route.Auth) { inclusive = true }
                     }
                 },
-                onSignUpClick = { /* TODO: 회원가입 화면 */ },
+                onSignUpClick = { navController.navigate(Route.SignUp) },
+            )
+        }
+
+        composable<Route.SignUp> {
+            SignUpScreen(
+                onBackClick = { navController.popBackStack() },
+                onSignedUp = {
+                    navController.navigate(Route.GroupList) {
+                        // 로그인/회원가입 화면을 백스택에서 제거 → 뒤로가기로 안 돌아옴
+                        popUpTo(Route.Auth) { inclusive = true }
+                    }
+                },
             )
         }
 

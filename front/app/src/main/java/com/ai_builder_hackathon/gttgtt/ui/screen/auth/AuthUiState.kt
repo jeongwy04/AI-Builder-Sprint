@@ -3,8 +3,7 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.auth
 /**
  * S0 로그인 화면 상태.
  *
- * ⚠️ 지금은 **구글 로그인만** 실제로 붙어 있다. 이메일/비밀번호는 UI만 있고 동작하지 않는다
- * (Supabase Auth 이메일 로그인은 스코프 밖 — 필요해지면 별도로 연결).
+ * 구글 로그인과 이메일/비밀번호 로그인 둘 다 실제로 붙어 있다.
  */
 data class AuthUiState(
     val email: String = "",

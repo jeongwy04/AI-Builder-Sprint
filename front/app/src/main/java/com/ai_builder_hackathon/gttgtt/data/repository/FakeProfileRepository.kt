@@ -31,6 +31,14 @@ class FakeProfileRepository @Inject constructor() : ProfileRepository {
         return Result.success(Unit)
     }
 
+    override suspend fun updateNickname(nickname: String): Result<Unit> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        if (nickname.isBlank()) {
+            return Result.failure(IllegalArgumentException("닉네임을 입력해주세요."))
+        }
+        return Result.success(Unit)
+    }
+
     private companion object {
         const val FAKE_NETWORK_DELAY_MILLIS = 300L
     }

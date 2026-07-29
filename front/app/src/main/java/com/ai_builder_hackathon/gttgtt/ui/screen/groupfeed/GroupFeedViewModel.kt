@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
+import com.ai_builder_hackathon.gttgtt.domain.repository.MemoryRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.PostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,7 @@ import javax.inject.Inject
 class GroupFeedViewModel @Inject constructor(
     private val postRepository: PostRepository,
     private val archiveRepository: ArchiveRepository,
+    private val memoryRepository: MemoryRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -198,6 +200,43 @@ class GroupFeedViewModel @Inject constructor(
 
     fun onDismissInviteDialog() {
         _uiState.update { it.copy(isInviteDialogOpen = false) }
+    }
+
+    // ── 게시물(기억) 삭제 — 카드 우상단 점 세개 버튼 ──
+
+    fun onPostDeleteClick(postId: String) {
+        _uiState.update { it.copy(postPendingDeleteId = postId, deletePostError = null) }
+    }
+
+    fun onDismissPostDeleteConfirm() {
+        if (_uiState.value.isDeletingPost) return
+        _uiState.update { it.copy(postPendingDeleteId = null, deletePostError = null) }
+    }
+
+    fun onConfirmPostDelete() {
+        val postId = _uiState.value.postPendingDeleteId ?: return
+        _uiState.update { it.copy(isDeletingPost = true, deletePostError = null) }
+
+        viewModelScope.launch {
+            memoryRepository.deleteMemory(postId)
+                .onSuccess {
+                    _uiState.update { state ->
+                        state.copy(
+                            isDeletingPost = false,
+                            postPendingDeleteId = null,
+                            posts = state.posts.filterNot { it.id == postId },
+                        )
+                    }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isDeletingPost = false,
+                            deletePostError = throwable.message ?: "게시물을 삭제하지 못했습니다.",
+                        )
+                    }
+                }
+        }
     }
 
     private fun loadFeed() {

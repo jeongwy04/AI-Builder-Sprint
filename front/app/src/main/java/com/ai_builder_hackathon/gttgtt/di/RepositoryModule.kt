@@ -3,12 +3,14 @@ package com.ai_builder_hackathon.gttgtt.di
 import com.ai_builder_hackathon.gttgtt.data.remote.AndroidPhotoMetadataReader
 import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseAiChatRepository
 import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseArchiveRepository
+import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseAuthRepository
 import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseChatRepository
 import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseMemoryRepository
 import com.ai_builder_hackathon.gttgtt.data.repository.SupabasePostRepository
 import com.ai_builder_hackathon.gttgtt.data.repository.SupabaseProfileRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.AiChatRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
+import com.ai_builder_hackathon.gttgtt.domain.repository.AuthRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.ChatRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.MemoryRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.PhotoMetadataReader
@@ -60,4 +62,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPhotoMetadataReader(impl: AndroidPhotoMetadataReader): PhotoMetadataReader
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(impl: SupabaseAuthRepository): AuthRepository
 }

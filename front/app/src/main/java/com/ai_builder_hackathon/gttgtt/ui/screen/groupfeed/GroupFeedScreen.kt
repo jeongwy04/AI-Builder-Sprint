@@ -75,7 +75,6 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.ChipText
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipText
-import com.ai_builder_hackathon.gttgtt.ui.theme.MoreIcon
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextPrimary
@@ -157,6 +156,9 @@ fun GroupFeedScreen(
         onDismissDeleteConfirm = viewModel::onDismissDeleteConfirm,
         onConfirmDelete = viewModel::onConfirmDelete,
         onDismissInviteDialog = viewModel::onDismissInviteDialog,
+        onPostDeleteClick = viewModel::onPostDeleteClick,
+        onDismissPostDeleteConfirm = viewModel::onDismissPostDeleteConfirm,
+        onConfirmPostDelete = viewModel::onConfirmPostDelete,
         modifier = modifier,
     )
 }
@@ -184,6 +186,9 @@ private fun GroupFeedContent(
     onDismissDeleteConfirm: () -> Unit = {},
     onConfirmDelete: () -> Unit = {},
     onDismissInviteDialog: () -> Unit = {},
+    onPostDeleteClick: (String) -> Unit = {},
+    onDismissPostDeleteConfirm: () -> Unit = {},
+    onConfirmPostDelete: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // 패널 높이를 fillMaxHeight(fraction) 으로 구하면 부모 Column 의 imePadding() 때문에
@@ -222,6 +227,7 @@ private fun GroupFeedContent(
                     posts = uiState.posts,
                     onLikeClick = onLikeClick,
                     onPostClick = onPostClick,
+                    onDeleteClick = onPostDeleteClick,
                 )
             }
         }
@@ -307,6 +313,15 @@ private fun GroupFeedContent(
             token = uiState.inviteToken,
             errorMessage = uiState.inviteError,
             onDismiss = onDismissInviteDialog,
+        )
+    }
+
+    if (uiState.postPendingDeleteId != null) {
+        PostDeleteConfirmDialog(
+            isDeleting = uiState.isDeletingPost,
+            errorMessage = uiState.deletePostError,
+            onConfirm = onConfirmPostDelete,
+            onDismiss = onDismissPostDeleteConfirm,
         )
     }
 }
@@ -454,6 +469,60 @@ private fun DeleteGroupConfirmDialog(
             Spacer(Modifier.height(10.dp))
             Text(
                 text = "\"$groupName\"의 모든 추억과 대화가 함께 삭제되고, 되돌릴 수 없어요.",
+                color = TextSecondary,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 19.sp,
+            )
+
+            if (errorMessage != null) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = errorMessage,
+                    color = DangerColor,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            DialogActionRow(
+                confirmLabel = "삭제",
+                confirmColor = DangerColor,
+                isLoading = isDeleting,
+                onConfirm = onConfirm,
+                onDismiss = onDismiss,
+            )
+        }
+    }
+}
+
+/** 게시물(기억) 삭제 확인 다이얼로그. DeleteGroupConfirmDialog 와 같은 모양. */
+@Composable
+private fun PostDeleteConfirmDialog(
+    isDeleting: Boolean,
+    errorMessage: String?,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(SurfaceWhite)
+                .padding(24.dp),
+        ) {
+            Text(
+                text = "게시물을 삭제할까요?",
+                color = TextPrimary,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Black,
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = "사진과 댓글이 함께 삭제되고, 되돌릴 수 없어요.",
                 color = TextSecondary,
                 fontSize = 13.5.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -653,6 +722,7 @@ private fun PostList(
     posts: List<Post>,
     onLikeClick: (String) -> Unit,
     onPostClick: (String) -> Unit,
+    onDeleteClick: (String) -> Unit,
 ) {
     LazyColumn(
         // FAB 에 마지막 카드가 가리지 않도록 아래를 넉넉히 비운다.
@@ -664,6 +734,7 @@ private fun PostList(
                 post = post,
                 onLikeClick = { onLikeClick(post.id) },
                 onClick = { onPostClick(post.id) },
+                onDeleteClick = { onDeleteClick(post.id) },
             )
         }
     }
@@ -675,6 +746,7 @@ private fun PostCard(
     post: Post,
     onLikeClick: () -> Unit,
     onClick: () -> Unit,
+    onDeleteClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -686,7 +758,7 @@ private fun PostCard(
             .clickable(onClick = onClick)
             .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 12.dp)
     ) {
-        PostHeader(post)
+        PostHeader(post, onDeleteClick = onDeleteClick)
         Spacer(Modifier.height(12.dp))
         PostPhotos(post)
         Text(
@@ -707,7 +779,7 @@ private fun PostCard(
 }
 
 @Composable
-private fun PostHeader(post: Post) {
+private fun PostHeader(post: Post, onDeleteClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -727,11 +799,17 @@ private fun PostHeader(post: Post) {
                 fontWeight = FontWeight.SemiBold,
             )
         }
+        // 점 세개 버튼 = 게시물(기억) 삭제. Chip 과 같은 이유로 카드 전체 클릭 위에
+        // 얹혀도 이것만 반응한다 (nested clickable 은 안쪽이 우선).
         Icon(
             painter = painterResource(R.drawable.ic_dots),
-            contentDescription = "더보기",
-            tint = MoreIcon,
-            modifier = Modifier.size(20.dp),
+            contentDescription = "게시물 삭제",
+            tint = DangerColor,
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onDeleteClick)
+                .padding(4.dp),
         )
     }
 }

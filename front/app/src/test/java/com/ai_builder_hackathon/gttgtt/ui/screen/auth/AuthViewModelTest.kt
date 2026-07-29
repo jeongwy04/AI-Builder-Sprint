@@ -1,19 +1,43 @@
 package com.ai_builder_hackathon.gttgtt.ui.screen.auth
 
+import com.ai_builder_hackathon.gttgtt.domain.repository.AuthRepository
 import io.github.jan.supabase.SupabaseClient
+import io.mockk.coEvery
 import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AuthViewModelTest {
+
+    private val dispatcher = StandardTestDispatcher()
 
     /** compose-auth 트리거용으로만 노출되는 값이라, 테스트에선 내용 없이 relaxed mock 이면 충분하다. */
     private val supabase = mockk<SupabaseClient>(relaxed = true)
+    private val authRepository = mockk<AuthRepository>()
 
-    private fun viewModel() = AuthViewModel(supabase)
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(dispatcher)
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
+
+    private fun viewModel() = AuthViewModel(supabase, authRepository)
 
     @Test
     fun `초기 상태는 로그인 유지 체크 · 제출 불가 · 미인증`() {
@@ -69,17 +93,38 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `이메일 로그인은 아직 스코프 밖이라 구글 안내만 뜬다`() {
+    fun `이메일 로그인에 성공하면 인증됨으로 바뀐다`() = runTest(dispatcher) {
+        coEvery { authRepository.signInWithEmail("me@example.com", "secret") } returns Result.success(Unit)
+
         val vm = viewModel()
         vm.onEmailChange("me@example.com")
         vm.onPasswordChange("secret")
 
         vm.onLoginClick()
+        dispatcher.scheduler.advanceUntilIdle()
 
         val state = vm.uiState.value
-        // 이메일/비밀번호 로그인은 실제로 붙지 않았다 — 제출 상태로 넘어가면 안 된다.
+        assertTrue(state.isAuthenticated)
         assertFalse(state.isSubmitting)
-        assertEquals("지금은 구글 로그인만 지원해요. 아래 구글 버튼을 이용해주세요.", state.errorMessage)
+        assertNull(state.errorMessage)
+    }
+
+    @Test
+    fun `이메일 로그인에 실패하면 에러 메시지를 보여준다`() = runTest(dispatcher) {
+        coEvery { authRepository.signInWithEmail("me@example.com", "wrong") } returns
+            Result.failure(IllegalStateException("이메일/비밀번호가 일치하지 않아요."))
+
+        val vm = viewModel()
+        vm.onEmailChange("me@example.com")
+        vm.onPasswordChange("wrong")
+
+        vm.onLoginClick()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertFalse(state.isAuthenticated)
+        assertFalse(state.isSubmitting)
+        assertEquals("이메일/비밀번호가 일치하지 않아요.", state.errorMessage)
     }
 
     @Test

@@ -30,6 +30,12 @@ data class GroupFeedUiState(
     val isInviteLoading: Boolean = false,
     val inviteToken: String? = null,
     val inviteError: String? = null,
+
+    // 게시물(기억) 삭제 — 카드 우상단 점 세개 버튼
+    /** 삭제 확인창이 떠 있는 게시물 id. null 이면 닫힌 상태. */
+    val postPendingDeleteId: String? = null,
+    val isDeletingPost: Boolean = false,
+    val deletePostError: String? = null,
 ) {
     val isEmpty: Boolean
         get() = !isLoading && posts.isEmpty()

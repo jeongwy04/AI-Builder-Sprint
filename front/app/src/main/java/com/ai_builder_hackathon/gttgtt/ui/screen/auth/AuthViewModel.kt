@@ -1,29 +1,33 @@
 package com.ai_builder_hackathon.gttgtt.ui.screen.auth
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ai_builder_hackathon.gttgtt.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
  * S0 로그인 ViewModel.
  *
- * ⚠️ 지금은 **구글 로그인만** 구현한다. 이메일/비밀번호는 폼만 있고 실제 인증은 안 붙어 있다.
+ * 구글 로그인과 이메일/비밀번호 로그인 둘 다 지원한다. Apple/카카오는 아직 안 붙였다.
  *
  * [supabase] 를 공개 프로퍼티로 노출하는 건 CLAUDE.md §5.3("Composable에서 SupabaseClient
  * 직접 참조 금지")의 의도적인 예외다. compose-auth 의 `rememberSignInWithGoogle()` 은
  * Composable 함수라서(내부적으로 remember + Credential Manager 를 씀) Repository 나
  * ViewModel 안에서 만들 수 없고 반드시 Composition 안에서 호출해야 한다.
- * 대신 실제 쿼리(Postgrest/Storage/Functions)는 이 화면에서 전혀 하지 않는다 —
- * 이 예외는 "구글 로그인 트리거를 만드는 것"에만 한정된다.
+ * 이메일/비밀번호 로그인은 `supabase.auth.signInWith(Email)` 이 suspend 함수라 §5.3 규칙대로
+ * [AuthRepository] 를 거친다 — 구글 흐름과 달리 Composable 제약이 없으므로 예외를 둘 이유가 없다.
  */
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     val supabase: SupabaseClient,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     // 외부에는 StateFlow 하나만 노출한다 (CLAUDE.md §5.3).
@@ -46,18 +50,33 @@ class AuthViewModel @Inject constructor(
         _uiState.update { it.copy(keepSignedIn = !it.keepSignedIn) }
     }
 
-    /** 이메일/비밀번호 로그인은 아직 스코프 밖이다. 입력은 받되 안내만 한다. */
     fun onLoginClick() {
-        if (!_uiState.value.canSubmit) {
+        val state = _uiState.value
+        if (!state.canSubmit) {
             _uiState.update { it.copy(errorMessage = "이메일과 비밀번호를 입력해주세요.") }
             return
         }
-        _uiState.update {
-            it.copy(errorMessage = "지금은 구글 로그인만 지원해요. 아래 구글 버튼을 이용해주세요.")
+
+        _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
+
+        viewModelScope.launch {
+            authRepository.signInWithEmail(state.email, state.password)
+                .onSuccess {
+                    _uiState.update { it.copy(isSubmitting = false, isAuthenticated = true) }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            errorMessage = throwable.message
+                                ?: "로그인에 실패했어요. 이메일/비밀번호를 확인해주세요.",
+                        )
+                    }
+                }
         }
     }
 
-    /** Apple/카카오는 아직 안 붙였다. 구글만 [onGoogleFlowStarted]/[onGoogleResult] 로 처리한다. */
+    /** Apple/카카오는 아직 안 붙였다. 구글은 [onGoogleFlowStarted]/[onGoogleResult] 로 처리한다. */
     fun onSocialClick(provider: String) {
         if (provider != "google") {
             _uiState.update { it.copy(errorMessage = "지금은 구글 로그인만 지원해요.") }

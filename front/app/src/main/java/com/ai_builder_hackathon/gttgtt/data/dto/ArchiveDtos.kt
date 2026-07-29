@@ -41,6 +41,12 @@ data class ProfileDto(
     @SerialName("avatar_url") val avatarUrl: String? = null,
 )
 
+/** 회원가입 시 닉네임 반영 — profiles.update() 요청 바디 (display_name 한 컬럼만) */
+@Serializable
+data class ProfileNicknameUpdate(
+    @SerialName("display_name") val displayName: String,
+)
+
 /** unread_counts() RPC 응답 행 */
 @Serializable
 data class UnreadCountDto(

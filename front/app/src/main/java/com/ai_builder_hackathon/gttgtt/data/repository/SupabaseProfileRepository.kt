@@ -2,6 +2,7 @@ package com.ai_builder_hackathon.gttgtt.data.repository
 
 import com.ai_builder_hackathon.gttgtt.data.dto.IdOnlyDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ProfileDto
+import com.ai_builder_hackathon.gttgtt.data.dto.ProfileNicknameUpdate
 import com.ai_builder_hackathon.gttgtt.domain.model.UserProfile
 import com.ai_builder_hackathon.gttgtt.domain.repository.ProfileRepository
 import io.github.jan.supabase.SupabaseClient
@@ -62,5 +63,18 @@ class SupabaseProfileRepository @Inject constructor(
 
     override suspend fun signOut(): Result<Unit> = runCatching {
         supabase.auth.signOut()
+    }
+
+    override suspend fun updateNickname(nickname: String): Result<Unit> = runCatching {
+        val trimmed = nickname.trim()
+        require(trimmed.isNotEmpty()) { "닉네임을 입력해주세요." }
+
+        val user = supabase.auth.currentUserOrNull() ?: error("로그인이 필요합니다.")
+
+        // profiles_update_self 정책이 id = auth.uid() 라 본인 행만 바꿀 수 있다.
+        supabase.postgrest.from("profiles")
+            .update(ProfileNicknameUpdate(displayName = trimmed)) {
+                filter { eq("id", user.id) }
+            }
     }
 }
