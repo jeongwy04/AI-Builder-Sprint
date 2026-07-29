@@ -7,11 +7,15 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Storage 업로드와 signed URL 발급을 한곳에 모은다.
@@ -63,8 +67,13 @@ class MediaUploader @Inject constructor(
         fallback = fallbackFor(storagePath),
     )
 
-    suspend fun toPhotos(storagePaths: List<String>): List<Photo> =
-        storagePaths.map { toPhoto(it) }
+    /**
+     * 여러 장을 한꺼번에 변환한다 — 사진마다 signed URL 발급을 순차로 기다리면
+     * 사진이 5장이면 네트워크 왕복이 5번 이어져 화면이 그만큼 늦게 뜬다. 병렬로 발급받는다.
+     */
+    suspend fun toPhotos(storagePaths: List<String>): List<Photo> = coroutineScope {
+        storagePaths.map { path -> async { toPhoto(path) } }.map { it.await() }
+    }
 
     /**
      * media_assets 행 id 까지 아는 경우(기억 상세/수정)에 쓴다.
@@ -89,10 +98,29 @@ class MediaUploader @Inject constructor(
         runCatching { supabase.storage.from(BUCKET).delete(*storagePaths.toTypedArray()) }
     }
 
-    private suspend fun signedUrlOrNull(path: String): String? =
-        runCatching {
+    /**
+     * signed URL 을 메모리에 캐싱한다. 캐시가 없으면 화면을 나갔다 돌아올 때마다(ON_RESUME 재조회)
+     * 이미 유효한 URL도 매번 새로 발급받게 되어, 그만큼 사진이 늦게 뜬다.
+     * 만료 [SIGNED_URL_REFRESH_MARGIN] 전에 미리 새로 받아 화면을 오래 띄워놔도 깨지지 않게 한다.
+     * 앱 프로세스가 살아있는 동안만 유효한 캐시라 재시작하면 비워진다 — 그 정도로 충분하다.
+     */
+    private val signedUrlCache = ConcurrentHashMap<String, CachedSignedUrl>()
+
+    private suspend fun signedUrlOrNull(path: String): String? {
+        val now = System.currentTimeMillis()
+        val cached = signedUrlCache[path]
+        if (cached != null && cached.expiresAtMillis - now > SIGNED_URL_REFRESH_MARGIN.inWholeMilliseconds) {
+            return cached.url
+        }
+
+        return runCatching {
             supabase.storage.from(BUCKET).createSignedUrl(path, SIGNED_URL_TTL)
+        }.onSuccess { url ->
+            signedUrlCache[path] = CachedSignedUrl(url, now + SIGNED_URL_TTL.inWholeMilliseconds)
         }.getOrNull()
+    }
+
+    private data class CachedSignedUrl(val url: String, val expiresAtMillis: Long)
 
     private fun readBytes(uri: String): ByteArray =
         context.contentResolver.openInputStream(uri.toUri())?.use { it.readBytes() }
@@ -116,5 +144,8 @@ class MediaUploader @Inject constructor(
 
         /** signed URL 유효기간. 화면을 오래 열어둬도 사진이 깨지지 않을 만큼. */
         val SIGNED_URL_TTL = 2.hours
+
+        /** 만료 10분 전부터는 캐시를 못 미더워하고 새로 발급받는다. */
+        val SIGNED_URL_REFRESH_MARGIN = 10.minutes
     }
 }

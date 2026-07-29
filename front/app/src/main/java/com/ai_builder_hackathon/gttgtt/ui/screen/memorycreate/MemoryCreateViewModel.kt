@@ -171,10 +171,9 @@ class MemoryCreateViewModel @Inject constructor(
 
     private fun loadMembers() {
         viewModelScope.launch {
-            val archive = archiveRepository.getMyArchives()
-                .getOrNull()
-                ?.firstOrNull { it.id == archiveId }
-                ?: return@launch
+            // 그룹 하나만 필요한데 getMyArchives() 로 내 그룹 전체를 다시 훑으면(N+1) 이 화면을
+            // 열 때마다 불필요하게 느려진다 — getArchive() 는 이 그룹만 조회한다.
+            val archive = archiveRepository.getArchive(archiveId).getOrNull() ?: return@launch
 
             // ⚠️ archive.memberIds 는 실제 유저 UUID다. id.removePrefix("u-") 로는
             // 이름이 안 나온다 (Fake 시절 "u-minji" 같은 id 에나 맞던 방식) — profiles 를 조회해야 한다.

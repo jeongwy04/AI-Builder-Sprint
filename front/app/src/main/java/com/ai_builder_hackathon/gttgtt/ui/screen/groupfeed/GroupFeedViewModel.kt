@@ -8,6 +8,7 @@ import com.ai_builder_hackathon.gttgtt.domain.repository.ChatRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.MemoryRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.PostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -281,11 +282,13 @@ class GroupFeedViewModel @Inject constructor(
     private fun loadFeed() {
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {
-            val group = archiveRepository.getMyArchives()
-                .getOrNull()
-                ?.firstOrNull { it.id == archiveId }
+            // 그룹 메타(이름/인원/안읽음)와 게시물 목록은 서로 의존하지 않는 조회라
+            // 순서대로 기다릴 이유가 없다 — 동시에 시작해 둘 다 끝나면 화면을 채운다.
+            val groupDeferred = async { archiveRepository.getArchive(archiveId).getOrNull() }
+            val feedDeferred = async { postRepository.getFeed(archiveId) }
 
-            postRepository.getFeed(archiveId)
+            val group = groupDeferred.await()
+            feedDeferred.await()
                 .onSuccess { posts ->
                     _uiState.update {
                         it.copy(

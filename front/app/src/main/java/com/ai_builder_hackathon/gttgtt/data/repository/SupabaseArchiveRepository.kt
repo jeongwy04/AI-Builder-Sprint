@@ -17,6 +17,8 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -45,13 +47,24 @@ class SupabaseArchiveRepository @Inject constructor(
 
         if (archives.isEmpty()) return@runCatching emptyList()
 
-        // 미리보기 작성자 이름용 프로필을 한 번에 당겨온다.
+        // 미리보기 작성자 이름 / 안 읽음 개수 / 그룹별 마지막 메시지를 전부 동시에 당겨온다.
+        // 예전엔 그룹마다 fetchLastMessage 를 순서대로 기다려서(N번 순차 왕복) 그룹이 많을수록
+        // 목록 화면이 느려졌다 — 서로 독립적인 조회라 병렬로 돌려도 안전하다.
         val allMemberIds = archives.flatMap { a -> a.memberships.map { it.userId } }.distinct()
-        val nameById = fetchProfileNames(allMemberIds)
-        val unreadByArchiveId = fetchUnreadCounts()
+        val (nameById, unreadByArchiveId, lastMessageByArchiveId) = coroutineScope {
+            val namesDeferred = async { fetchProfileNames(allMemberIds) }
+            val unreadDeferred = async { fetchUnreadCounts() }
+            val lastMessageDeferreds = archives.map { archive -> archive.id to async { fetchLastMessage(archive.id) } }
+
+            Triple(
+                namesDeferred.await(),
+                unreadDeferred.await(),
+                lastMessageDeferreds.associate { (id, deferred) -> id to deferred.await() },
+            )
+        }
 
         archives.map { archive ->
-            val lastMessage = fetchLastMessage(archive.id)
+            val lastMessage = lastMessageByArchiveId[archive.id]
             val preview = lastMessage?.let { msg ->
                 val sender = nameById[msg.senderId] ?: "멤버"
                 val content = msg.body ?: "사진을 보냈어요"
@@ -69,6 +82,41 @@ class SupabaseArchiveRepository @Inject constructor(
                 unreadCount = unreadByArchiveId[archive.id] ?: 0,
             )
         }.sortedByDescending { it.lastActivityAtMillis }
+    }
+
+    override suspend fun getArchive(archiveId: String): Result<ArchiveSummary> = runCatching {
+        val archive = supabase.postgrest.from("archives")
+            .select(Columns.raw("id,name,group_type,created_at,memberships(user_id)")) {
+                filter { eq("id", archiveId) }
+            }
+            .decodeSingle<ArchiveWithMembersDto>()
+
+        // unread_counts() 는 내 그룹 전체를 한 번에 계산하는 RPC라 그룹 하나만 걸러 받을 방법이
+        // 없다 — 그래도 쿼리 자체는 1번이라 getMyArchives() 의 N+1(그룹마다 fetchLastMessage)과는
+        // 성격이 다르다. 마지막 메시지 조회와는 서로 독립적이니 병렬로 돌린다.
+        val (lastMessage, unreadByArchiveId) = coroutineScope {
+            val lastMessageDeferred = async { fetchLastMessage(archiveId) }
+            val unreadDeferred = async { fetchUnreadCounts() }
+            lastMessageDeferred.await() to unreadDeferred.await()
+        }
+
+        val nameById = lastMessage?.let { fetchProfileNames(listOf(it.senderId)) } ?: emptyMap()
+        val preview = lastMessage?.let { msg ->
+            val sender = nameById[msg.senderId] ?: "멤버"
+            val content = msg.body ?: "사진을 보냈어요"
+            "$sender: $content"
+        } ?: "아직 대화가 없어요"
+
+        ArchiveSummary(
+            id = archive.id,
+            name = archive.name,
+            lastMessagePreview = preview,
+            lastActivityAtMillis = parseMillis(lastMessage?.createdAt ?: archive.createdAt),
+            theme = themeFor(archive.groupType, archive.id),
+            memberIds = archive.memberships.map { it.userId },
+            totalMemberCount = archive.memberships.size,
+            unreadCount = unreadByArchiveId[archive.id] ?: 0,
+        )
     }
 
     override suspend fun createArchive(name: String, groupType: GroupType): Result<ArchiveSummary> = runCatching {
@@ -172,7 +220,7 @@ class SupabaseArchiveRepository @Inject constructor(
             .associate { it.archiveId to it.unread }
     }.getOrDefault(emptyMap())
 
-    /** 그룹당 1건이라 N번 호출되지만, 소그룹 서비스 특성상 N이 작아 허용한다. */
+    /** 그룹당 1건씩 호출된다 — 호출부(getMyArchives/getArchive)에서 항상 async 로 병렬 실행한다. */
     private suspend fun fetchLastMessage(archiveId: String): MessagePreviewDto? =
         supabase.postgrest.from("messages")
             .select(Columns.raw("body,image_path,sender_id,created_at")) {

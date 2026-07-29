@@ -11,6 +11,13 @@ interface ArchiveRepository {
     suspend fun getMyArchives(): Result<List<ArchiveSummary>>
 
     /**
+     * 그룹 하나만 필요한 화면(그룹 피드/채팅 상단바)에서 쓴다.
+     * [getMyArchives] 를 통째로 다시 불러와 그중 하나만 골라 쓰면, 화면 하나 열 때마다
+     * 내 모든 그룹의 마지막 메시지를 전부 다시 조회하는 낭비가 생긴다 — 그래서 따로 둔다.
+     */
+    suspend fun getArchive(archiveId: String): Result<ArchiveSummary>
+
+    /**
      * 새 그룹을 만들고 나를 첫 멤버로 넣는다.
      * ⚠️ Supabase 구현은 `archives` 에 직접 insert 하지 않고 `create_archive` RPC 로만 만든다
      * (직접 insert 시 RLS readback 함정에 걸린다 — 백엔드 계약).

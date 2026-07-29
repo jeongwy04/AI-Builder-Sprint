@@ -27,6 +27,13 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
         return Result.success(archives.values.toList())
     }
 
+    override suspend fun getArchive(archiveId: String): Result<ArchiveSummary> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        val found = archives[archiveId]
+            ?: return Result.failure(NoSuchElementException("그룹을 찾을 수 없습니다."))
+        return Result.success(found)
+    }
+
     override suspend fun createArchive(name: String, groupType: GroupType): Result<ArchiveSummary> {
         delay(FAKE_NETWORK_DELAY_MILLIS)
         val trimmed = name.trim()
