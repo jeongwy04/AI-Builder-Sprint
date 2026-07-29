@@ -120,10 +120,14 @@ class MemoryCreateViewModel @Inject constructor(
                 ?.firstOrNull { it.id == archiveId }
                 ?: return@launch
 
+            // ⚠️ archive.memberIds 는 실제 유저 UUID다. id.removePrefix("u-") 로는
+            // 이름이 안 나온다 (Fake 시절 "u-minji" 같은 id 에나 맞던 방식) — profiles 를 조회해야 한다.
+            val nameById = archiveRepository.getMemberNames(archive.memberIds).getOrDefault(emptyMap())
+
             _uiState.update { state ->
                 state.copy(
                     members = archive.memberIds.map { id ->
-                        Participant(id = id, name = id.removePrefix("u-"))
+                        Participant(id = id, name = nameById[id] ?: "멤버")
                     }
                 )
             }

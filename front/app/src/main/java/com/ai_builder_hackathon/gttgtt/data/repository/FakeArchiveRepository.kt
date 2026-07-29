@@ -71,6 +71,12 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
         return Result.success(UUID.randomUUID().toString().take(8).uppercase())
     }
 
+    override suspend fun getMemberNames(memberIds: List<String>): Result<Map<String, String>> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        // Fake 멤버 id 는 "u-민지" 식이 아니라 "u-minji" 같은 로마자라, 접두사만 떼도 그럴듯한 이름이 된다.
+        return Result.success(memberIds.associateWith { it.removePrefix("u-") })
+    }
+
     override suspend fun joinArchiveByToken(token: String): Result<String> {
         delay(FAKE_NETWORK_DELAY_MILLIS)
         if (token.isBlank()) {

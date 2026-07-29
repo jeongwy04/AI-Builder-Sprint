@@ -34,6 +34,8 @@ class MemoryCreateViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         coEvery { archiveRepository.getMyArchives() } returns Result.success(listOf(archive))
+        coEvery { archiveRepository.getMemberNames(any()) } returns
+            Result.success(mapOf("u-minji" to "민지", "u-hyunwoo" to "현우"))
     }
 
     @After

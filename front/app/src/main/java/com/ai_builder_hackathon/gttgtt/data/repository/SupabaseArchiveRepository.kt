@@ -46,16 +46,7 @@ class SupabaseArchiveRepository @Inject constructor(
 
         // 미리보기 작성자 이름용 프로필을 한 번에 당겨온다.
         val allMemberIds = archives.flatMap { a -> a.memberships.map { it.userId } }.distinct()
-        val nameById: Map<String, String> = if (allMemberIds.isEmpty()) {
-            emptyMap()
-        } else {
-            supabase.postgrest.from("profiles")
-                .select(Columns.raw("id,display_name,avatar_url")) {
-                    filter { isIn("id", allMemberIds) }
-                }
-                .decodeList<ProfileDto>()
-                .associate { it.id to (it.displayName ?: "이름없음") }
-        }
+        val nameById = fetchProfileNames(allMemberIds)
 
         archives.map { archive ->
             val lastMessage = fetchLastMessage(archive.id)
@@ -151,6 +142,21 @@ class SupabaseArchiveRepository @Inject constructor(
         // create_archive 때와 같은 이유로 decodeSingle() 을 못 쓴다 — 응답이 배열이 아니라
         // 따옴표로 감싼 문자열 리터럴(예: "550e8400-...") 그대로 온다. raw JSON을 직접 디코드한다.
         json.decodeFromString<String>(result.data)
+    }
+
+    override suspend fun getMemberNames(memberIds: List<String>): Result<Map<String, String>> = runCatching {
+        fetchProfileNames(memberIds)
+    }
+
+    /** id → display_name. profiles 조회 로직 한 곳에 모아 getMyArchives()/getMemberNames() 가 같이 쓴다. */
+    private suspend fun fetchProfileNames(memberIds: List<String>): Map<String, String> {
+        if (memberIds.isEmpty()) return emptyMap()
+        return supabase.postgrest.from("profiles")
+            .select(Columns.raw("id,display_name,avatar_url")) {
+                filter { isIn("id", memberIds.distinct()) }
+            }
+            .decodeList<ProfileDto>()
+            .associate { it.id to (it.displayName ?: "이름없음") }
     }
 
     /** 그룹당 1건이라 N번 호출되지만, 소그룹 서비스 특성상 N이 작아 허용한다. */

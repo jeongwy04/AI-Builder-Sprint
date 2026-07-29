@@ -683,7 +683,9 @@ private fun PostCard(
             ),
             modifier = Modifier.padding(horizontal = 2.dp, vertical = 12.dp),
         )
-        PostFooter(post = post, onLikeClick = onLikeClick)
+        // 댓글은 별도 화면이 없다 — 기억 상세 화면 안의 댓글 섹션이 유일한 댓글 UI라
+        // 댓글 아이콘도 카드 전체를 눌렀을 때와 같은 곳(상세)으로 보낸다.
+        PostFooter(post = post, onLikeClick = onLikeClick, onCommentClick = onClick)
     }
 }
 
@@ -748,7 +750,7 @@ private fun PostPhotos(post: Post) {
 }
 
 @Composable
-private fun PostFooter(post: Post, onLikeClick: () -> Unit) {
+private fun PostFooter(post: Post, onLikeClick: () -> Unit, onCommentClick: () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Chip(
             iconRes = if (post.likedByMe) R.drawable.ic_heart_filled else R.drawable.ic_heart,
@@ -762,7 +764,7 @@ private fun PostFooter(post: Post, onLikeClick: () -> Unit) {
             label = post.commentCount.toString(),
             background = ChipBackground,
             contentColor = ChipText,
-            onClick = { /* TODO: 댓글 화면 시안 나오면 연결 */ },
+            onClick = onCommentClick,
         )
     }
 }

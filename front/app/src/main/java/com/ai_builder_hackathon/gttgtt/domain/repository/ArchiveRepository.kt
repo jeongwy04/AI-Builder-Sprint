@@ -41,4 +41,10 @@ interface ArchiveRepository {
      * 성공 시 가입한 archiveId 를 반환한다.
      */
     suspend fun joinArchiveByToken(token: String): Result<String>
+
+    /**
+     * 멤버 id → 표시 이름. "함께한 사람" 선택 등, 이름이 필요한데 목록 화면처럼
+     * 마지막 메시지 미리보기까지는 필요 없는 곳에서 쓴다.
+     */
+    suspend fun getMemberNames(memberIds: List<String>): Result<Map<String, String>>
 }
