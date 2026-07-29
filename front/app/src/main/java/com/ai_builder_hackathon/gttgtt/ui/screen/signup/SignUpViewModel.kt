@@ -59,6 +59,33 @@ class SignUpViewModel @Inject constructor(
     }
 
     /**
+     * 구글 네이티브 로그인 플로우를 실제로 시작해도 되는지 판단하는 게이트.
+     * SignUpScreen 은 이 결과가 true 일 때만 googleSignInState.startFlow() 를 부른다.
+     *
+     * 닉네임이 비어 있으면 시작하지 않는다(onGoogleFlowStarted() 만 부르던 예전과 달리,
+     * 여기선 canSubmitGoogle 검증까지 함께 한다). 닉네임 중복 확인 자체가 실패해도
+     * (네트워크 등) 일단 진행시킨다 — [updateNickname] 의 유니크 제약이 최종 방어선이다.
+     */
+    suspend fun canStartGoogleSignUp(): Boolean {
+        val state = _uiState.value
+        if (!state.canSubmitGoogle) {
+            _uiState.update { it.copy(errorMessage = "닉네임을 입력해주세요.") }
+            return false
+        }
+
+        onGoogleFlowStarted()
+
+        val taken = profileRepository.isNicknameTaken(state.nickname).getOrDefault(false)
+        if (taken) {
+            _uiState.update {
+                it.copy(isSubmitting = false, errorMessage = "이미 사용 중인 닉네임이에요.")
+            }
+            return false
+        }
+        return true
+    }
+
+    /**
      * compose-auth 의 결과 콜백. AuthViewModel.onGoogleResult 와 같은 이유로
      * `NativeSignInResult` 를 그대로 안 받고 [SignUpGoogleOutcome] 으로 변환해서 받는다.
      */
@@ -87,6 +114,17 @@ class SignUpViewModel @Inject constructor(
         _uiState.update { it.copy(isSubmitting = true, errorMessage = null, confirmEmailMessage = null) }
 
         viewModelScope.launch {
+            // 계정을 만들기 전에 닉네임 중복부터 확인한다 — 이미 쓰이는 닉네임인데 굳이
+            // 인증(이메일 발송/계정 생성)까지 먼저 진행시킬 이유가 없다. 확인 자체가 실패해도
+            // (네트워크 등) 일단 진행시킨다 — updateNickname() 의 유니크 제약이 최종 방어선이다.
+            val nicknameTaken = profileRepository.isNicknameTaken(state.nickname).getOrDefault(false)
+            if (nicknameTaken) {
+                _uiState.update {
+                    it.copy(isSubmitting = false, errorMessage = "이미 사용 중인 닉네임이에요.")
+                }
+                return@launch
+            }
+
             authRepository.signUpWithEmail(state.email, state.password)
                 .onSuccess {
                     // Confirm email 이 켜져 있으면 가입 직후에도 세션이 안 생길 수 있다 —
@@ -113,11 +151,17 @@ class SignUpViewModel @Inject constructor(
     /**
      * 인증(구글/이메일) 자체는 이미 끝난 뒤라, 여기서 실패해도 로그인은 유지된다.
      * 실패하면 화면에 남겨서 다시 시도할 수 있게 한다 (재인증 없이 재시도 가능).
+     *
+     * 닉네임 저장까지 끝나면 세션을 바로 끊는다 — 가입 직후 앱 안으로 바로 들여보내지 않고,
+     * 로그인 화면에서 방금 만든 계정으로 최초 로그인을 직접 하게 하려는 의도다(NavHost 참고).
+     * signOut() 이 실패해도(네트워크 등) 닉네임 저장 자체는 이미 끝났으니 가입은 성공으로
+     * 처리한다 — best-effort.
      */
     private suspend fun applyNickname() {
         val nickname = _uiState.value.nickname.trim()
         profileRepository.updateNickname(nickname)
             .onSuccess {
+                profileRepository.signOut()
                 _uiState.update { it.copy(isSubmitting = false, isSignedUp = true) }
             }
             .onFailure { throwable ->

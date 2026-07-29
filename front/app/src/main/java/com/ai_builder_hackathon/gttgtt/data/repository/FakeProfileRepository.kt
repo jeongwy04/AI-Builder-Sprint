@@ -41,10 +41,21 @@ class FakeProfileRepository @Inject constructor() : ProfileRepository {
         if (nickname.isBlank()) {
             return Result.failure(IllegalArgumentException("닉네임을 입력해주세요."))
         }
+        if (nickname.trim().lowercase() in TAKEN_NICKNAMES) {
+            return Result.failure(IllegalStateException("이미 사용 중인 닉네임이에요."))
+        }
         return Result.success(Unit)
+    }
+
+    override suspend fun isNicknameTaken(nickname: String): Result<Boolean> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        return Result.success(nickname.trim().lowercase() in TAKEN_NICKNAMES)
     }
 
     private companion object {
         const val FAKE_NETWORK_DELAY_MILLIS = 300L
+
+        /** 실 데이터가 없는 Fake 라, 중복 방지 UI 를 확인해볼 수 있게 데모용으로 몇 개만 막아둔다. */
+        val TAKEN_NICKNAMES = setOf("김그때", "관리자", "admin")
     }
 }

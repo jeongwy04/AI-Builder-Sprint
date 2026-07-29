@@ -7,8 +7,11 @@ import com.ai_builder_hackathon.gttgtt.domain.model.UserProfile
 import com.ai_builder_hackathon.gttgtt.domain.repository.ProfileRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.exception.PostgrestRestException
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 
 /**
@@ -81,11 +84,30 @@ class SupabaseProfileRepository @Inject constructor(
 
         val user = supabase.auth.currentUserOrNull() ?: error("로그인이 필요합니다.")
 
-        // profiles_update_self 정책이 id = auth.uid() 라 본인 행만 바꿀 수 있다.
-        supabase.postgrest.from("profiles")
-            .update(ProfileNicknameUpdate(displayName = trimmed)) {
-                filter { eq("id", user.id) }
+        try {
+            // profiles_update_self 정책이 id = auth.uid() 라 본인 행만 바꿀 수 있다.
+            supabase.postgrest.from("profiles")
+                .update(ProfileNicknameUpdate(displayName = trimmed)) {
+                    filter { eq("id", user.id) }
+                }
+        } catch (e: PostgrestRestException) {
+            // 23505 = unique_violation. profiles_display_name_unique_idx 에 걸린 것 —
+            // isNicknameTaken() 사전 확인을 통과했더라도 그 사이에 다른 사람이 먼저 같은
+            // 닉네임으로 가입했을 수 있다(경쟁 조건). 이게 최종 방어선이다.
+            if (e.code == "23505") {
+                throw IllegalStateException("이미 사용 중인 닉네임이에요.")
             }
+            throw e
+        }
+    }
+
+    override suspend fun isNicknameTaken(nickname: String): Result<Boolean> = runCatching {
+        val trimmed = nickname.trim()
+        if (trimmed.isEmpty()) return@runCatching false
+
+        supabase.postgrest
+            .rpc("is_nickname_taken", buildJsonObject { put("p_nickname", trimmed) })
+            .decodeAs<Boolean>()
     }
 
     private companion object {

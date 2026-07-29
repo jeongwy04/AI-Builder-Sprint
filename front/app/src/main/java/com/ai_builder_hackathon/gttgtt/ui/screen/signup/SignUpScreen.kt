@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +52,7 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.TopBarIcon
 import io.github.jan.supabase.compose.auth.composeAuth
 import io.github.jan.supabase.compose.auth.composable.NativeSignInResult
 import io.github.jan.supabase.compose.auth.composable.rememberSignInWithGoogle
+import kotlinx.coroutines.launch
 
 private val ScreenPadding = 28.dp
 private val FieldCorner = 16.dp
@@ -76,6 +78,7 @@ fun SignUpScreen(
     viewModel: SignUpViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
 
     // AuthScreen 과 같은 이유 — compose-auth 는 Composable 안에서만 만들 수 있다.
     val googleSignInState = viewModel.supabase.composeAuth.rememberSignInWithGoogle(
@@ -109,8 +112,11 @@ fun SignUpScreen(
         onTogglePasswordVisibility = viewModel::togglePasswordVisibility,
         onEmailSignUpClick = viewModel::onEmailSignUpClick,
         onGoogleSignUpClick = {
-            viewModel.onGoogleFlowStarted()
-            googleSignInState.startFlow()
+            scope.launch {
+                if (viewModel.canStartGoogleSignUp()) {
+                    googleSignInState.startFlow()
+                }
+            }
         },
         modifier = modifier,
     )

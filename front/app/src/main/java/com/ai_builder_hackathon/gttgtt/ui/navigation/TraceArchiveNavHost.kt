@@ -49,8 +49,11 @@ fun TraceArchiveNavHost(
             SignUpScreen(
                 onBackClick = { navController.popBackStack() },
                 onSignedUp = {
-                    navController.navigate(Route.GroupList) {
-                        // 로그인/회원가입 화면을 백스택에서 제거 → 뒤로가기로 안 돌아옴
+                    // 가입 직후 바로 앱에 들어가지 않고, 로그인 화면으로 돌려보내 최초 로그인을
+                    // 직접 하게 한다 (SignUpViewModel 이 가입 성공 직후 signOut() 까지 해둔다).
+                    // popUpTo(Route.Auth, inclusive=true) 로 기존 Auth/SignUp 을 걷어내고
+                    // 새 Auth 화면 하나만 남겨서, 뒤로가기로 회원가입 폼에 되돌아오지 않게 한다.
+                    navController.navigate(Route.Auth) {
                         popUpTo(Route.Auth) { inclusive = true }
                     }
                 },
