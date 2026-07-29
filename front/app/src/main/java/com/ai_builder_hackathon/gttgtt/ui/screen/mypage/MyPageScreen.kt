@@ -17,13 +17,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,6 +72,8 @@ private val SidePadding = 20.dp
 fun MyPageScreen(
     onBackClick: () -> Unit,
     onSignedOut: () -> Unit,
+    onMyMemoriesClick: () -> Unit,
+    onLikedClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MyPageViewModel = hiltViewModel(),
 ) {
@@ -80,6 +88,9 @@ fun MyPageScreen(
         uiState = uiState,
         onBackClick = onBackClick,
         onSignOutClick = viewModel::onSignOutClick,
+        onStatusSave = viewModel::onStatusSave,
+        onMyMemoriesClick = onMyMemoriesClick,
+        onLikedClick = onLikedClick,
         modifier = modifier,
     )
 }
@@ -89,8 +100,31 @@ private fun MyPageContent(
     uiState: MyPageUiState,
     onBackClick: () -> Unit,
     onSignOutClick: () -> Unit,
+    onStatusSave: (String) -> Unit,
+    onMyMemoriesClick: () -> Unit,
+    onLikedClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showHelp by remember { mutableStateOf(false) }
+    var showWithdraw by remember { mutableStateOf(false) }
+    var editingStatus by remember { mutableStateOf(false) }
+    if (showHelp) {
+        HelpDialog(onDismiss = { showHelp = false })
+    }
+    if (showWithdraw) {
+        WithdrawDialog(onDismiss = { showWithdraw = false })
+    }
+    if (editingStatus && uiState.profile != null) {
+        StatusEditDialog(
+            current = uiState.profile.statusMessage,
+            onSave = {
+                onStatusSave(it)
+                editingStatus = false
+            },
+            onDismiss = { editingStatus = false },
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -120,7 +154,11 @@ private fun MyPageContent(
             }
 
             else -> {
-                ProfileHeader(profile = uiState.profile, onBackClick = onBackClick)
+                ProfileHeader(
+                    profile = uiState.profile,
+                    onBackClick = onBackClick,
+                    onStatusClick = { editingStatus = true },
+                )
 
                 Spacer(Modifier.height(12.dp))
                 StatCard(
@@ -129,16 +167,14 @@ private fun MyPageContent(
                     iconTint = BrandGreenDark,
                     label = "내가 남긴 추억",
                     value = uiState.profile.memoryCount,
+                    onClick = onMyMemoriesClick,
                 )
-                Spacer(Modifier.height(12.dp))
-                StatCard(
-                    iconRes = R.drawable.ic_photo,
-                    iconBackground = StatMediaBackground,
-                    iconTint = StatMediaIcon,
-                    label = "업로드한 사진 / 문서",
-                    value = uiState.profile.mediaCount,
+                MenuCard(
+                    onLikedClick = onLikedClick,
+                    onSignOutClick = onSignOutClick,
+                    onHelpClick = { showHelp = true },
+                    onWithdrawClick = { showWithdraw = true },
                 )
-                MenuCard(onSignOutClick = onSignOutClick)
                 Spacer(Modifier.height(24.dp))
             }
         }
@@ -150,6 +186,7 @@ private fun MyPageContent(
 private fun ProfileHeader(
     profile: UserProfile,
     onBackClick: () -> Unit,
+    onStatusClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -199,11 +236,16 @@ private fun ProfileHeader(
             StreakBadge(days = profile.streakDays)
 
             Spacer(Modifier.height(10.dp))
+            // 탭하면 상태 메시지를 직접 편집한다 (SNS 한 줄 상태처럼).
             Text(
                 text = profile.statusMessage,
                 color = MyPageSubText,
                 fontSize = 12.5.sp,
                 fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(onClick = onStatusClick)
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
     }
@@ -274,6 +316,7 @@ private fun StatCard(
     iconTint: Color,
     label: String,
     value: Int,
+    onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -282,7 +325,7 @@ private fun StatCard(
             .shadow(elevation = 3.dp, shape = RoundedCornerShape(20.dp), clip = false)
             .clip(RoundedCornerShape(20.dp))
             .background(SurfaceWhite)
-            .clickable { /* TODO: 각 목록 화면 연결 */ }
+            .clickable(onClick = onClick)
             .padding(horizontal = 17.dp, vertical = 15.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(13.dp),
@@ -320,7 +363,12 @@ private fun StatCard(
 
 /** 시안 .menucard — 항목 사이에만 얇은 구분선이 들어간다. */
 @Composable
-private fun MenuCard(onSignOutClick: () -> Unit) {
+private fun MenuCard(
+    onLikedClick: () -> Unit,
+    onSignOutClick: () -> Unit,
+    onHelpClick: () -> Unit,
+    onWithdrawClick: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .padding(horizontal = SidePadding, vertical = 18.dp)
@@ -329,12 +377,116 @@ private fun MenuCard(onSignOutClick: () -> Unit) {
             .clip(RoundedCornerShape(20.dp))
             .background(SurfaceWhite)
     ) {
-        MenuItem(R.drawable.ic_settings, "설정") { /* TODO */ }
+        MenuItem(R.drawable.ic_heart, "좋아요한 추억", onClick = onLikedClick)
         HorizontalDivider(thickness = 1.dp, color = MenuDivider)
-        MenuItem(R.drawable.ic_help_circle, "도움말") { /* TODO */ }
+        MenuItem(R.drawable.ic_settings, "설정") { /* TODO: 설정 화면 */ }
+        HorizontalDivider(thickness = 1.dp, color = MenuDivider)
+        MenuItem(R.drawable.ic_help_circle, "도움말", onClick = onHelpClick)
         HorizontalDivider(thickness = 1.dp, color = MenuDivider)
         MenuItem(R.drawable.ic_logout, "로그아웃", onClick = onSignOutClick)
+        HorizontalDivider(thickness = 1.dp, color = MenuDivider)
+        MenuItem(R.drawable.ic_logout, "회원 탈퇴", onClick = onWithdrawClick)
     }
+}
+
+/** 앱 사용법을 알려주는 도움말 다이얼로그. */
+@Composable
+private fun HelpDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("확인", color = BrandGreenDark, fontWeight = FontWeight.Bold)
+            }
+        },
+        title = {
+            Text(
+                text = "그때그때 도움말",
+                color = TextPrimary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black,
+            )
+        },
+        text = {
+            Text(
+                text = "• 그룹을 만들고 사진과 함께 그날의 이야기(메모)를 남겨보세요.\n\n" +
+                    "• 추억을 찾을 땐 'AI 추억 찾기'에 \"바다\", \"첫눈\"처럼 편하게 말하면 " +
+                    "관련된 기억을 찾아줍니다.\n\n" +
+                    "• 검색은 사진이 아니라 여러분이 남긴 문장을 기준으로 동작해요.\n\n" +
+                    "• 그룹 멤버는 서로의 기억에 메모·댓글·좋아요를 남길 수 있어요.",
+                color = TextSecondary,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.Medium,
+                lineHeight = 20.sp,
+            )
+        },
+        containerColor = SurfaceWhite,
+    )
+}
+
+/** 상태 메시지를 직접 작성·저장하는 다이얼로그 (SNS 한 줄 상태처럼). */
+@Composable
+private fun StatusEditDialog(
+    current: String,
+    onSave: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var text by remember { mutableStateOf(current) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = { onSave(text) }) {
+                Text("저장", color = BrandGreenDark, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소", color = TextSecondary, fontWeight = FontWeight.SemiBold)
+            }
+        },
+        title = {
+            Text("상태 메시지", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Black)
+        },
+        text = {
+            OutlinedTextField(
+                value = text,
+                // 60자 제한 — 한 줄 상태라 짧게.
+                onValueChange = { if (it.length <= 60) text = it },
+                placeholder = { Text("지금 기분이나 한마디를 남겨보세요") },
+                singleLine = false,
+                maxLines = 3,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        containerColor = SurfaceWhite,
+    )
+}
+
+/** 회원 탈퇴 확인 다이얼로그. 실제 삭제 로직은 아직 붙이지 않은 placeholder 다. */
+@Composable
+private fun WithdrawDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("확인", color = BrandGreenDark, fontWeight = FontWeight.Bold)
+            }
+        },
+        title = {
+            Text("회원 탈퇴", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Black)
+        },
+        text = {
+            Text(
+                text = "회원 탈퇴 시 모든 추억과 메모가 삭제되며 되돌릴 수 없어요.\n\n" +
+                    "이 기능은 현재 준비 중이에요.",
+                color = TextSecondary,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.Medium,
+                lineHeight = 20.sp,
+            )
+        },
+        containerColor = SurfaceWhite,
+    )
 }
 
 @Composable
@@ -395,6 +547,9 @@ private fun MyPageContentPreview() {
             ),
             onBackClick = {},
             onSignOutClick = {},
+            onStatusSave = {},
+            onMyMemoriesClick = {},
+            onLikedClick = {},
         )
     }
 }

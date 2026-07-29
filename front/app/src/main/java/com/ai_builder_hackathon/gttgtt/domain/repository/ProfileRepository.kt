@@ -5,6 +5,9 @@ import com.ai_builder_hackathon.gttgtt.domain.model.UserProfile
 interface ProfileRepository {
     suspend fun getMyProfile(): Result<UserProfile>
 
+    /** 한 줄 상태 메시지를 저장한다. 빈 문자열이면 기본 문구로 되돌린다. */
+    suspend fun updateStatus(status: String): Result<Unit>
+
     suspend fun signOut(): Result<Unit>
 
     /**

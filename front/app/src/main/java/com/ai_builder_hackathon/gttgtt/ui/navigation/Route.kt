@@ -24,6 +24,14 @@ sealed interface Route {
     @Serializable
     data object MyPage : Route
 
+    /** 내가 남긴 추억 목록 — 마이페이지에서 진입 */
+    @Serializable
+    data object MyMemories : Route
+
+    /** 좋아요한 추억 목록 — 마이페이지에서 진입 */
+    @Serializable
+    data object LikedMemories : Route
+
     /** 그룹 피드 — 그룹에 들어가면 처음 보이는 화면 */
     @Serializable
     data class GroupFeed(val archiveId: String) : Route

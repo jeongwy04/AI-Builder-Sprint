@@ -5,6 +5,7 @@ import com.ai_builder_hackathon.gttgtt.data.dto.MediaAssetDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MediaAssetInsert
 import com.ai_builder_hackathon.gttgtt.data.dto.MemoryDateUpdate
 import com.ai_builder_hackathon.gttgtt.data.dto.MemoryDto
+import com.ai_builder_hackathon.gttgtt.data.dto.MemoryIdRefDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MemoryInsert
 import com.ai_builder_hackathon.gttgtt.data.dto.MemoryPersonDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MemoryPersonInsert
@@ -15,6 +16,7 @@ import com.ai_builder_hackathon.gttgtt.data.dto.ProfileDto
 import com.ai_builder_hackathon.gttgtt.data.remote.MediaUploader
 import com.ai_builder_hackathon.gttgtt.domain.model.Comment
 import com.ai_builder_hackathon.gttgtt.domain.model.MemoryDetail
+import com.ai_builder_hackathon.gttgtt.domain.model.MemorySummary
 import com.ai_builder_hackathon.gttgtt.domain.model.NewMemory
 import com.ai_builder_hackathon.gttgtt.domain.model.Participant
 import com.ai_builder_hackathon.gttgtt.domain.repository.MemoryRepository
@@ -100,6 +102,52 @@ class SupabaseMemoryRepository @Inject constructor(
             },
             relatedPhotos = emptyList(), // 연관 사진은 후순위 기능
             comments = comments,
+        )
+    }
+
+    override suspend fun getMyMemories(): Result<List<MemorySummary>> = runCatching {
+        val user = supabase.auth.currentUserOrNull() ?: error("로그인이 필요합니다.")
+        supabase.postgrest.from("memories")
+            .select(Columns.raw("id,archive_id,author_id,memory_date,place_name,search_text,created_at")) {
+                filter { eq("author_id", user.id) }
+                order("memory_date", Order.DESCENDING)
+            }
+            .decodeList<MemoryDto>()
+            .map { it.toSummary() }
+    }
+
+    override suspend fun getLikedMemories(): Result<List<MemorySummary>> = runCatching {
+        val user = supabase.auth.currentUserOrNull() ?: error("로그인이 필요합니다.")
+        // 1) 내가 좋아요한 memory_id 목록
+        val likedIds = supabase.postgrest.from("reactions")
+            .select(Columns.raw("memory_id")) {
+                filter { eq("user_id", user.id) }
+            }
+            .decodeList<MemoryIdRefDto>()
+            .map { it.memoryId }
+        if (likedIds.isEmpty()) return@runCatching emptyList()
+
+        // 2) 그 기억들을 최근순으로
+        supabase.postgrest.from("memories")
+            .select(Columns.raw("id,archive_id,author_id,memory_date,place_name,search_text,created_at")) {
+                filter { isIn("id", likedIds) }
+                order("memory_date", Order.DESCENDING)
+            }
+            .decodeList<MemoryDto>()
+            .map { it.toSummary() }
+    }
+
+    /** MemoryDto → 목록 요약. 미리보기는 search_text 첫 줄(= 메모 첫 줄), 없으면 장소. */
+    private fun MemoryDto.toSummary(): MemorySummary {
+        val preview = searchText?.substringBefore("\n")?.trim()?.takeIf { it.isNotEmpty() }
+            ?: placeName?.takeIf { it.isNotBlank() }
+            ?: "메모가 없는 기억"
+        return MemorySummary(
+            id = id,
+            archiveId = archiveId,
+            memoryDateMillis = parseDateMillis(memoryDate),
+            placeName = placeName,
+            preview = preview,
         )
     }
 

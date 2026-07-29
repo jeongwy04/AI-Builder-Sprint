@@ -26,6 +26,11 @@ class FakeProfileRepository @Inject constructor() : ProfileRepository {
         )
     }
 
+    override suspend fun updateStatus(status: String): Result<Unit> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        return Result.success(Unit)
+    }
+
     override suspend fun signOut(): Result<Unit> {
         delay(FAKE_NETWORK_DELAY_MILLIS)
         return Result.success(Unit)
