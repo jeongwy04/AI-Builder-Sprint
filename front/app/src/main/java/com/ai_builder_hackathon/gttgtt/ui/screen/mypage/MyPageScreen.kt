@@ -58,7 +58,6 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.MenuDivider
 import com.ai_builder_hackathon.gttgtt.ui.theme.MenuItemIcon
 import com.ai_builder_hackathon.gttgtt.ui.theme.MenuItemText
 import com.ai_builder_hackathon.gttgtt.ui.theme.MyPageHeaderGradient
-import com.ai_builder_hackathon.gttgtt.ui.theme.MyPageSettingsIcon
 import com.ai_builder_hackathon.gttgtt.ui.theme.MyPageSubText
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.StatMediaBackground
@@ -108,13 +107,9 @@ private fun MyPageContent(
     modifier: Modifier = Modifier,
 ) {
     var showHelp by remember { mutableStateOf(false) }
-    var showWithdraw by remember { mutableStateOf(false) }
     var editingStatus by remember { mutableStateOf(false) }
     if (showHelp) {
         HelpDialog(onDismiss = { showHelp = false })
-    }
-    if (showWithdraw) {
-        WithdrawDialog(onDismiss = { showWithdraw = false })
     }
     if (editingStatus && uiState.profile != null) {
         StatusEditDialog(
@@ -175,7 +170,6 @@ private fun MyPageContent(
                     onLikedClick = onLikedClick,
                     onSignOutClick = onSignOutClick,
                     onHelpClick = { showHelp = true },
-                    onWithdrawClick = { showWithdraw = true },
                 )
                 Spacer(Modifier.height(24.dp))
             }
@@ -201,20 +195,11 @@ private fun ProfileHeader(
         Icon(
             painter = painterResource(R.drawable.ic_chevron_left),
             contentDescription = "뒤로",
-            tint = MyPageSettingsIcon,
+            tint = MyPageSubText,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .size(24.dp)
                 .clickable(onClick = onBackClick),
-        )
-        Icon(
-            painter = painterResource(R.drawable.ic_settings),
-            contentDescription = "설정",
-            tint = MyPageSettingsIcon,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(22.dp)
-                .clickable { /* TODO: 설정 화면 시안 나오면 연결 */ },
         )
 
         Column(
@@ -370,7 +355,6 @@ private fun MenuCard(
     onLikedClick: () -> Unit,
     onSignOutClick: () -> Unit,
     onHelpClick: () -> Unit,
-    onWithdrawClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -382,13 +366,9 @@ private fun MenuCard(
     ) {
         MenuItem(R.drawable.ic_heart, "좋아요한 추억", onClick = onLikedClick)
         HorizontalDivider(thickness = 1.dp, color = MenuDivider)
-        MenuItem(R.drawable.ic_settings, "설정") { /* TODO: 설정 화면 */ }
-        HorizontalDivider(thickness = 1.dp, color = MenuDivider)
         MenuItem(R.drawable.ic_help_circle, "도움말", onClick = onHelpClick)
         HorizontalDivider(thickness = 1.dp, color = MenuDivider)
         MenuItem(R.drawable.ic_logout, "로그아웃", onClick = onSignOutClick)
-        HorizontalDivider(thickness = 1.dp, color = MenuDivider)
-        MenuItem(R.drawable.ic_logout, "회원 탈퇴", onClick = onWithdrawClick)
     }
 }
 
@@ -459,33 +439,6 @@ private fun StatusEditDialog(
                 singleLine = false,
                 maxLines = 3,
                 modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        containerColor = SurfaceWhite,
-    )
-}
-
-/** 회원 탈퇴 확인 다이얼로그. 실제 삭제 로직은 아직 붙이지 않은 placeholder 다. */
-@Composable
-private fun WithdrawDialog(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("확인", color = BrandGreenDark, fontWeight = FontWeight.Bold)
-            }
-        },
-        title = {
-            Text("회원 탈퇴", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Black)
-        },
-        text = {
-            Text(
-                text = "회원 탈퇴 시 모든 추억과 메모가 삭제되며 되돌릴 수 없어요.\n\n" +
-                    "이 기능은 현재 준비 중이에요.",
-                color = TextSecondary,
-                fontSize = 13.5.sp,
-                fontWeight = FontWeight.Medium,
-                lineHeight = 20.sp,
             )
         },
         containerColor = SurfaceWhite,

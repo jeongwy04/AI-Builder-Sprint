@@ -6,51 +6,52 @@ import androidx.compose.ui.graphics.Color
 // design/redesign-mockup.html 의 :root CSS 변수를 그대로 옮긴 값이다.
 // 눈대중으로 고치지 말고 시안 파일을 기준으로 갱신할 것.
 
-// ── 감성 리디자인 팔레트 (2026-07) ──
-// 톤: 차분한 스카이 블루(신뢰) + 따뜻한 크림 배경 + 차콜 텍스트 + 코랄 포인트.
-// 이름은 유지하고 값만 교체해 전 화면 무드를 일괄 전환한다.
+// ── Figma 디자인 토큰 (Memory Collection App / theme.css 기준) ──
+// 배경 베이지 + 파랑 + 화이트 카드 + 소프트 옐로/코랄 포인트. 값은 Figma 그대로.
+// 이름은 유지하고 값만 교체해 전 화면을 일괄 전환한다.
 
-/** 메인 — 차분한 스카이 블루 (구 BrandGreen) */
-val BrandGreen = Color(0xFF4C8DF6)
+/** primary — 파랑 (구 BrandGreen) */
+val BrandGreen = Color(0xFF3B82F6)
 
-/** 진한 스카이 블루 — 텍스트/강조 */
-val BrandGreenDark = Color(0xFF2F6FD8)
+/** 진한 파랑 — 강조 */
+val BrandGreenDark = Color(0xFF2563EB)
 
-/** 연한 블루 배경 — 배지/틴트 */
-val BrandGreenSoft = Color(0xFFEAF2FE)
+/** 연한 파랑 배경 — 배지/틴트 */
+val BrandGreenSoft = Color(0xFFE4EEFE)
 
-/** 차콜 그레이 — 순수 검정 대신 부드럽게 */
-val TextPrimary = Color(0xFF34373E)
+/** foreground — 텍스트 (거의 검정, 살짝 부드럽게) */
+val TextPrimary = Color(0xFF1A1A1A)
 
-/** 서브 텍스트 */
-val TextSecondary = Color(0xFF8A8E97)
+/** muted-foreground — 서브 텍스트 */
+val TextSecondary = Color(0xFF8E8E93)
 
 /** 더 약한 톤 */
-val TextMuted = Color(0xFFB4B8C0)
+val TextMuted = Color(0xFFB0B0B5)
 
-/** 화면 배경 — 따뜻한 크림 (순백 아님) */
-val ScreenBackground = Color(0xFFFAF7F2)
+/** background — 따뜻한 베이지 */
+val ScreenBackground = Color(0xFFEDEAE3)
 
-/** 카드/검색창 연한 배경 — 웜 라이트 */
-val CardBackground = Color(0xFFF1EEE7)
+/** muted / input-background — 검색창·입력창 배경 */
+val CardBackground = Color(0xFFF5F2EC)
 
-/** 카드 표면 — 크림 배경 위에 뜨는 흰 '종이 사진' */
+/** card — 흰 카드 */
 val SurfaceWhite = Color(0xFFFFFFFF)
 
-/** 상단바 아이콘 — 차콜 */
-val TopBarIcon = Color(0xFF34373E)
+/** 상단바 아이콘 */
+val TopBarIcon = Color(0xFF1A1A1A)
 
-// ── 포인트 컬러 + 파스텔 틴트 ──
-val AbodeBlue = Color(0xFF4C8DF6)
-val AbodeYellow = Color(0xFFF3B24A)
-val AbodeCoral = Color(0xFFFB7A6A)
+// ── 포인트 컬러 + 파스텔 틴트 (Figma) ──
+val AbodeBlue = Color(0xFF3B82F6)
+val AbodeYellow = Color(0xFFF5C33B)
+val AbodeCoral = Color(0xFFFF6B6B)
 val AbodeGreen = Color(0xFF37BE8C)
-val AbodeBlueTint = Color(0xFFEAF2FE)
-val AbodeYellowTint = Color(0xFFFCF3E2)
-val AbodeCoralTint = Color(0xFFFFEDE9)
+val AbodeBlueTint = Color(0xFFE4EEFE)
+/** secondary — 소프트 옐로 */
+val AbodeYellowTint = Color(0xFFFFF3BF)
+val AbodeCoralTint = Color(0xFFFFECEC)
 val AbodeGreenTint = Color(0xFFE7F6EF)
-/** 카드 소프트 섀도우 — 차콜 저투명 (토스풍 도톰한 그림자) */
-val CardShadow = Color(0x1A3A3D44)
+/** 카드/버튼 그림자 — 스티커처럼 떠 보이게 도톰하게 */
+val CardShadow = Color(0x26000000)
 
 /** .chip — 댓글 등 기본 칩 */
 val ChipBackground = Color(0xFFF4F3F0)

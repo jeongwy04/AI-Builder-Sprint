@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -45,6 +47,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ai_builder_hackathon.gttgtt.R
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.compose.auth.composeAuth
@@ -273,7 +276,7 @@ private fun AuthContent(
             OrDivider()
             Spacer(Modifier.height(20.dp))
 
-            SocialRow(onSocialClick = onSocialClick)
+            GoogleButton(onClick = { onSocialClick("google") })
 
             Spacer(Modifier.height(24.dp))
             SignUpPrompt(onSignUpClick = onSignUpClick)
@@ -476,45 +479,31 @@ private fun OrDivider() {
     }
 }
 
-/** 소셜 로그인 버튼 3종. 아이콘 에셋이 붙기 전이라 공급자명 텍스트로 표기한다. */
+/** 구글로 계속 — 구글 로고 + 텍스트 (구글 단독). */
 @Composable
-private fun SocialRow(onSocialClick: (String) -> Unit) {
+private fun GoogleButton(onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        SocialButton(provider = "Apple", modifier = Modifier.weight(1f), onClick = { onSocialClick("apple") })
-        SocialButton(provider = "Google", modifier = Modifier.weight(1f), onClick = { onSocialClick("google") })
-        SocialButton(provider = "카카오", modifier = Modifier.weight(1f), onClick = { onSocialClick("kakao") })
-    }
-}
-
-@Composable
-private fun SocialButton(
-    provider: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    Column(
-        modifier = modifier
+        modifier = Modifier
+            .fillMaxWidth()
             .clip(RoundedCornerShape(FieldCorner))
             .border(1.dp, FieldBorderColor, RoundedCornerShape(FieldCorner))
             .clickable(onClick = onClick)
-            .padding(vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .padding(vertical = 14.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = provider,
-            color = TextPrimary,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
+        Icon(
+            painter = painterResource(R.drawable.ic_google),
+            contentDescription = null,
+            tint = Color.Unspecified,
+            modifier = Modifier.size(20.dp),
         )
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.size(10.dp))
         Text(
-            text = "로 계속",
-            color = TextSecondary,
-            fontSize = 10.5.sp,
-            fontWeight = FontWeight.SemiBold,
+            text = "Google로 계속",
+            color = TextPrimary,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
         )
     }
 }
