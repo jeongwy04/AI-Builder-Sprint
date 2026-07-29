@@ -94,7 +94,7 @@ class SupabaseMemoryRepository @Inject constructor(
             // storedBody 는 저장용 원문이라 title 이 첫 줄에 접혀 들어가 있다.
             // 화면엔 title 을 따로 보여주므로, 본문에서는 그 줄을 떼어내야 안 겹친다.
             body = stripTitleLine(title, storedBody),
-            photos = media.toPhotos(assets.map { it.storagePath }),
+            photos = assets.map { asset -> media.toPhoto(asset.id, asset.storagePath) },
             participants = people.map { p ->
                 Participant(id = p.userId, name = nameById[p.userId] ?: "멤버")
             },
@@ -198,6 +198,8 @@ class SupabaseMemoryRepository @Inject constructor(
         body: String,
         memoryDateMillis: Long,
         participantIds: List<String>,
+        newPhotoUris: List<String>,
+        removedPhotoIds: List<String>,
     ): Result<Unit> = runCatching {
         // 1) 날짜 갱신
         supabase.postgrest.from("memories")
@@ -237,7 +239,34 @@ class SupabaseMemoryRepository @Inject constructor(
             )
         }
 
-        // 4) ⚠️ 임베딩 갱신 — 이 호출을 빠뜨리면 검색에 안 잡힌다.
+        // 4) 사진 제거 — Storage 오브젝트를 먼저 지우고 나서 media_assets 행을 지운다.
+        // 순서를 바꾸면(행부터 지우면) Storage 업로드가 실패했을 때 고아 오브젝트가 남는다.
+        if (removedPhotoIds.isNotEmpty()) {
+            val toRemove = supabase.postgrest.from("media_assets")
+                .select(Columns.raw("id,memory_id,storage_path,media_type,created_at")) {
+                    filter { isIn("id", removedPhotoIds) }
+                }
+                .decodeList<MediaAssetDto>()
+            media.deleteMemoryPhotos(toRemove.map { it.storagePath })
+            supabase.postgrest.from("media_assets").delete { filter { isIn("id", removedPhotoIds) } }
+        }
+
+        // 5) 사진 추가 — createMemory() 와 같은 순서(업로드 → media_assets insert).
+        val uploadedPaths = media.uploadMemoryPhotos(archiveId, memoryId, newPhotoUris)
+        if (uploadedPaths.isNotEmpty()) {
+            supabase.postgrest.from("media_assets").insert(
+                uploadedPaths.map { path ->
+                    MediaAssetInsert(
+                        memoryId = memoryId,
+                        archiveId = archiveId,
+                        storagePath = path,
+                        mediaType = "image",
+                    )
+                }
+            )
+        }
+
+        // 6) ⚠️ 임베딩 갱신 — 이 호출을 빠뜨리면 검색에 안 잡힌다.
         requestEmbedding(memoryId)
     }
 

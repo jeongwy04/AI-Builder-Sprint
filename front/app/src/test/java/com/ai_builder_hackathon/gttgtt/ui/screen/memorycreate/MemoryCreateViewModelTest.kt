@@ -6,10 +6,12 @@ import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.domain.model.MemoryDetail
 import com.ai_builder_hackathon.gttgtt.domain.model.NewMemory
 import com.ai_builder_hackathon.gttgtt.domain.model.Participant
+import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.MemoryRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.PhotoMetadataReader
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +22,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -231,13 +234,98 @@ class MemoryCreateViewModelTest {
         assertEquals(existingMemory.body, capturedBody.captured)
     }
 
+    @Test
+    fun `편집 모드로 들어오면 기존 사진이 existingPhotos 에 채워진다`() = runTest(dispatcher) {
+        coEvery { memoryRepository.getDetail(MEMORY_ID) } returns Result.success(existingMemory)
+
+        val vm = viewModel(memoryId = MEMORY_ID)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(existingMemory.photos, vm.uiState.value.existingPhotos)
+        assertEquals(existingMemory.photos, vm.uiState.value.visibleExistingPhotos)
+    }
+
+    @Test
+    fun `기존 사진을 지우면 목록에서 바로 빠지지만 삭제 목록에 남는다`() = runTest(dispatcher) {
+        coEvery { memoryRepository.getDetail(MEMORY_ID) } returns Result.success(existingMemory)
+
+        val vm = viewModel(memoryId = MEMORY_ID)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onExistingPhotoRemove(PHOTO_ID_1)
+
+        val state = vm.uiState.value
+        assertEquals(setOf(PHOTO_ID_1), state.removedPhotoIds)
+        assertEquals(listOf(PHOTO_ID_2), state.visibleExistingPhotos.map { it.id })
+    }
+
+    @Test
+    fun `사진을 다 지우고 본문도 비우면 저장할 수 없다`() = runTest(dispatcher) {
+        val memoryWithOnePhoto = existingMemory.copy(
+            body = "",
+            photos = listOf(GradientTheme.SEA.asPhoto(id = PHOTO_ID_1)),
+        )
+        coEvery { memoryRepository.getDetail(MEMORY_ID) } returns Result.success(memoryWithOnePhoto)
+
+        val vm = viewModel(memoryId = MEMORY_ID)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.canSave) // 사진이 남아 있는 동안은 저장 가능
+
+        vm.onExistingPhotoRemove(PHOTO_ID_1)
+
+        assertFalse(vm.uiState.value.canSave)
+    }
+
+    @Test
+    fun `저장하면 새로 고른 사진과 지운 사진 id 를 그대로 넘긴다`() = runTest(dispatcher) {
+        coEvery { memoryRepository.getDetail(MEMORY_ID) } returns Result.success(existingMemory)
+        coEvery {
+            memoryRepository.updateMemory(
+                memoryId = MEMORY_ID,
+                archiveId = ARCHIVE_ID,
+                title = any(),
+                body = any(),
+                memoryDateMillis = any(),
+                participantIds = any(),
+                newPhotoUris = listOf(PHOTO_URI),
+                removedPhotoIds = listOf(PHOTO_ID_1),
+            )
+        } returns Result.success(Unit)
+
+        val vm = viewModel(memoryId = MEMORY_ID)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onPhotosPicked(listOf(PHOTO_URI))
+        vm.onExistingPhotoRemove(PHOTO_ID_1)
+        vm.onSaveClick()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(MEMORY_ID, vm.uiState.value.savedMemoryId)
+        coVerify(exactly = 1) {
+            memoryRepository.updateMemory(
+                memoryId = MEMORY_ID,
+                archiveId = ARCHIVE_ID,
+                title = any(),
+                body = any(),
+                memoryDateMillis = any(),
+                participantIds = any(),
+                newPhotoUris = listOf(PHOTO_URI),
+                removedPhotoIds = listOf(PHOTO_ID_1),
+            )
+        }
+    }
+
     private val existingMemory = MemoryDetail(
         id = MEMORY_ID,
         archiveId = ARCHIVE_ID,
         memoryDateMillis = 1_700_000_000_000L,
         title = "강릉 여행 둘째 날",
         body = "바다 보고 회 먹었다",
-        photos = emptyList(),
+        photos = listOf(
+            GradientTheme.SEA.asPhoto(id = PHOTO_ID_1),
+            GradientTheme.BEACH.asPhoto(id = PHOTO_ID_2),
+        ),
         participants = listOf(Participant("u-minji", "민지")),
         relatedPhotos = emptyList(),
         comments = emptyList(),
@@ -259,5 +347,7 @@ class MemoryCreateViewModelTest {
         const val PHOTO_URI = "content://photo/1"
         const val CAPTURED_AT = 1_766_361_600_000L
         const val MANUAL_DATE = 1_700_000_000_000L
+        const val PHOTO_ID_1 = "photo-1"
+        const val PHOTO_ID_2 = "photo-2"
     }
 }

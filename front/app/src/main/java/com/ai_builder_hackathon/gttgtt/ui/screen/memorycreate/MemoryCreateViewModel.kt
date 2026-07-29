@@ -49,6 +49,7 @@ class MemoryCreateViewModel @Inject constructor(
                             isLoadingExisting = false,
                             title = memory.title,
                             body = memory.body,
+                            existingPhotos = memory.photos,
                             memoryDateMillis = memory.memoryDateMillis,
                             selectedParticipantIds = memory.participants.map { p -> p.id }.toSet(),
                         )
@@ -90,17 +91,23 @@ class MemoryCreateViewModel @Inject constructor(
         _uiState.update { it.copy(photoUris = it.photoUris - uri) }
     }
 
+    /** 이미 서버에 저장된 사진을 지우기로 표시한다. 실제 삭제는 저장 시점에 한 번에 처리한다. */
+    fun onExistingPhotoRemove(photoId: String) {
+        _uiState.update { it.copy(removedPhotoIds = it.removedPhotoIds + photoId) }
+    }
+
     /**
      * 갤러리에서 사진을 고른 직후.
      * 첫 사진의 EXIF 촬영일을 읽어 추억 날짜 기본값으로 채운다 (CLAUDE.md §6.2).
+     * 수정 모드에서는 이미 날짜가 정해져 있으므로(원래 기억의 날짜) 자동으로 덮어쓰지 않는다.
      */
     fun onPhotosPicked(uris: List<String>) {
         if (uris.isEmpty()) return
 
-        val isFirstPick = _uiState.value.photoUris.isEmpty()
+        val isFirstPick = !_uiState.value.isEditMode && _uiState.value.photoUris.isEmpty()
         _uiState.update { it.copy(photoUris = (it.photoUris + uris).distinct()) }
 
-        // 이미 사용자가 날짜를 정했으면 덮어쓰지 않는다.
+        // 이미 사용자가 날짜를 정했거나(또는 수정 모드라 원래 날짜가 있으면) 덮어쓰지 않는다.
         if (!isFirstPick) return
 
         viewModelScope.launch {
@@ -131,6 +138,8 @@ class MemoryCreateViewModel @Inject constructor(
                     body = state.body,
                     memoryDateMillis = state.memoryDateMillis,
                     participantIds = state.selectedParticipantIds.toList(),
+                    newPhotoUris = state.photoUris,
+                    removedPhotoIds = state.removedPhotoIds.toList(),
                 ).map { memoryId }
             } else {
                 memoryRepository.createMemory(

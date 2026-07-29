@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -55,7 +56,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.domain.model.Participant
+import com.ai_builder_hackathon.gttgtt.domain.model.Photo
 import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
+import com.ai_builder_hackathon.gttgtt.ui.component.PhotoImage
 import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
@@ -105,6 +108,7 @@ fun MemoryCreateScreen(
             )
         },
         onPhotoRemove = viewModel::onPhotoRemove,
+        onExistingPhotoRemove = viewModel::onExistingPhotoRemove,
         onTitleChange = viewModel::onTitleChange,
         onBodyChange = viewModel::onBodyChange,
         onDateChange = viewModel::onDateChange,
@@ -121,6 +125,7 @@ private fun MemoryCreateContent(
     onBackClick: () -> Unit,
     onPickPhotos: () -> Unit,
     onPhotoRemove: (String) -> Unit,
+    onExistingPhotoRemove: (String) -> Unit,
     onTitleChange: (String) -> Unit,
     onBodyChange: (String) -> Unit,
     onDateChange: (Long) -> Unit,
@@ -148,22 +153,13 @@ private fun MemoryCreateContent(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
         ) {
-            if (uiState.isEditMode) {
-                // 사진은 이 화면에서 고치지 않는다 — 기존 사진은 그대로 유지된다.
-                Text(
-                    text = "사진은 여기서 수정할 수 없어요.",
-                    color = TextSecondary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = SidePadding, vertical = 12.dp),
-                )
-            } else {
-                PhotoStrip(
-                    photoUris = uiState.photoUris,
-                    onPickPhotos = onPickPhotos,
-                    onPhotoRemove = onPhotoRemove,
-                )
-            }
+            PhotoStrip(
+                existingPhotos = uiState.visibleExistingPhotos,
+                photoUris = uiState.photoUris,
+                onPickPhotos = onPickPhotos,
+                onPhotoRemove = onPhotoRemove,
+                onExistingPhotoRemove = onExistingPhotoRemove,
+            )
 
             Spacer(Modifier.height(20.dp))
             DateChip(
@@ -304,21 +300,33 @@ private fun SaveButton(canSave: Boolean, isSaving: Boolean, onClick: () -> Unit)
     }
 }
 
-/** 가로로 넘겨보는 사진 목록. 맨 앞이 추가 버튼. */
+/**
+ * 가로로 넘겨보는 사진 목록. 맨 앞이 추가 버튼.
+ * 기존(서버에 이미 저장된) 사진과 새로 고른(아직 업로드 전) 사진을 함께 보여준다 —
+ * 수정 모드에서도 둘 다 추가/삭제할 수 있다.
+ */
 @Composable
 private fun PhotoStrip(
+    existingPhotos: List<Photo>,
     photoUris: List<String>,
     onPickPhotos: () -> Unit,
     onPhotoRemove: (String) -> Unit,
+    onExistingPhotoRemove: (String) -> Unit,
 ) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = SidePadding),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item(key = "add") {
-            AddPhotoButton(count = photoUris.size, onClick = onPickPhotos)
+            AddPhotoButton(count = existingPhotos.size + photoUris.size, onClick = onPickPhotos)
         }
-        items(photoUris, key = { it }) { uri ->
+        items(existingPhotos, key = { "existing-${it.id}" }) { photo ->
+            val photoId = photo.id
+            if (photoId != null) {
+                ExistingPhotoThumbnail(photo = photo, onRemove = { onExistingPhotoRemove(photoId) })
+            }
+        }
+        items(photoUris, key = { "new-$it" }) { uri ->
             PhotoThumbnail(uri = uri, onRemove = { onPhotoRemove(uri) })
         }
     }
@@ -363,23 +371,41 @@ private fun PhotoThumbnail(uri: String, onRemove: () -> Unit) {
                 .clip(RoundedCornerShape(18.dp))
                 .background(CardBackground),
         )
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(6.dp)
-                .size(22.dp)
-                .clip(CircleShape)
-                .background(SurfaceWhite)
-                .clickable(onClick = onRemove),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_x),
-                contentDescription = "사진 제거",
-                tint = TopBarIcon,
-                modifier = Modifier.size(13.dp),
-            )
-        }
+        PhotoRemoveButton(onRemove = onRemove)
+    }
+}
+
+/** 이미 서버에 저장된 사진 하나. signed URL 이 아직 없으면 [PhotoImage] 가 그라디언트로 채운다. */
+@Composable
+private fun ExistingPhotoThumbnail(photo: Photo, onRemove: () -> Unit) {
+    Box(modifier = Modifier.size(100.dp)) {
+        PhotoImage(
+            photo = photo,
+            corner = 18.dp,
+            modifier = Modifier.fillMaxSize(),
+        )
+        PhotoRemoveButton(onRemove = onRemove)
+    }
+}
+
+@Composable
+private fun BoxScope.PhotoRemoveButton(onRemove: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopEnd)
+            .padding(6.dp)
+            .size(22.dp)
+            .clip(CircleShape)
+            .background(SurfaceWhite)
+            .clickable(onClick = onRemove),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_x),
+            contentDescription = "사진 제거",
+            tint = TopBarIcon,
+            modifier = Modifier.size(13.dp),
+        )
     }
 }
 
@@ -565,6 +591,7 @@ private fun MemoryCreateContentPreview() {
             onBackClick = {},
             onPickPhotos = {},
             onPhotoRemove = {},
+            onExistingPhotoRemove = {},
             onTitleChange = {},
             onBodyChange = {},
             onDateChange = {},

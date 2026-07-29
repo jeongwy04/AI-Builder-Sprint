@@ -58,12 +58,35 @@ class MediaUploader @Inject constructor(
      * URL 발급에 실패해도 화면이 깨지지 않도록 fallback 그라디언트가 남는다.
      */
     suspend fun toPhoto(storagePath: String): Photo = Photo(
+        storagePath = storagePath,
         url = signedUrlOrNull(storagePath),
         fallback = fallbackFor(storagePath),
     )
 
     suspend fun toPhotos(storagePaths: List<String>): List<Photo> =
         storagePaths.map { toPhoto(it) }
+
+    /**
+     * media_assets 행 id 까지 아는 경우(기억 상세/수정)에 쓴다.
+     * id 가 있어야 나중에 "이 사진을 지워줘" 요청에서 어떤 media_assets 행인지 식별할 수 있다.
+     */
+    suspend fun toPhoto(id: String, storagePath: String): Photo = Photo(
+        id = id,
+        storagePath = storagePath,
+        url = signedUrlOrNull(storagePath),
+        fallback = fallbackFor(storagePath),
+    )
+
+    /**
+     * 기억에서 사진을 뺄 때 storage 오브젝트를 지운다.
+     * media_assets 행 자체는 호출한 쪽(Repository)이 지운다 — 여기선 Storage 만 담당한다.
+     * 실패해도(이미 지워졌거나 네트워크 문제) 예외를 던지지 않는다 — media_assets 행이라도
+     * 지워지는 게 사용자 입장에서 더 중요하다.
+     */
+    suspend fun deleteMemoryPhotos(storagePaths: List<String>) = withContext(Dispatchers.IO) {
+        if (storagePaths.isEmpty()) return@withContext
+        runCatching { supabase.storage.from(BUCKET).delete(storagePaths) }
+    }
 
     private suspend fun signedUrlOrNull(path: String): String? =
         runCatching {

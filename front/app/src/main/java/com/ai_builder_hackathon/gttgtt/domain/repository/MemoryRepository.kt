@@ -24,7 +24,10 @@ interface MemoryRepository {
     suspend fun addComment(memoryId: String, text: String): Result<Comment>
 
     /**
-     * 기억 수정. 제목/본문/날짜/함께한 사람만 바꾼다 — 사진은 이 메서드로 건드리지 않는다.
+     * 기억 수정. 제목/본문/날짜/함께한 사람과 함께 사진도 바꿀 수 있다.
+     *
+     * @param newPhotoUris 새로 추가할 사진의 기기 content:// URI 목록.
+     * @param removedPhotoIds 지울 기존 사진의 id 목록 (media_assets 행 id — [Photo.id]).
      *
      * ⚠️ title 은 실제로는 저장되지 않는다 (getDetail() 이 매번 본문 첫 줄에서 다시 계산한다 —
      * createMemory() 와 같은 이유). Fake 구현만 title 을 따로 들고 있어서 값을 반영한다.
@@ -37,6 +40,8 @@ interface MemoryRepository {
         body: String,
         memoryDateMillis: Long,
         participantIds: List<String>,
+        newPhotoUris: List<String> = emptyList(),
+        removedPhotoIds: List<String> = emptyList(),
     ): Result<Unit>
 
     /**
