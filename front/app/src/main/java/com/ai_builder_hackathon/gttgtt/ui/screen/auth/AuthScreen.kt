@@ -26,6 +26,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +45,8 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.compose.auth.composeAuth
 import io.github.jan.supabase.compose.auth.composable.NativeSignInResult
 import io.github.jan.supabase.compose.auth.composable.rememberSignInWithGoogle
@@ -77,6 +82,28 @@ fun AuthScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // ── 로그인 유지: 저장된 세션이 있으면 로그인 화면을 건너뛴다 ──
+    // supabase-kt Auth 가 세션을 기기에 저장하고 자동 갱신한다. 우리는 그 상태만 관찰한다.
+    // 확인이 끝나기 전(Initializing)에는 폼 대신 스피너를 보여 깜빡임을 막는다.
+    var checkingSession by remember { mutableStateOf(true) }
+    var navigated by remember { mutableStateOf(false) }
+    fun goNext() {
+        if (!navigated) {
+            navigated = true
+            onAuthenticated()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.supabase.auth.sessionStatus.collect { status ->
+            when (status) {
+                is SessionStatus.Authenticated -> goNext() // 세션 있음 → 바로 진입
+                SessionStatus.Initializing -> Unit         // 저장소에서 불러오는 중 — 스피너 유지
+                else -> checkingSession = false            // 세션 없음/만료 → 로그인 폼 표시
+            }
+        }
+    }
+
     // compose-auth 는 Composable 함수라서 여기서만 만들 수 있다 (AuthViewModel 상단 주석 참고).
     // NativeSignInResult(compose-auth 타입)는 여기서 GoogleSignInOutcome 으로 바꿔서 넘긴다 —
     // 패턴 매칭(is)만 하고 내부 데이터는 안 건드리므로 라이브러리 세부 구조가 바뀌어도 안전하다.
@@ -100,31 +127,42 @@ fun AuthScreen(
         },
     )
 
-    // 로그인 성공 시 한 번만 상위로 알린다. isAuthenticated 가 다시 false 로 돌아올 일은 없어서
-    // key 로 그대로 써도 중복 호출 걱정이 없다.
+    // 구글 로그인 성공 등으로 isAuthenticated 가 되면 진입. (세션 관찰과 중복돼도 goNext 가 한 번만 실행)
     LaunchedEffect(uiState.isAuthenticated) {
-        if (uiState.isAuthenticated) onAuthenticated()
+        if (uiState.isAuthenticated) goNext()
     }
 
-    AuthContent(
-        uiState = uiState,
-        onEmailChange = viewModel::onEmailChange,
-        onPasswordChange = viewModel::onPasswordChange,
-        onTogglePasswordVisibility = viewModel::togglePasswordVisibility,
-        onToggleKeepSignedIn = viewModel::toggleKeepSignedIn,
-        onLoginClick = viewModel::onLoginClick,
-        onSocialClick = { provider ->
-            if (provider == "google") {
-                viewModel.onGoogleFlowStarted()
-                googleSignInState.startFlow()
-            } else {
-                viewModel.onSocialClick(provider)
-            }
-        },
-        onForgotPasswordClick = { /* TODO: 비밀번호 찾기 */ },
-        onSignUpClick = onSignUpClick,
-        modifier = modifier,
-    )
+    if (checkingSession) {
+        // 세션 확인 중 — 로그인 폼 대신 스피너.
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(ScreenBackground),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator(color = BrandGreen)
+        }
+    } else {
+        AuthContent(
+            uiState = uiState,
+            onEmailChange = viewModel::onEmailChange,
+            onPasswordChange = viewModel::onPasswordChange,
+            onTogglePasswordVisibility = viewModel::togglePasswordVisibility,
+            onToggleKeepSignedIn = viewModel::toggleKeepSignedIn,
+            onLoginClick = viewModel::onLoginClick,
+            onSocialClick = { provider ->
+                if (provider == "google") {
+                    viewModel.onGoogleFlowStarted()
+                    googleSignInState.startFlow()
+                } else {
+                    viewModel.onSocialClick(provider)
+                }
+            },
+            onForgotPasswordClick = { /* TODO: 비밀번호 찾기 */ },
+            onSignUpClick = onSignUpClick,
+            modifier = modifier,
+        )
+    }
 }
 
 @Composable
