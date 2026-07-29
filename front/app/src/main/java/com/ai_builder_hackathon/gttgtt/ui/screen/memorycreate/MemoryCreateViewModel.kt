@@ -31,12 +31,17 @@ class MemoryCreateViewModel @Inject constructor(
     /** null 이면 새 기억 작성, 있으면 해당 기억을 수정하는 모드. */
     private val editMemoryId: String? = savedStateHandle["memoryId"]
 
+    /** 홈에서 카메라로 촬영해 들어온 경우 미리 담을 사진 URI. */
+    private val initialPhotoUri: String? = savedStateHandle["initialPhotoUri"]
+
     private val _uiState = MutableStateFlow(MemoryCreateUiState(isEditMode = editMemoryId != null))
     val uiState: StateFlow<MemoryCreateUiState> = _uiState.asStateFlow()
 
     init {
         loadMembers()
         editMemoryId?.let(::loadExistingMemory)
+        // 카메라로 찍은 사진을 미리 담는다. onPhotosPicked 가 EXIF 촬영일까지 채운다.
+        initialPhotoUri?.let { onPhotosPicked(listOf(it)) }
     }
 
     private fun loadExistingMemory(memoryId: String) {

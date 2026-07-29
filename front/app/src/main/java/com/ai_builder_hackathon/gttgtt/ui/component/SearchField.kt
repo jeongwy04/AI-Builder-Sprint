@@ -17,6 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -24,18 +26,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai_builder_hackathon.gttgtt.R
-import com.ai_builder_hackathon.gttgtt.ui.theme.CardBackground
+import com.ai_builder_hackathon.gttgtt.ui.theme.CardShadow
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
+import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextPrimary
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextSecondary
+import dev.chrisbanes.haze.HazeState
 
-// 시안 .search : radius 16, padding 14/16, gap 10, 14.5px weight 600
-private val FieldCorner = 16.dp
+// 그룹 피드 게시물 박스와 동일한 코너(RoundedCornerShape 24). padding 15/18, gap 10.
+private val FieldCorner = 24.dp
 private val IconSize = 18.dp
 private val FieldFontSize = 14.5.sp
+// 라이트 프로스트 글래스 — 어두운 입력 글자가 읽히도록 흰 반투명 톤을 쓴다.
+private val LightGlassTint = Color.White.copy(alpha = 0.42f)
+private val LightGlassBorder = Color.White.copy(alpha = 0.55f)
 
 /**
- * 회색 배경의 둥근 검색 입력창.
+ * 둥근 검색 입력창. [hazeState] 를 주면 뒤 배경이 비치는 프로스트 글래스로, 없으면 흰 카드로 그린다.
  *
  * Material3 TextField 는 밑줄·라벨·기본 패딩이 붙어 시안과 맞지 않아 BasicTextField 로 직접 그린다.
  */
@@ -45,13 +52,21 @@ fun SearchField(
     onQueryChange: (String) -> Unit,
     placeholder: String,
     modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
 ) {
+    val fieldShape = RoundedCornerShape(FieldCorner)
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(FieldCorner))
-            .background(CardBackground)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .shadow(elevation = 6.dp, shape = fieldShape, spotColor = CardShadow, ambientColor = CardShadow)
+            .then(
+                if (hazeState != null) {
+                    Modifier.frostedGlass(hazeState, fieldShape, tint = LightGlassTint, blurRadius = 20.dp, borderColor = LightGlassBorder)
+                } else {
+                    Modifier.clip(fieldShape).background(SurfaceWhite)
+                }
+            )
+            .padding(horizontal = 18.dp, vertical = 15.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {

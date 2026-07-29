@@ -52,6 +52,7 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
 import com.ai_builder_hackathon.gttgtt.ui.theme.CardBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
+import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackgroundBrush
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextMuted
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextPrimary
@@ -80,7 +81,7 @@ fun AiChatPanel(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-            .background(ScreenBackground)
+            .background(ScreenBackgroundBrush)
     ) {
         AiChatSheetContent(
             uiState = uiState,

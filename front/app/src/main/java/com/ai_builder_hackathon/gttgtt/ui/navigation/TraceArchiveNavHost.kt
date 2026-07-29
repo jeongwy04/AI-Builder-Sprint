@@ -76,6 +76,11 @@ fun TraceArchiveNavHost(
             GroupListScreen(
                 onGroupClick = { archiveId -> navController.navigate(Route.GroupFeed(archiveId)) },
                 onProfileClick = { navController.navigate(Route.MyPage) },
+                onCreateMemoryFromCamera = { archiveId, photoUri ->
+                    navController.navigate(
+                        Route.MemoryCreate(archiveId = archiveId, initialPhotoUri = photoUri),
+                    )
+                },
             )
         }
 

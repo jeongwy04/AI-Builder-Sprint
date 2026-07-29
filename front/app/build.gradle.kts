@@ -92,6 +92,9 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
+    // 글래스모피즘(배경 블러) — 모든 Haze 사용은 ui/component/HazeGlass.kt 에 격리
+    implementation(libs.haze)
+
     // Supabase
     implementation(platform(libs.supabase.bom))
     implementation(libs.supabase.auth)

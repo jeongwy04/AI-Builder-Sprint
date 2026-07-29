@@ -79,6 +79,7 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.MoreIcon
 import com.ai_builder_hackathon.gttgtt.ui.theme.ParticipantNameText
 import com.ai_builder_hackathon.gttgtt.ui.theme.PhotoCountBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
+import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackgroundBrush
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextPrimary
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextSecondary
@@ -199,7 +200,7 @@ private fun MemoryDetailContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(ScreenBackground)
+            .background(ScreenBackgroundBrush)
             // GroupChatScreen/AiChatSheet 와 같은 이유 — 없으면 키보드가 댓글 입력바를 그대로 덮는다.
             .imePadding()
     ) {

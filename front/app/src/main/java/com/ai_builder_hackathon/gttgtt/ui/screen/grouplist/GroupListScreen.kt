@@ -1,22 +1,31 @@
 package com.ai_builder_hackathon.gttgtt.ui.screen.grouplist
 
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -30,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,10 +54,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -62,20 +72,29 @@ import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.domain.model.GroupType
 import com.ai_builder_hackathon.gttgtt.ui.component.GroupAvatarStack
 import com.ai_builder_hackathon.gttgtt.ui.component.GroupThumbnail
+import com.ai_builder_hackathon.gttgtt.ui.component.AddActionCard
+import com.ai_builder_hackathon.gttgtt.ui.component.HomeBottomNavBar
+import com.ai_builder_hackathon.gttgtt.ui.component.HomeTab
 import com.ai_builder_hackathon.gttgtt.ui.component.SearchField
+import com.ai_builder_hackathon.gttgtt.ui.component.SmoothCornerShape
+import com.ai_builder_hackathon.gttgtt.ui.component.hazeBackdrop
+import com.ai_builder_hackathon.gttgtt.ui.component.rememberAppHazeState
 import com.ai_builder_hackathon.gttgtt.ui.theme.AbodeBlue
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.component.AlbumLoader
 import com.ai_builder_hackathon.gttgtt.ui.component.bounceClick
-import com.ai_builder_hackathon.gttgtt.ui.theme.CardShadow
 import com.ai_builder_hackathon.gttgtt.ui.theme.DisplayFontFamily
 import com.ai_builder_hackathon.gttgtt.ui.theme.CardBackground
+import com.ai_builder_hackathon.gttgtt.ui.theme.DarkCircleButton
+import com.ai_builder_hackathon.gttgtt.ui.theme.GlassTopHighlight
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
+import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackgroundBrush
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextMuted
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextPrimary
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextSecondary
+import java.io.File
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -85,6 +104,14 @@ import java.util.Locale
 private val ScreenPadding = 20.dp
 private const val VISIBLE_AVATAR_COUNT = 3
 private val DangerColor = Color(0xFFB64B39)
+
+// 카드: 그룹 피드 게시물 박스와 동일한 코너(RoundedCornerShape 24) + 파란빛 옅은 그림자.
+private val CardCorner = 24.dp
+private val SoftCardShadow = Color(0x1A4A6FA5)
+
+// 상단 크롬(헤더+검색)이 목록 위에 겹쳐 뜨므로, 목록/빈 상태는 이만큼 아래에서 시작한다.
+// 검색바와 첫 카드 사이 여백을 조금 넓혔다.
+private val ChromeReservedHeight = 146.dp
 
 /**
  * S1 그룹(채팅방) 목록.
@@ -96,10 +123,12 @@ private val DangerColor = Color(0xFFB64B39)
 fun GroupListScreen(
     onGroupClick: (archiveId: String) -> Unit,
     onProfileClick: () -> Unit,
+    onCreateMemoryFromCamera: (archiveId: String, photoUri: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GroupListViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     // 그룹 삭제·초대 참여 후 이 화면으로 돌아왔을 때 목록이 그대로 남아있지 않도록,
     // 화면이 다시 보일 때마다(RESUME) 새로 불러온다. ViewModel은 백스택에 남아있는 동안
@@ -130,11 +159,36 @@ fun GroupListScreen(
         }
     }
 
+    // 카메라 촬영 → 기억 작성. TakePicture 는 FileProvider 로 만든 출력 URI 에 사진을 쓴다.
+    // 촬영 후 그룹이 하나면 바로, 여러 개면 그룹 선택을 거쳐 기억 작성 화면으로 넘긴다.
+    // cameraOutputUri 는 촬영 콜백에서만 쓰고 버리는 임시값이라 remember 로 충분하다.
+    var cameraOutputUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingCameraPhotoUri by rememberSaveable { mutableStateOf<String?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture(),
+    ) { success ->
+        val uri = cameraOutputUri
+        if (success && uri != null) {
+            val groups = viewModel.uiState.value.groups
+            when {
+                groups.isEmpty() ->
+                    Toast.makeText(context, "먼저 그룹을 만들어 주세요.", Toast.LENGTH_SHORT).show()
+                groups.size == 1 -> onCreateMemoryFromCamera(groups.first().id, uri.toString())
+                else -> pendingCameraPhotoUri = uri.toString()
+            }
+        }
+    }
+
     GroupListContent(
         uiState = uiState,
         onQueryChange = viewModel::onQueryChange,
         onGroupClick = onGroupClick,
         onProfileClick = onProfileClick,
+        onCameraClick = {
+            val uri = createCameraImageUri(context)
+            cameraOutputUri = uri
+            cameraLauncher.launch(uri)
+        },
         onCreateGroupClick = viewModel::onCreateGroupClick,
         onDismissCreateDialog = viewModel::onDismissCreateDialog,
         onCreateNameChange = viewModel::onCreateNameChange,
@@ -166,6 +220,18 @@ fun GroupListScreen(
         onConfirmDelete = viewModel::onConfirmDelete,
         modifier = modifier,
     )
+
+    // 촬영 후 그룹이 여러 개일 때 어느 그룹에 남길지 고르는 다이얼로그.
+    pendingCameraPhotoUri?.let { photoUri ->
+        CameraGroupPickerDialog(
+            groups = uiState.groups,
+            onPick = { archiveId ->
+                pendingCameraPhotoUri = null
+                onCreateMemoryFromCamera(archiveId, photoUri)
+            },
+            onDismiss = { pendingCameraPhotoUri = null },
+        )
+    }
 }
 
 @Composable
@@ -174,6 +240,7 @@ private fun GroupListContent(
     onQueryChange: (String) -> Unit,
     onGroupClick: (String) -> Unit,
     onProfileClick: () -> Unit,
+    onCameraClick: () -> Unit = {},
     onCreateGroupClick: () -> Unit,
     onDismissCreateDialog: () -> Unit,
     onCreateNameChange: (String) -> Unit,
@@ -199,72 +266,110 @@ private fun GroupListContent(
     onConfirmDelete: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    // 유리(Haze)의 배경 원본과 그 위에 뜨는 유리 요소가 같은 상태를 공유한다.
+    val hazeState = rememberAppHazeState()
+    var showAddCard by remember { mutableStateOf(false) }
+
     Box(modifier = modifier.fillMaxSize()) {
-        Column(
+        // ── 1) 배경 + 스크롤 콘텐츠 = 유리에 비치는 원본(blur source) ──
+        // 목록이 상단 크롬 밑으로 스크롤되며 검색바/네비바에 블러로 비친다.
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(ScreenBackground)
+                .background(ScreenBackgroundBrush)
+                .hazeBackdrop(hazeState),
         ) {
-            HomeHeader(
-                onProfileClick = onProfileClick,
-                modifier = Modifier.padding(
-                    start = ScreenPadding,
-                    end = ScreenPadding,
-                    top = 6.dp,
-                    bottom = 2.dp,
-                ),
-            )
-
-            SearchField(
-                query = uiState.query,
-                onQueryChange = onQueryChange,
-                placeholder = "채팅방 검색",
-                modifier = Modifier.padding(
-                    start = ScreenPadding,
-                    end = ScreenPadding,
-                    top = 14.dp,
-                ),
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            if (uiState.updatingCoverImageArchiveId != null) {
-                CoverImageStatusBanner(
-                    text = "그룹 사진을 올리는 중이에요…",
-                    isError = false,
-                    onDismiss = null,
-                    modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 4.dp),
-                )
-            } else if (uiState.coverImageError != null) {
-                CoverImageStatusBanner(
-                    text = uiState.coverImageError,
-                    isError = true,
-                    onDismiss = onDismissCoverImageError,
-                    modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 4.dp),
-                )
-            }
-
             when {
-                uiState.isLoading -> LoadingState()
-                uiState.errorMessage != null -> MessageState(uiState.errorMessage)
+                uiState.isLoading -> LoadingState(topInset = ChromeReservedHeight)
+                uiState.errorMessage != null ->
+                    MessageState(uiState.errorMessage, topInset = ChromeReservedHeight)
                 uiState.isEmpty -> MessageState(
-                    if (uiState.query.isBlank()) "아직 참여 중인 채팅방이 없어요." else "검색 결과가 없어요."
+                    if (uiState.query.isBlank()) "아직 참여 중인 채팅방이 없어요." else "검색 결과가 없어요.",
+                    topInset = ChromeReservedHeight,
                 )
 
                 else -> GroupList(
                     groups = uiState.groups,
                     onGroupClick = onGroupClick,
                     onGroupSettingsClick = onGroupSettingsClick,
+                    topPadding = ChromeReservedHeight,
                 )
             }
         }
 
-        CreateGroupFab(
-            onClick = onCreateGroupClick,
+        // ── 2) 상단 크롬(헤더 + 검색 + 배너) — 유리 자식(뒤 목록이 비쳐 블러됨) ──
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .fillMaxWidth(),
+        ) {
+            HomeHeader(
+                onProfileClick = onProfileClick,
+                onAddClick = { showAddCard = !showAddCard },
+                modifier = Modifier.padding(start = ScreenPadding, end = ScreenPadding, top = 6.dp, bottom = 2.dp),
+            )
+            SearchField(
+                query = uiState.query,
+                onQueryChange = onQueryChange,
+                placeholder = "채팅방 검색",
+                hazeState = hazeState,
+                modifier = Modifier.padding(start = ScreenPadding, end = ScreenPadding, top = 14.dp),
+            )
+            if (uiState.updatingCoverImageArchiveId != null) {
+                CoverImageStatusBanner(
+                    text = "그룹 사진을 올리는 중이에요…",
+                    isError = false,
+                    onDismiss = null,
+                    modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp),
+                )
+            } else if (uiState.coverImageError != null) {
+                CoverImageStatusBanner(
+                    text = uiState.coverImageError,
+                    isError = true,
+                    onDismiss = onDismissCoverImageError,
+                    modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp),
+                )
+            }
+        }
+
+        // ── 3) 하단 플로팅 세그먼트 — 카메라(촬영) / 그룹(현재 화면) ──
+        HomeBottomNavBar(
+            selected = HomeTab.GROUP,
+            hazeState = hazeState,
+            onCameraClick = onCameraClick,
+            onGroupClick = {},
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 24.dp),
+                .padding(bottom = 22.dp),
         )
+
+        // ── 4) '+' 다크 글래스 액션 카드 (헤더 + 버튼으로 토글) ──
+        if (showAddCard) {
+            // 바깥을 누르면 닫히는 투명 스크림.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { showAddCard = false },
+            )
+            AddActionCard(
+                hazeState = hazeState,
+                onCreateGroup = {
+                    showAddCard = false
+                    onCreateGroupClick()
+                },
+                onJoinByCode = {
+                    showAddCard = false
+                    onJoinByCodeClick()
+                },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 60.dp, end = ScreenPadding)
+                    .width(232.dp),
+            )
+        }
     }
 
     if (uiState.isCreateDialogOpen) {
@@ -844,30 +949,6 @@ private fun JoinByCodeDialog(
     }
 }
 
-/** 우측 하단에 뜨는 원형 + 버튼. 그룹 만들기 다이얼로그를 연다. */
-@Composable
-private fun CreateGroupFab(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .size(56.dp)
-            .shadow(elevation = 6.dp, shape = CircleShape)
-            .clip(CircleShape)
-            .background(BrandGreen)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_plus),
-            contentDescription = "그룹 만들기",
-            tint = SurfaceWhite,
-            modifier = Modifier.size(24.dp),
-        )
-    }
-}
-
 /** 그룹 이름 + 유형을 받아 새 그룹을 만드는 다이얼로그. */
 @Composable
 private fun CreateGroupDialog(
@@ -1051,6 +1132,7 @@ private fun GroupTypeChip(
 @Composable
 private fun HomeHeader(
     onProfileClick: () -> Unit,
+    onAddClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -1058,8 +1140,6 @@ private fun HomeHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        // 시안 .logo b : 25px / 900 / italic / letter-spacing -.04em
-        // Pretendard 를 res/font/ 에 넣으면 fontFamily 만 지정하면 된다.
         Text(
             text = "그때그때",
             style = TextStyle(
@@ -1070,30 +1150,50 @@ private fun HomeHeader(
                 letterSpacing = (-0.02).em,
             ),
         )
-        MyButton(onClick = onProfileClick)
+        // 우상단 [+][프로필] — 레이아웃 A. 다크 그레이 원형(이미지 2 톤).
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            HeaderIconButton(
+                iconRes = R.drawable.ic_plus,
+                contentDescription = "추가",
+                size = 44.dp,
+                onClick = onAddClick,
+            )
+            HeaderIconButton(
+                iconRes = R.drawable.ic_user,
+                contentDescription = "내 프로필",
+                size = 44.dp,
+                onClick = onProfileClick,
+            )
+        }
     }
 }
 
-/** 시안 기준 46x40 의 둥근 사각형. 완전한 알약 형태가 아니다. */
+/** 헤더 우측의 원형 아이콘 버튼(+·프로필 공용). 다크 그레이 원 + 흰 아이콘 + 상단 하이라이트. */
 @Composable
-private fun MyButton(onClick: () -> Unit) {
+private fun HeaderIconButton(
+    iconRes: Int,
+    contentDescription: String,
+    size: Dp,
+    onClick: () -> Unit,
+) {
     Box(
         modifier = Modifier
-            .size(width = 46.dp, height = 40.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(BrandGreen)
+            .size(size)
+            .shadow(elevation = 6.dp, shape = CircleShape, spotColor = SoftCardShadow, ambientColor = SoftCardShadow)
+            .clip(CircleShape)
+            .background(DarkCircleButton)
+            .border(width = 1.dp, color = GlassTopHighlight, shape = CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = "MY",
-            style = TextStyle(
-                color = SurfaceWhite,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Black,
-                fontStyle = FontStyle.Italic,
-                letterSpacing = 0.02.em,
-            ),
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = contentDescription,
+            tint = SurfaceWhite,
+            modifier = Modifier.size(size * 0.44f),
         )
     }
 }
@@ -1103,12 +1203,16 @@ private fun GroupList(
     groups: List<ArchiveSummary>,
     onGroupClick: (String) -> Unit,
     onGroupSettingsClick: (String) -> Unit = {},
+    topPadding: Dp = 0.dp,
 ) {
     LazyColumn(
         contentPadding = PaddingValues(
             start = ScreenPadding,
             end = ScreenPadding,
-            bottom = 24.dp,
+            // 상단 크롬(헤더+검색) 밑에서 시작하되, 그 아래로 스크롤되며 유리에 비친다.
+            top = topPadding,
+            // 하단 플로팅 네비바(약 60 + 여백)에 마지막 카드가 가리지 않도록 넉넉히 비운다.
+            bottom = 100.dp,
         ),
         // 시안 .list gap: 11
         verticalArrangement = Arrangement.spacedBy(11.dp),
@@ -1129,21 +1233,30 @@ private fun GroupCard(
     onClick: () -> Unit,
     onSettingsClick: () -> Unit = {},
 ) {
+    // 그룹 피드 게시물 박스와 동일한 코너.
+    val cardShape = RoundedCornerShape(CardCorner)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            // Abode 카드: 흰색 + 소프트 섀도우 + 큰 라운드
-            .shadow(elevation = 7.dp, shape = RoundedCornerShape(22.dp), spotColor = CardShadow, ambientColor = CardShadow)
-            .clip(RoundedCornerShape(22.dp))
+            // 흰 카드가 배경 위로 떠 보이도록 크고 부드러운 그림자 + 큰 라운드.
+            .shadow(elevation = 12.dp, shape = cardShape, spotColor = SoftCardShadow, ambientColor = SoftCardShadow)
+            .clip(cardShape)
             .background(SurfaceWhite)
             .bounceClick(onClick = onClick)
             .padding(14.dp),
     ) {
+        // 카카오톡형: [썸네일] [이름/프리뷰/아바타] [시간(위)·안읽음(아래)]
+        // 오른쪽 열을 카드 높이만큼 늘려(SpaceBetween) 시간은 위, 안 읽음 배지는 아래로 벌린다.
         Row(
+            modifier = Modifier.height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(13.dp),
         ) {
-            GroupThumbnail(theme = group.theme, imageUrl = group.coverImageUrl)
+            GroupThumbnail(
+                theme = group.theme,
+                imageUrl = group.coverImageUrl,
+                initial = group.name,
+            )
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -1156,31 +1269,46 @@ private fun GroupCard(
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    // 우측 상단 점 세개 버튼과 겹치지 않도록 자리를 비운다.
-                    modifier = Modifier.padding(end = 22.dp),
                 )
                 Spacer(Modifier.height(3.dp))
                 Text(
                     text = group.lastMessagePreview,
                     color = TextSecondary,
                     fontSize = 12.5.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(8.dp))
 
                 val shownMembers = group.memberIds.take(VISIBLE_AVATAR_COUNT)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    GroupAvatarStack(
-                        memberIds = shownMembers,
-                        // "+N" 의 N 은 전체 인원에서 실제로 그린 아바타 수를 뺀 값이다.
-                        hiddenCount = group.hiddenMemberCount(shownMembers.size),
+                GroupAvatarStack(
+                    memberIds = shownMembers,
+                    // "+N" 의 N 은 전체 인원에서 실제로 그린 아바타 수를 뺀 값이다.
+                    hiddenCount = group.hiddenMemberCount(shownMembers.size),
+                )
+            }
+
+            // 오른쪽 세로 열 — 위: 설정(점 세개)+시간, 아래: 안 읽음 배지.
+            Column(
+                modifier = Modifier.fillMaxHeight(),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(horizontalAlignment = Alignment.End) {
+                    // 점 세개 = 그룹 설정. 카드 전체 탭(bounceClick) 위에 얹혀도 nested clickable 이
+                    // 안쪽 우선이라 이것만 반응한다.
+                    Icon(
+                        painter = painterResource(R.drawable.ic_dots),
+                        contentDescription = "그룹 설정",
+                        tint = TextMuted,
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = onSettingsClick)
+                            .padding(4.dp),
                     )
+                    Spacer(Modifier.height(4.dp))
                     Text(
                         text = formatTime(group.lastActivityAtMillis),
                         color = TextMuted,
@@ -1188,29 +1316,14 @@ private fun GroupCard(
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
+
+                if (group.unreadCount > 0) {
+                    UnreadCountBadge(count = group.unreadCount)
+                } else {
+                    // 배지가 없어도 오른쪽 열 폭이 흔들리지 않도록 자리를 유지한다.
+                    Spacer(Modifier.size(20.dp))
+                }
             }
-        }
-
-        // 점 세개 = 그룹 설정(이름 변경 · 친구 초대 · 삭제). 카드 전체 탭(bounceClick) 위에
-        // 얹혀도 nested clickable 이 안쪽 우선이라 이것만 반응한다.
-        Icon(
-            painter = painterResource(R.drawable.ic_dots),
-            contentDescription = "그룹 설정",
-            tint = TextMuted,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(28.dp)
-                .clip(CircleShape)
-                .clickable(onClick = onSettingsClick)
-                .padding(4.dp),
-        )
-
-        // 안 읽은 메시지 수. 점 세개(우상단)와 시간(우하단) 사이, 우측 가장자리에 세로 중앙 정렬.
-        if (group.unreadCount > 0) {
-            UnreadCountBadge(
-                count = group.unreadCount,
-                modifier = Modifier.align(Alignment.CenterEnd),
-            )
         }
     }
 }
@@ -1239,17 +1352,17 @@ private fun UnreadCountBadge(count: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun LoadingState() {
+private fun LoadingState(topInset: Dp = 0.dp) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopCenter,
     ) {
-        AlbumLoader(modifier = Modifier.padding(top = 48.dp))
+        AlbumLoader(modifier = Modifier.padding(top = topInset + 24.dp))
     }
 }
 
 @Composable
-private fun MessageState(message: String) {
+private fun MessageState(message: String, topInset: Dp = 0.dp) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopCenter,
@@ -1259,8 +1372,78 @@ private fun MessageState(message: String) {
             color = TextSecondary,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(top = 40.dp),
+            modifier = Modifier.padding(top = topInset + 16.dp),
         )
+    }
+}
+
+/**
+ * 카메라 촬영 결과를 저장할 앱 캐시 파일의 FileProvider content URI 를 만든다.
+ * TakePicture 가 이 URI 에 사진을 쓰고, 이후 업로드는 같은 앱이 contentResolver 로 읽는다.
+ */
+private fun createCameraImageUri(context: Context): Uri {
+    val dir = File(context.cacheDir, "camera").apply { mkdirs() }
+    val file = File.createTempFile("capture_", ".jpg", dir)
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
+/** 촬영 직후 그룹이 여러 개일 때, 사진을 어느 그룹에 남길지 고르는 다이얼로그. */
+@Composable
+private fun CameraGroupPickerDialog(
+    groups: List<ArchiveSummary>,
+    onPick: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(SmoothCornerShape(24.dp))
+                .background(SurfaceWhite)
+                .padding(20.dp),
+        ) {
+            Text(
+                text = "어느 그룹에 남길까요?",
+                color = TextPrimary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "방금 찍은 사진으로 기억을 만들어요.",
+                color = TextSecondary,
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(14.dp))
+
+            groups.forEach { group ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(SmoothCornerShape(16.dp))
+                        .clickable { onPick(group.id) }
+                        .padding(vertical = 10.dp, horizontal = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    GroupThumbnail(
+                        theme = group.theme,
+                        imageUrl = group.coverImageUrl,
+                        initial = group.name,
+                    )
+                    Text(
+                        text = group.name,
+                        color = TextPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
     }
 }
 

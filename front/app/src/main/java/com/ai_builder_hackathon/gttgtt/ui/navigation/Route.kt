@@ -58,7 +58,12 @@ sealed interface Route {
     /**
      * S4 기억 작성 / 수정.
      * memoryId 가 있으면 수정 모드 — 제목/본문/날짜/함께한 사람만 고칠 수 있고 사진은 그대로 둔다.
+     * initialPhotoUri 가 있으면(홈에서 카메라로 촬영해 들어온 경우) 그 사진을 미리 담은 채 연다.
      */
     @Serializable
-    data class MemoryCreate(val archiveId: String, val memoryId: String? = null) : Route
+    data class MemoryCreate(
+        val archiveId: String,
+        val memoryId: String? = null,
+        val initialPhotoUri: String? = null,
+    ) : Route
 }

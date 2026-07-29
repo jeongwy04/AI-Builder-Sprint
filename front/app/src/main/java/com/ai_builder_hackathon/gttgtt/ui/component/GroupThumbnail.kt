@@ -18,8 +18,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Icon
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import coil3.compose.AsyncImage
 import com.ai_builder_hackathon.gttgtt.R
+import com.ai_builder_hackathon.gttgtt.ui.theme.DisplayFontFamily
+import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextSecondary
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.BeachGradient
@@ -35,32 +38,52 @@ private val ThumbnailSize = 60.dp
 private val ThumbnailCorner = 20.dp
 
 /**
- * 그룹 썸네일 — [imageUrl] 이 있으면 Coil 로 실제 대표 사진을 그린다.
- * 아직 지정 안 한 그룹이면(null) 파스텔 배경 위에 큰 이모지 스티커로 대신한다 (만화 느낌).
+ * 그룹 썸네일 — 우선순위: 실제 대표 사진 → 이름 이니셜 → 사진 placeholder.
+ * - [imageUrl] 이 있으면 Coil 로 대표 사진을 그린다.
+ * - 없고 [initial] 이 있으면 테마 그라디언트 위에 이름 첫 글자를 얹은 세련된 이니셜 아바타.
+ * - 둘 다 없으면 파스텔 배경 + 사진 아이콘.
  */
 @Composable
 fun GroupThumbnail(
     theme: GradientTheme,
     modifier: Modifier = Modifier,
     imageUrl: String? = null,
+    initial: String? = null,
 ) {
+    val showInitial = imageUrl == null && !initial.isNullOrBlank()
     Box(
         modifier = modifier
             .size(ThumbnailSize)
             .clip(RoundedCornerShape(ThumbnailCorner))
-            .background(tintOf(theme)),
+            // 이니셜 아바타는 또렷하게 보이도록 진한 그라디언트, 그 외엔 파스텔 톤.
+            // Brush/Color 는 공통 타입이 Any 라 삼항으로 넘기면 background() 오버로드가 안 맞는다.
+            // 그래서 Modifier 단위로 분기한다.
+            .then(
+                if (showInitial) {
+                    Modifier.background(gradientOf(theme))
+                } else {
+                    Modifier.background(tintOf(theme))
+                }
+            ),
         contentAlignment = Alignment.Center,
     ) {
-        if (imageUrl != null) {
-            AsyncImage(
+        when {
+            imageUrl != null -> AsyncImage(
                 model = imageUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
-        } else {
-            // 대표 사진 등록 전 placeholder.
-            Icon(
+
+            showInitial -> Text(
+                text = initial!!.trim().take(1).uppercase(),
+                color = SurfaceWhite,
+                fontFamily = DisplayFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
+            )
+
+            else -> Icon(
                 painter = painterResource(R.drawable.ic_photo),
                 contentDescription = null,
                 tint = TextSecondary,

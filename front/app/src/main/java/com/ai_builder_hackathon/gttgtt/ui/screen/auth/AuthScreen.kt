@@ -57,6 +57,7 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
+import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackgroundBrush
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextPrimary
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextSecondary
@@ -140,7 +141,7 @@ fun AuthScreen(
         Box(
             modifier = modifier
                 .fillMaxSize()
-                .background(ScreenBackground),
+                .background(ScreenBackgroundBrush),
             contentAlignment = Alignment.Center,
         ) {
             CircularProgressIndicator(color = BrandGreen)
@@ -184,7 +185,7 @@ private fun AuthContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(ScreenBackground)
+            .background(ScreenBackgroundBrush)
             .verticalScroll(rememberScrollState()),
     ) {
         Hero()

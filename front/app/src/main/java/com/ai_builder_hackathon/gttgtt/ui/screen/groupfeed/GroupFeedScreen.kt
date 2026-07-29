@@ -82,6 +82,7 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.DisplayFontFamily
 import com.ai_builder_hackathon.gttgtt.ui.theme.AbodeCoralTint
 import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
+import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackgroundBrush
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextPrimary
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextSecondary
@@ -239,7 +240,7 @@ private fun GroupFeedContent(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(ScreenBackground)
+            .background(ScreenBackgroundBrush)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // 채팅·AI·기억 남기기가 전부 하단 바로 내려가서 상단엔 뒤로가기/제목/설정만 남는다.

@@ -38,6 +38,7 @@ import com.ai_builder_hackathon.gttgtt.domain.model.MemorySummary
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
+import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackgroundBrush
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextPrimary
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextSecondary
@@ -88,7 +89,7 @@ private fun MemoryListContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(ScreenBackground),
+            .background(ScreenBackgroundBrush),
     ) {
         TopBar(title = title, onBackClick = onBackClick)
 

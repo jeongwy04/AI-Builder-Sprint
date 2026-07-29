@@ -60,6 +60,7 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.MenuItemText
 import com.ai_builder_hackathon.gttgtt.ui.theme.MyPageHeaderGradient
 import com.ai_builder_hackathon.gttgtt.ui.theme.MyPageSubText
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
+import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackgroundBrush
 import com.ai_builder_hackathon.gttgtt.ui.theme.StatMediaBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.StatMediaIcon
 import com.ai_builder_hackathon.gttgtt.ui.theme.StatMemoryBackground
@@ -125,7 +126,7 @@ private fun MyPageContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(ScreenBackground)
+            .background(ScreenBackgroundBrush)
             .verticalScroll(rememberScrollState())
     ) {
         when {

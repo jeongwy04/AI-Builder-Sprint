@@ -66,6 +66,7 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenSoft
 import com.ai_builder_hackathon.gttgtt.ui.theme.CardBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
+import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackgroundBrush
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextMuted
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextPrimary
@@ -144,7 +145,7 @@ private fun MemoryCreateContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(ScreenBackground)
+            .background(ScreenBackgroundBrush)
     ) {
         CreateTopBar(
             title = if (uiState.isEditMode) "기억 수정" else "기억 남기기",

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 카메라 촬영 임시 파일 저장 위치 (cacheDir/camera). TakePicture 가 이 경로에 사진을 쓴다. -->
+    <cache-path
+        name="camera_images"
+        path="camera/" />
+</paths>

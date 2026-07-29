@@ -28,8 +28,22 @@ val TextSecondary = Color(0xFF8E8E93)
 /** 더 약한 톤 */
 val TextMuted = Color(0xFFB0B0B5)
 
-/** background — 따뜻한 베이지 */
+/** background — 따뜻한 베이지 (다이얼로그 입력창·아바타 링 등 컴포넌트 배경으로도 쓰인다) */
 val ScreenBackground = Color(0xFFEDEAE3)
+
+/**
+ * 화면 루트 배경 그라데이션 — 상단 옅은 하늘빛에서 하단 순백으로.
+ * 흰 카드가 배경 위로 떠 보이도록 깊이감을 준다.
+ * ⚠️ 화면의 최상위 컨테이너 배경에만 쓴다. 다이얼로그 입력창처럼 색 대비가 필요한 곳은
+ * 계속 [ScreenBackground](불투명 색)를 쓴다 — 여기에 그라데이션을 넣으면 대비가 사라진다.
+ */
+val ScreenBackgroundBrush: Brush = Brush.verticalGradient(
+    colorStops = arrayOf(
+        0f to Color(0xFFEAF2FE),
+        0.55f to Color(0xFFF7FAFF),
+        1f to Color(0xFFFFFFFF),
+    ),
+)
 
 /** muted / input-background — 검색창·입력창 배경 */
 val CardBackground = Color(0xFFF5F2EC)
@@ -52,6 +66,18 @@ val AbodeCoralTint = Color(0xFFFFECEC)
 val AbodeGreenTint = Color(0xFFE7F6EF)
 /** 카드/버튼 그림자 — 스티커처럼 떠 보이게 도톰하게 */
 val CardShadow = Color(0x26000000)
+
+// ── 글래스모피즘(다크 유리) ──
+/** 다크 유리 표면 틴트 — 반투명이라 뒤 배경이 블러되어 비친다. */
+val DarkGlassTint = Color(0xFF1E1E24).copy(alpha = 0.55f)
+/** 유리 테두리(얇은 흰 하이라이트). */
+val DarkGlassBorder = Color.White.copy(alpha = 0.14f)
+/** 선택된 칩 상단 광원 느낌 테두리. */
+val GlassTopHighlight = Color.White.copy(alpha = 0.15f)
+/** 액션 카드 좌상단에서 번지는 파란 빛. */
+val GlassBlueGlow = Color(0xFF3B82F6)
+/** 다크 유리 위의 원형 버튼(다크 그레이). */
+val DarkCircleButton = Color(0xFF2A2A31)
 
 /** .chip — 댓글 등 기본 칩 */
 val ChipBackground = Color(0xFFF4F3F0)
