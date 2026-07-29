@@ -73,6 +73,10 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.CardBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.ChipBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.ChipText
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
+import com.ai_builder_hackathon.gttgtt.ui.component.AlbumLoader
+import com.ai_builder_hackathon.gttgtt.ui.component.LikeButton
+import com.ai_builder_hackathon.gttgtt.ui.theme.DisplayFontFamily
+import com.ai_builder_hackathon.gttgtt.ui.theme.AbodeCoralTint
 import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipText
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
@@ -789,8 +793,9 @@ private fun PostHeader(post: Post, onDeleteClick: () -> Unit) {
             Text(
                 text = post.authorName,
                 color = TextPrimary,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontFamily = DisplayFontFamily,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
             )
             Text(
                 text = " · ${formatDate(post.memoryDateMillis)}",
@@ -847,13 +852,18 @@ private fun PostPhotos(post: Post) {
 @Composable
 private fun PostFooter(post: Post, onLikeClick: () -> Unit, onCommentClick: () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Chip(
-            iconRes = if (post.likedByMe) R.drawable.ic_heart_filled else R.drawable.ic_heart,
-            label = post.likeCount.toString(),
-            background = LikeChipBackground,
-            contentColor = LikeChipText,
-            onClick = onLikeClick,
-        )
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(if (post.likedByMe) AbodeCoralTint else LikeChipBackground)
+                .padding(horizontal = 13.dp, vertical = 8.dp),
+        ) {
+            LikeButton(
+                liked = post.likedByMe,
+                count = post.likeCount,
+                onToggle = onLikeClick,
+            )
+        }
         Chip(
             iconRes = R.drawable.ic_message_circle,
             label = post.commentCount.toString(),
@@ -899,10 +909,7 @@ private fun Chip(
 @Composable
 private fun LoadingState() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        CircularProgressIndicator(
-            color = BrandGreen,
-            modifier = Modifier.padding(top = 40.dp),
-        )
+        AlbumLoader(modifier = Modifier.padding(top = 48.dp))
     }
 }
 

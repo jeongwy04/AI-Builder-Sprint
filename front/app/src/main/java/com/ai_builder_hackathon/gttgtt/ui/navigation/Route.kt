@@ -8,6 +8,10 @@ import kotlinx.serialization.Serializable
  */
 sealed interface Route {
 
+    /** 온보딩 — 첫 진입(로그아웃 상태) 인트로 캐러셀. 로그인돼 있으면 자동 스킵. */
+    @Serializable
+    data object Onboarding : Route
+
     /** S0 로그인 */
     @Serializable
     data object Auth : Route

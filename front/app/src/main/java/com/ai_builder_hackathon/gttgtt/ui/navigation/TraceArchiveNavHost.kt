@@ -16,6 +16,7 @@ import com.ai_builder_hackathon.gttgtt.ui.screen.memorydetail.MemoryDetailScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.memorylist.MemoryListKind
 import com.ai_builder_hackathon.gttgtt.ui.screen.memorylist.MemoryListScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.mypage.MyPageScreen
+import com.ai_builder_hackathon.gttgtt.ui.screen.onboarding.OnboardingScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.signup.SignUpScreen
 
 /**
@@ -30,9 +31,20 @@ fun TraceArchiveNavHost(
     NavHost(
         navController = navController,
         // 구글 로그인이 붙어서 다시 Route.Auth 로 시작한다.
-        startDestination = Route.Auth,
+        startDestination = Route.Onboarding,
         modifier = modifier,
     ) {
+        composable<Route.Onboarding> {
+            OnboardingScreen(
+                onFinished = { navController.navigate(Route.Auth) },
+                onAlreadyAuthed = {
+                    navController.navigate(Route.GroupList) {
+                        popUpTo(Route.Onboarding) { inclusive = true }
+                    }
+                },
+            )
+        }
+
         composable<Route.Auth> {
             AuthScreen(
                 onAuthenticated = {

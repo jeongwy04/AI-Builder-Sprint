@@ -87,9 +87,13 @@ fun MemoryCreateScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // 저장이 끝나면 화면을 나가는 건 네비게이션의 몫이라 여기서 알린다.
+    // 저장 성공 시 컨페티를 터뜨리고(이펙트 4), 잠깐 보여준 뒤 화면을 나간다.
+    var confetti by remember { mutableStateOf(0) }
     LaunchedEffect(uiState.savedMemoryId) {
-        uiState.savedMemoryId?.let(onSaved)
+        val id = uiState.savedMemoryId ?: return@LaunchedEffect
+        confetti += 1
+        kotlinx.coroutines.delay(900)
+        onSaved(id)
     }
 
     // 사진 선택. Photo Picker 는 저장소 권한을 요구하지 않는다.
@@ -99,23 +103,25 @@ fun MemoryCreateScreen(
         viewModel.onPhotosPicked(uris.map { it.toString() })
     }
 
-    MemoryCreateContent(
-        uiState = uiState,
-        onBackClick = onBackClick,
-        onPickPhotos = {
-            photoPicker.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-            )
-        },
-        onPhotoRemove = viewModel::onPhotoRemove,
-        onExistingPhotoRemove = viewModel::onExistingPhotoRemove,
-        onTitleChange = viewModel::onTitleChange,
-        onBodyChange = viewModel::onBodyChange,
-        onDateChange = viewModel::onDateChange,
-        onParticipantToggle = viewModel::onParticipantToggle,
-        onSaveClick = viewModel::onSaveClick,
-        modifier = modifier,
-    )
+    androidx.compose.foundation.layout.Box(modifier = modifier.fillMaxSize()) {
+        MemoryCreateContent(
+            uiState = uiState,
+            onBackClick = onBackClick,
+            onPickPhotos = {
+                photoPicker.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            },
+            onPhotoRemove = viewModel::onPhotoRemove,
+            onExistingPhotoRemove = viewModel::onExistingPhotoRemove,
+            onTitleChange = viewModel::onTitleChange,
+            onBodyChange = viewModel::onBodyChange,
+            onDateChange = viewModel::onDateChange,
+            onParticipantToggle = viewModel::onParticipantToggle,
+            onSaveClick = viewModel::onSaveClick,
+        )
+        com.ai_builder_hackathon.gttgtt.ui.component.ConfettiOverlay(trigger = confetti)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
