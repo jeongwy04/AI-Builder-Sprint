@@ -192,8 +192,8 @@ private fun GroupListContent(
         CreateGroupFab(
             onClick = onCreateGroupClick,
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = ScreenPadding, bottom = 24.dp),
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp),
         )
     }
 
