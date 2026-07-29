@@ -2,6 +2,7 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.memorydetail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,9 +15,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -29,12 +33,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.domain.model.Comment
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
@@ -62,6 +73,8 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.CommentText
 import com.ai_builder_hackathon.gttgtt.ui.theme.DetailBodyText
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.InputBarIcon
+import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipBackground
+import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipText
 import com.ai_builder_hackathon.gttgtt.ui.theme.MoreIcon
 import com.ai_builder_hackathon.gttgtt.ui.theme.ParticipantNameText
 import com.ai_builder_hackathon.gttgtt.ui.theme.PhotoCountBackground
@@ -82,6 +95,7 @@ fun MemoryDetailScreen(
     onBackClick: () -> Unit,
     onEditClick: (archiveId: String, memoryId: String) -> Unit,
     onDeleted: () -> Unit,
+    onChatClick: (archiveId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MemoryDetailViewModel = hiltViewModel(),
 ) {
@@ -89,6 +103,17 @@ fun MemoryDetailScreen(
 
     LaunchedEffect(uiState.isDeleted) {
         if (uiState.isDeleted) onDeleted()
+    }
+
+    // 공유가 성공할 때마다 카운트가 늘어난다 — 채팅방으로 넘어가서 방금 보낸 메시지를 바로 보여준다.
+    // 이동 직후 onShareHandled() 로 카운트를 되돌려야 한다 — 안 그러면 채팅방에서 뒤로가기로
+    // 돌아왔을 때 이 화면이 재조립되며 "값이 여전히 그대로"인 걸 보고 또 튕겨버린다
+    // (GroupFeedScreen 에서 겪었던 것과 같은 원인).
+    LaunchedEffect(uiState.shareSuccessCount) {
+        if (uiState.shareSuccessCount > 0) {
+            uiState.memory?.let { onChatClick(it.archiveId) }
+            viewModel.onShareHandled()
+        }
     }
 
     MemoryDetailContent(
@@ -108,6 +133,9 @@ fun MemoryDetailScreen(
         onDeleteClick = viewModel::onDeleteClick,
         onDismissDeleteConfirm = viewModel::onDismissDeleteConfirm,
         onConfirmDelete = viewModel::onConfirmDelete,
+        onLikeClick = viewModel::onLikeClick,
+        onShareClick = viewModel::onShareClick,
+        onCommentFocusHandled = viewModel::onCommentFocusHandled,
         modifier = modifier,
     )
 }
@@ -125,8 +153,49 @@ private fun MemoryDetailContent(
     onDeleteClick: () -> Unit,
     onDismissDeleteConfirm: () -> Unit,
     onConfirmDelete: () -> Unit,
+    onLikeClick: () -> Unit = {},
+    onShareClick: () -> Unit = {},
+    onCommentFocusHandled: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val commentFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    // DetailBody 의 LazyColumn 과 같은 스크롤 상태를 들고 있어야, 댓글 입력창에
+    // 포커스가 갈 때 이 화면(MemoryDetailContent)에서 맨 아래(댓글 영역)로 스크롤시킬 수 있다.
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    // 댓글 입력창에 포커스가 갈 때마다(자동 포커스든, 사용자가 직접 탭했든) 목록을 맨 아래로
+    // 스크롤해서 댓글 영역이 키보드 위로 보이게 한다.
+    //
+    // animateScrollToItem(lastIndex) 만으로는 마지막 아이템의 "시작 지점"만 뷰포트 위로
+    // 끌어올릴 뿐이라, 그 아이템이 뷰포트보다 작으면 조금만 내려간 것처럼 보인다.
+    // 그래서 먼저 마지막 아이템 근처로 이동한 뒤, animateScrollBy 로 큰 값을 더 밀어 넣어
+    // 실제 스크롤 끝(진짜 맨 아래)까지 마저 내려간다 — animateScrollBy 는 남은 스크롤
+    // 가능 거리만큼만 소비하고 멈추기 때문에 값이 커도 범위를 벗어나지 않는다.
+    fun scrollToComments() {
+        coroutineScope.launch {
+            val lastIndex = listState.layoutInfo.totalItemsCount - 1
+            if (lastIndex >= 0) {
+                listState.animateScrollToItem(lastIndex)
+                listState.animateScrollBy(2_000f)
+            }
+        }
+    }
+
+    // 피드 카드의 댓글 버튼으로 들어왔을 때만 켜져 있다 (Route.MemoryDetail.focusComment).
+    // memory 가 로드돼 CommentInputBar 가 실제로 그려진 다음에야 포커스를 줄 수 있어
+    // memory 유무도 같이 key 로 건다. 처리 후에는 onCommentFocusHandled() 로 꺼야
+    // 화면이 재조립될 때(예: 수정 후 복귀) 키보드가 또 뜨지 않는다.
+    LaunchedEffect(uiState.memory != null, uiState.shouldFocusCommentInput) {
+        if (uiState.memory != null && uiState.shouldFocusCommentInput) {
+            commentFocusRequester.requestFocus()
+            keyboardController?.show()
+            scrollToComments()
+            onCommentFocusHandled()
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -152,6 +221,11 @@ private fun MemoryDetailContent(
                     memory = uiState.memory,
                     currentPhotoIndex = uiState.currentPhotoIndex,
                     onPhotoIndexChange = onPhotoIndexChange,
+                    onLikeClick = onLikeClick,
+                    onShareClick = onShareClick,
+                    isSharing = uiState.isSharing,
+                    shareError = uiState.shareError,
+                    listState = listState,
                     modifier = Modifier.weight(1f),
                 )
                 CommentInputBar(
@@ -159,6 +233,10 @@ private fun MemoryDetailContent(
                     onValueChange = onCommentInputChange,
                     onSubmit = onSubmitComment,
                     canSubmit = uiState.canSubmitComment,
+                    focusRequester = commentFocusRequester,
+                    // 사용자가 입력창을 직접 탭했을 때도(자동 포커스 경로와 별개로) 댓글
+                    // 영역이 보이도록 같은 스크롤 로직을 탄다.
+                    onFocused = ::scrollToComments,
                     modifier = Modifier.padding(16.dp),
                 )
             }
@@ -343,9 +421,15 @@ private fun DetailBody(
     memory: MemoryDetail,
     currentPhotoIndex: Int,
     onPhotoIndexChange: (Int) -> Unit,
+    onLikeClick: () -> Unit,
+    onShareClick: () -> Unit,
+    isSharing: Boolean,
+    shareError: String?,
+    listState: LazyListState = rememberLazyListState(),
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
+        state = listState,
         modifier = modifier,
         contentPadding = PaddingValues(bottom = 24.dp),
     ) {
@@ -360,12 +444,36 @@ private fun DetailBody(
         item(key = "head") {
             Column(modifier = Modifier.padding(horizontal = SidePadding)) {
                 Spacer(Modifier.height(16.dp))
-                Text(
-                    text = formatDate(memory.memoryDateMillis),
-                    color = BrandGreenDark,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                )
+                // 날짜와 같은 줄, 같은 높이에 오른쪽 정렬로 좋아요 · 채팅방 보내기.
+                // 시안엔 없어 피드 카드(PostFooter/ShareButton)와 같은 모양으로 맞춘다.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = formatDate(memory.memoryDateMillis),
+                        color = BrandGreenDark,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                    LikeAndShareActions(
+                        likedByMe = memory.likedByMe,
+                        likeCount = memory.likeCount,
+                        onLikeClick = onLikeClick,
+                        onShareClick = onShareClick,
+                        isSharing = isSharing,
+                    )
+                }
+                if (shareError != null) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = shareError,
+                        color = DangerColor,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
                 Spacer(Modifier.height(7.dp))
                 Text(
                     text = memory.title,
@@ -461,6 +569,72 @@ private fun HeroPhotos(
                     .background(PhotoCountBackground)
                     .padding(horizontal = 11.dp, vertical = 5.dp),
             )
+        }
+    }
+}
+
+/**
+ * 날짜와 같은 줄, 같은 높이에 오른쪽으로 놓는 좋아요 칩 + 채팅방 보내기 버튼.
+ * GroupFeedScreen 의 PostFooter 와 같은 모양이다.
+ */
+@Composable
+private fun LikeAndShareActions(
+    likedByMe: Boolean,
+    likeCount: Int,
+    onLikeClick: () -> Unit,
+    onShareClick: () -> Unit,
+    isSharing: Boolean,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(LikeChipBackground)
+                .clickable(onClick = onLikeClick)
+                .padding(horizontal = 13.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                painter = painterResource(if (likedByMe) R.drawable.ic_heart_filled else R.drawable.ic_heart),
+                contentDescription = "좋아요",
+                tint = LikeChipText,
+                modifier = Modifier.size(15.dp),
+            )
+            Text(
+                text = likeCount.toString(),
+                color = LikeChipText,
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+
+        Spacer(Modifier.width(10.dp))
+
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(if (isSharing) BrandGreen.copy(alpha = 0.4f) else BrandGreen)
+                .clickable(enabled = !isSharing, onClick = onShareClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (isSharing) {
+                CircularProgressIndicator(
+                    color = SurfaceWhite,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(16.dp),
+                )
+            } else {
+                Icon(
+                    painter = painterResource(R.drawable.ic_send),
+                    contentDescription = "채팅방에 보내기",
+                    tint = SurfaceWhite,
+                    modifier = Modifier.size(15.dp),
+                )
+            }
         }
     }
 }
@@ -589,6 +763,9 @@ private fun CommentInputBar(
     onValueChange: (String) -> Unit,
     onSubmit: () -> Unit,
     canSubmit: Boolean,
+    focusRequester: FocusRequester? = null,
+    /** 입력창이 포커스를 얻을 때(자동이든 사용자가 직접 탭했든) 호출된다 — 댓글 영역 스크롤용. */
+    onFocused: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -618,7 +795,10 @@ private fun CommentInputBar(
                     fontSize = 13.5.sp,
                     fontWeight = FontWeight.Medium,
                 ),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .let { base -> focusRequester?.let { base.focusRequester(it) } ?: base }
+                    .onFocusChanged { state -> if (state.isFocused) onFocused() },
             )
         }
         Icon(

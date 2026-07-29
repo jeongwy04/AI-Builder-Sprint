@@ -100,12 +100,18 @@ fun TraceArchiveNavHost(
                 onBackClick = { navController.popBackStack() },
                 onChatClick = { navController.navigate(Route.GroupChat(archiveId)) },
                 onMemoryClick = { memoryId -> navController.navigate(Route.MemoryDetail(memoryId)) },
+                onCommentClick = { memoryId ->
+                    navController.navigate(Route.MemoryDetail(memoryId, focusComment = true))
+                },
                 onCreateMemoryClick = { navController.navigate(Route.MemoryCreate(archiveId)) },
             )
         }
 
         composable<Route.GroupChat> {
-            GroupChatScreen(onBackClick = { navController.popBackStack() })
+            GroupChatScreen(
+                onBackClick = { navController.popBackStack() },
+                onMemoryClick = { memoryId -> navController.navigate(Route.MemoryDetail(memoryId)) },
+            )
         }
 
         composable<Route.MemoryDetail> {
@@ -115,6 +121,7 @@ fun TraceArchiveNavHost(
                     navController.navigate(Route.MemoryCreate(archiveId = archiveId, memoryId = memoryId))
                 },
                 onDeleted = { navController.popBackStack() },
+                onChatClick = { archiveId -> navController.navigate(Route.GroupChat(archiveId)) },
             )
         }
 

@@ -85,7 +85,8 @@ class MediaUploader @Inject constructor(
      */
     suspend fun deleteMemoryPhotos(storagePaths: List<String>) = withContext(Dispatchers.IO) {
         if (storagePaths.isEmpty()) return@withContext
-        runCatching { supabase.storage.from(BUCKET).delete(storagePaths) }
+        // supabase-kt storage 의 delete() 는 vararg String 이라 List 를 그대로 넘길 수 없다 — 스프레드로 푼다.
+        runCatching { supabase.storage.from(BUCKET).delete(*storagePaths.toTypedArray()) }
     }
 
     private suspend fun signedUrlOrNull(path: String): String? =

@@ -18,6 +18,10 @@ data class MemoryDetail(
     /** 같은 그룹의 다른 기억에서 가져온 연관 사진 */
     val relatedPhotos: List<Photo>,
     val comments: List<Comment>,
+    /** 좋아요 수. 피드의 Post 와 같은 reactions 테이블을 쓴다 — PostRepository.toggleLike() 참고. */
+    val likeCount: Int = 0,
+    /** 내가 좋아요를 눌렀는지 */
+    val likedByMe: Boolean = false,
 ) {
     val photoCount: Int get() = photos.size
 }

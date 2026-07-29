@@ -136,12 +136,18 @@ class FakeMemoryRepository @Inject constructor() : MemoryRepository {
     }
 
     private fun seed(): List<MemoryDetail> = listOf(
+        // likeCount 는 FakePostRepository 의 같은 id 시드값과 맞춘다.
+        // ⚠️ 좋아요 토글 자체는 PostRepository(reactions 테이블 담당)를 거치는 별개의 Fake 라
+        // 여기 likeCount 는 화면을 처음 열었을 때의 시작값일 뿐, 토글 후 다시 상세를 열면
+        // 이 시드값으로 되돌아간다. 실제 Supabase 구현은 하나의 reactions 테이블을 같이 봐서
+        // 이 문제가 없다.
         MemoryDetail(
             id = "mem-chicken",
             archiveId = DEMO_ARCHIVE_ID,
             memoryDateMillis = dateOf(2025, 12, 22),
             title = "시험 끝나고 치킨 먹다 울었던 날",
             body = "치킨 먹다 졸업 얘기 나와서 다 같이 울었던 날. 정말 잊지 못할 추억 ❤️",
+            likeCount = 12,
             photos = listOf(
                 GradientTheme.FOOD.asPhoto(id = "photo-chicken-1"),
                 GradientTheme.NIGHT.asPhoto(id = "photo-chicken-2"),

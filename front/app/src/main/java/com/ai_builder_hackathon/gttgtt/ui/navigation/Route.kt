@@ -43,9 +43,13 @@ sealed interface Route {
     // AI 추억 찾기는 별도 목적지가 아니다.
     // 그룹 피드 위에 뜨는 패널(AiChatPanel)이라서 라우트를 두지 않는다.
 
-    /** S3 기억 상세 */
+    /**
+     * S3 기억 상세.
+     * @param focusComment 진입하자마자 댓글 입력창에 포커스를 주고 키보드를 띄울지.
+     * 피드 카드의 댓글 버튼으로 들어올 때만 true — 카드 전체 탭이나 다른 진입 경로는 false.
+     */
     @Serializable
-    data class MemoryDetail(val memoryId: String) : Route
+    data class MemoryDetail(val memoryId: String, val focusComment: Boolean = false) : Route
 
     /**
      * S4 기억 작성 / 수정.

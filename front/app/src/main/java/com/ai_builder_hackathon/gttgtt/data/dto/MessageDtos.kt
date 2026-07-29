@@ -12,15 +12,17 @@ data class MessageDto(
     @SerialName("sender_id") val senderId: String,
     @SerialName("body") val body: String? = null,
     @SerialName("image_path") val imagePath: String? = null,
+    @SerialName("shared_memory_id") val sharedMemoryId: String? = null,
     @SerialName("created_at") val createdAt: String,
 )
 
-/** body/image_path 중 하나는 필수 (DB check 제약과 동일). */
+/** body/image_path/shared_memory_id 중 하나는 필수 (DB check 제약과 동일). */
 @Serializable
 data class MessageInsert(
     @SerialName("archive_id") val archiveId: String,
     @SerialName("body") val body: String? = null,
     @SerialName("image_path") val imagePath: String? = null,
+    @SerialName("shared_memory_id") val sharedMemoryId: String? = null,
 )
 
 /** id 만 필요한 카운트 조회용 (postgrest count() API 대신 앱에서 size 로 센다). */

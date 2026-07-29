@@ -2,15 +2,19 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.groupchat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,8 +39,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,6 +52,8 @@ import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.domain.model.ChatListItem
 import com.ai_builder_hackathon.gttgtt.domain.model.ChatMessage
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.Photo
+import com.ai_builder_hackathon.gttgtt.domain.model.SharedMemoryPreview
 import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.ui.component.AppTopBar
 import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
@@ -73,6 +81,7 @@ import java.util.Locale
 @Composable
 fun GroupChatScreen(
     onBackClick: () -> Unit,
+    onMemoryClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GroupChatViewModel = hiltViewModel(),
 ) {
@@ -83,6 +92,7 @@ fun GroupChatScreen(
         onBackClick = onBackClick,
         onInputChange = viewModel::onInputChange,
         onSendClick = viewModel::onSendClick,
+        onMemoryClick = onMemoryClick,
         modifier = modifier,
     )
 }
@@ -93,6 +103,7 @@ private fun GroupChatContent(
     onBackClick: () -> Unit,
     onInputChange: (String) -> Unit,
     onSendClick: () -> Unit,
+    onMemoryClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -101,14 +112,42 @@ private fun GroupChatContent(
     // (위에서부터 스크롤해 내려오는 게 보이면 어색하다.) 그 이후 새 메시지가 오면 그때는 애니메이션.
     var hasScrolledToInitialBottom by rememberSaveable { mutableStateOf(false) }
 
+    // scrollToItem/animateScrollToItem 은 마지막 아이템의 "시작 지점"만 뷰포트로 끌어올릴
+    // 뿐이라, 그 아이템이 뷰포트보다 작으면 진짜 맨 아래까지 못 내려간 것처럼 보인다
+    // (MemoryDetailScreen 에서 겪은 것과 같은 문제). scrollBy/animateScrollBy 로 큰 값을
+    // 더 밀어 넣어 남은 스크롤 가능 거리만큼 마저 내려간다 — 값이 커도 실제 남은 거리만
+    // 소비하고 멈추므로 범위를 벗어나지 않는다.
+    suspend fun jumpToBottom() {
+        if (uiState.items.isEmpty()) return
+        listState.scrollToItem(uiState.items.lastIndex)
+        listState.scrollBy(2_000f)
+    }
+
+    suspend fun animateToBottom() {
+        if (uiState.items.isEmpty()) return
+        listState.animateScrollToItem(uiState.items.lastIndex)
+        listState.animateScrollBy(2_000f)
+    }
+
     LaunchedEffect(uiState.items.size) {
+        // items 가 아직 비어 있으면(로딩 중) "처음 스크롤을 끝냈다"고 표시하지 않는다 —
+        // 안 그러면 나중에 실제 메시지가 채워질 때 처음 진입인데도 애니메이션이 붙어버린다.
         if (uiState.items.isEmpty()) return@LaunchedEffect
         if (!hasScrolledToInitialBottom) {
-            listState.scrollToItem(uiState.items.lastIndex)
+            jumpToBottom()
             hasScrolledToInitialBottom = true
         } else {
-            listState.animateScrollToItem(uiState.items.lastIndex)
+            animateToBottom()
         }
+    }
+
+    // 키보드가 뜨거나 접힐 때(높이가 바뀔 때)마다 다시 맨 아래로 붙인다. imePadding() 이
+    // 리스트 뷰포트를 줄이기만 할 뿐, 이미 맨 아래로 가 있던 스크롤 위치를 다시 계산해주지는
+    // 않아서 — 키보드가 올라오면 방금까지 보이던 마지막 메시지가 화면 밖으로 밀려난다.
+    val density = LocalDensity.current
+    val imeBottomPx = WindowInsets.ime.getBottom(density)
+    LaunchedEffect(imeBottomPx) {
+        jumpToBottom()
     }
 
     Column(
@@ -152,7 +191,7 @@ private fun GroupChatContent(
                     items(uiState.items, key = { it.key }) { item ->
                         when (item) {
                             is ChatListItem.DateHeader -> DateDivider(item.dateMillis)
-                            is ChatListItem.Message -> MessageRow(item.message)
+                            is ChatListItem.Message -> MessageRow(item.message, onMemoryClick = onMemoryClick)
                         }
                     }
                 }
@@ -191,7 +230,7 @@ private fun DateDivider(dateMillis: Long) {
  * 내 메시지는 오른쪽 정렬 + 아바타·이름 없이, 상대 메시지는 왼쪽 정렬 + 아바타·이름과 함께 그린다.
  */
 @Composable
-private fun MessageRow(message: ChatMessage) {
+private fun MessageRow(message: ChatMessage, onMemoryClick: (String) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isMine) Arrangement.End else Arrangement.Start,
@@ -205,7 +244,7 @@ private fun MessageRow(message: ChatMessage) {
             if (message.isMine) {
                 MessageTime(message.sentAtMillis)
                 Spacer(Modifier.width(4.dp))
-                Bubble(message)
+                Bubble(message, onMemoryClick = onMemoryClick)
             } else {
                 MemberAvatar(
                     memberId = message.senderId,
@@ -222,7 +261,7 @@ private fun MessageRow(message: ChatMessage) {
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(start = 3.dp, bottom = 5.dp),
                     )
-                    Bubble(message)
+                    Bubble(message, onMemoryClick = onMemoryClick)
                 }
                 Spacer(Modifier.width(4.dp))
                 MessageTime(message.sentAtMillis)
@@ -236,11 +275,17 @@ private fun MessageRow(message: ChatMessage) {
  * 상대: 좌상단 6 / 나: 우상단 6
  */
 @Composable
-private fun Bubble(message: ChatMessage) {
+private fun Bubble(message: ChatMessage, onMemoryClick: (String) -> Unit) {
     val shape = if (message.isMine) {
         RoundedCornerShape(topStart = 18.dp, topEnd = 6.dp, bottomEnd = 18.dp, bottomStart = 18.dp)
     } else {
         RoundedCornerShape(topStart = 6.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 18.dp)
+    }
+
+    if (message.isSharedMemory) {
+        val preview = requireNotNull(message.sharedMemory)
+        SharedMemoryBubble(preview = preview, onClick = { onMemoryClick(preview.memoryId) })
+        return
     }
 
     if (message.isPhoto) {
@@ -273,6 +318,52 @@ private fun Bubble(message: ChatMessage) {
             .background(if (message.isMine) BrandGreen else SurfaceWhite)
             .padding(horizontal = 14.dp, vertical = 11.dp),
     )
+}
+
+/** 피드에서 "보내기"로 공유된 기억. 탭하면 기억 상세로 이동한다. */
+@Composable
+private fun SharedMemoryBubble(preview: SharedMemoryPreview, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .width(220.dp)
+            .shadow(elevation = 3.dp, shape = RoundedCornerShape(16.dp), clip = false)
+            .clip(RoundedCornerShape(16.dp))
+            .background(SurfaceWhite)
+            .clickable(onClick = onClick)
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        PhotoImage(
+            photo = preview.photo ?: Photo(fallback = GradientTheme.BEACH),
+            corner = 11.dp,
+            modifier = Modifier.size(52.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "공유된 기억",
+                color = BrandGreenDark,
+                fontSize = 10.5.sp,
+                fontWeight = FontWeight.ExtraBold,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = preview.title,
+                color = TextPrimary,
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = formatMemoryDate(preview.memoryDateMillis),
+                color = TextSecondary,
+                fontSize = 10.5.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
 }
 
 @Composable
@@ -386,11 +477,17 @@ private fun MessageState(message: String) {
 private val DateFormatter = DateTimeFormatter.ofPattern("yyyy년 M월 d일 (E)", Locale.KOREAN)
 private val TimeFormatter = DateTimeFormatter.ofPattern("h:mm", Locale.KOREAN)
 
+// 공유된 기억 카드는 날짜 구분선보다 좁은 자리라 "2025.12.22" 처럼 짧게 쓴다.
+private val MemoryDateFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
+
 private fun formatDate(millis: Long): String =
     Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).format(DateFormatter)
 
 private fun formatTime(millis: Long): String =
     Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).format(TimeFormatter)
+
+private fun formatMemoryDate(millis: Long): String =
+    Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).format(MemoryDateFormatter)
 
 @Preview(showBackground = true, widthDp = 393, heightDp = 852)
 @Composable

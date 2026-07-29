@@ -36,6 +36,15 @@ data class GroupFeedUiState(
     val postPendingDeleteId: String? = null,
     val isDeletingPost: Boolean = false,
     val deletePostError: String? = null,
+
+    // 게시물(기억) 채팅방 공유 — 카드 우하단 보내기 버튼
+    /** 지금 전송 중인 게시물 id. 동시에 하나만 보낼 수 있다. */
+    val sharingPostId: String? = null,
+    /** 공유에 실패한 게시물 id — 그 카드에만 에러를 보여준다. */
+    val shareErrorPostId: String? = null,
+    val shareError: String? = null,
+    /** 공유에 성공할 때마다 1씩 늘어난다. 화면이 이 값 변화를 보고 채팅방으로 이동한다. */
+    val shareSuccessCount: Int = 0,
 ) {
     val isEmpty: Boolean
         get() = !isLoading && posts.isEmpty()

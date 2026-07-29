@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
+import com.ai_builder_hackathon.gttgtt.domain.repository.ChatRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.MemoryRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.PostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,6 +20,7 @@ class GroupFeedViewModel @Inject constructor(
     private val postRepository: PostRepository,
     private val archiveRepository: ArchiveRepository,
     private val memoryRepository: MemoryRepository,
+    private val chatRepository: ChatRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -237,6 +239,43 @@ class GroupFeedViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    // ── 게시물(기억) 채팅방 공유 — 카드 우하단 보내기 버튼 ──
+
+    fun onShareClick(postId: String) {
+        // 동시에 여러 개를 보내진 못하게 막는다 — 연타로 같은 기억이 여러 번 공유되는 걸 방지.
+        if (_uiState.value.sharingPostId != null) return
+        _uiState.update { it.copy(sharingPostId = postId, shareErrorPostId = null, shareError = null) }
+
+        viewModelScope.launch {
+            chatRepository.sendSharedMemory(archiveId, postId)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(sharingPostId = null, shareSuccessCount = it.shareSuccessCount + 1)
+                    }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            sharingPostId = null,
+                            shareErrorPostId = postId,
+                            shareError = throwable.message ?: "채팅방에 공유하지 못했습니다.",
+                        )
+                    }
+                }
+        }
+    }
+
+    /**
+     * 공유 성공 후 채팅방으로 이동하는 일회성 이벤트를 처리했다고 표시한다.
+     * 이걸 안 하면 shareSuccessCount 가 계속 그 값(예: 1)으로 남아있어서,
+     * 채팅방에서 뒤로가기로 피드에 돌아왔을 때 화면이 재조립되며
+     * LaunchedEffect 가 "값이 여전히 그대로"인 걸 보고 또 채팅방으로 튕겨버린다
+     * (뒤로가기가 안 먹히는 것처럼 보였던 원인).
+     */
+    fun onShareHandled() {
+        _uiState.update { it.copy(shareSuccessCount = 0) }
     }
 
     private fun loadFeed() {

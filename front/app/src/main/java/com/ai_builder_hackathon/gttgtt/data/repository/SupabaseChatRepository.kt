@@ -1,17 +1,23 @@
 package com.ai_builder_hackathon.gttgtt.data.repository
 
+import com.ai_builder_hackathon.gttgtt.data.dto.MediaAssetDto
+import com.ai_builder_hackathon.gttgtt.data.dto.MemoryDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MessageDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MessageInsert
+import com.ai_builder_hackathon.gttgtt.data.dto.NoteDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ProfileDto
 import com.ai_builder_hackathon.gttgtt.data.remote.MediaUploader
 import com.ai_builder_hackathon.gttgtt.domain.model.ChatMessage
+import com.ai_builder_hackathon.gttgtt.domain.model.SharedMemoryPreview
 import com.ai_builder_hackathon.gttgtt.domain.repository.ChatRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import java.time.LocalDate
 import java.time.OffsetDateTime
+import java.time.ZoneId
 import javax.inject.Inject
 
 /**
@@ -29,13 +35,14 @@ class SupabaseChatRepository @Inject constructor(
         val myId = supabase.auth.currentUserOrNull()?.id
 
         val rows = supabase.postgrest.from("messages")
-            .select(Columns.raw("id,archive_id,sender_id,body,image_path,created_at")) {
+            .select(Columns.raw("id,archive_id,sender_id,body,image_path,shared_memory_id,created_at")) {
                 filter { eq("archive_id", archiveId) }
                 order("created_at", Order.ASCENDING)
             }
             .decodeList<MessageDto>()
 
         val nameById = fetchNames(rows.map { it.senderId })
+        val previewByMemoryId = resolveSharedMemoryPreviews(rows.mapNotNull { it.sharedMemoryId })
 
         rows.map { row ->
             ChatMessage(
@@ -46,6 +53,7 @@ class SupabaseChatRepository @Inject constructor(
                 sentAtMillis = parseMillis(row.createdAt),
                 text = row.body,
                 photo = row.imagePath?.let { media.toPhoto(it) },
+                sharedMemory = row.sharedMemoryId?.let { previewByMemoryId[it] ?: deletedMemoryPreview(it) },
                 isMine = myId != null && row.senderId == myId,
             )
         }
@@ -57,7 +65,7 @@ class SupabaseChatRepository @Inject constructor(
 
         val row = supabase.postgrest.from("messages")
             .insert(MessageInsert(archiveId = archiveId, body = trimmed)) {
-                select(Columns.raw("id,archive_id,sender_id,body,image_path,created_at"))
+                select(Columns.raw("id,archive_id,sender_id,body,image_path,shared_memory_id,created_at"))
             }
             .decodeSingle<MessageDto>()
 
@@ -72,6 +80,88 @@ class SupabaseChatRepository @Inject constructor(
             isMine = true,
         )
     }
+
+    override suspend fun sendSharedMemory(archiveId: String, memoryId: String): Result<ChatMessage> = runCatching {
+        val row = supabase.postgrest.from("messages")
+            .insert(MessageInsert(archiveId = archiveId, sharedMemoryId = memoryId)) {
+                select(Columns.raw("id,archive_id,sender_id,body,image_path,shared_memory_id,created_at"))
+            }
+            .decodeSingle<MessageDto>()
+
+        val preview = resolveSharedMemoryPreviews(listOf(memoryId))[memoryId] ?: deletedMemoryPreview(memoryId)
+
+        ChatMessage(
+            id = row.id,
+            archiveId = row.archiveId,
+            senderId = row.senderId,
+            senderName = currentUserName() ?: "나",
+            sentAtMillis = parseMillis(row.createdAt),
+            sharedMemory = preview,
+            isMine = true,
+        )
+    }
+
+    /**
+     * 메시지에 딸린 공유 기억 미리보기를 한꺼번에 조립한다 (메시지마다 왕복하면 N+1).
+     * SupabasePostRepository.buildPosts() 와 같은 title/photo 계산 규칙을 쓴다.
+     */
+    private suspend fun resolveSharedMemoryPreviews(memoryIds: List<String>): Map<String, SharedMemoryPreview> {
+        val ids = memoryIds.distinct()
+        if (ids.isEmpty()) return emptyMap()
+
+        val memories = supabase.postgrest.from("memories")
+            .select(Columns.raw("id,archive_id,author_id,memory_date,place_name,search_text,created_at")) {
+                filter { isIn("id", ids) }
+            }
+            .decodeList<MemoryDto>()
+        if (memories.isEmpty()) return emptyMap()
+
+        val foundIds = memories.map { it.id }
+
+        val firstNoteByMemory = supabase.postgrest.from("notes")
+            .select(Columns.raw("id,memory_id,archive_id,author_id,body,created_at")) {
+                filter { isIn("memory_id", foundIds) }
+                order("created_at", Order.ASCENDING)
+            }
+            .decodeList<NoteDto>()
+            .groupBy { it.memoryId }
+            .mapValues { (_, notes) -> notes.firstOrNull()?.body.orEmpty() }
+
+        val firstPhotoPathByMemory = supabase.postgrest.from("media_assets")
+            .select(Columns.raw("id,memory_id,storage_path,media_type,created_at")) {
+                filter { isIn("memory_id", foundIds) }
+                order("created_at", Order.ASCENDING)
+            }
+            .decodeList<MediaAssetDto>()
+            .groupBy { it.memoryId }
+            .mapValues { (_, assets) -> assets.firstOrNull()?.storagePath }
+
+        return memories.associate { memory ->
+            val storedBody = firstNoteByMemory[memory.id].orEmpty()
+            val title = storedBody.lineSequence().firstOrNull { it.isNotBlank() }?.take(TITLE_MAX)
+                ?: "제목 없는 기억"
+            val photo = firstPhotoPathByMemory[memory.id]?.let { media.toPhoto(it) }
+            memory.id to SharedMemoryPreview(
+                memoryId = memory.id,
+                title = title,
+                photo = photo,
+                memoryDateMillis = parseMemoryDateMillis(memory.memoryDate),
+            )
+        }
+    }
+
+    /** 공유 당시엔 있었지만 이제 조회가 안 되는(RLS/삭제) 기억. 말풍선은 비워서라도 보여준다. */
+    private fun deletedMemoryPreview(memoryId: String) = SharedMemoryPreview(
+        memoryId = memoryId,
+        title = "삭제된 기억이에요",
+        photo = null,
+        memoryDateMillis = 0L,
+    )
+
+    private fun parseMemoryDateMillis(date: String): Long =
+        runCatching {
+            LocalDate.parse(date).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        }.getOrDefault(0L)
 
     private suspend fun fetchNames(userIds: List<String>): Map<String, String> {
         val ids = userIds.distinct()
@@ -89,4 +179,8 @@ class SupabaseChatRepository @Inject constructor(
 
     private fun parseMillis(iso: String): Long =
         runCatching { OffsetDateTime.parse(iso).toInstant().toEpochMilli() }.getOrDefault(0L)
+
+    private companion object {
+        const val TITLE_MAX = 40
+    }
 }

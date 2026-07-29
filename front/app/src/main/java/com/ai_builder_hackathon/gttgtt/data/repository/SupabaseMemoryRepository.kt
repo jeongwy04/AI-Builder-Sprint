@@ -13,6 +13,7 @@ import com.ai_builder_hackathon.gttgtt.data.dto.NoteBodyUpdate
 import com.ai_builder_hackathon.gttgtt.data.dto.NoteDto
 import com.ai_builder_hackathon.gttgtt.data.dto.NoteInsert
 import com.ai_builder_hackathon.gttgtt.data.dto.ProfileDto
+import com.ai_builder_hackathon.gttgtt.data.dto.ReactionDto
 import com.ai_builder_hackathon.gttgtt.data.remote.MediaUploader
 import com.ai_builder_hackathon.gttgtt.domain.model.Comment
 import com.ai_builder_hackathon.gttgtt.domain.model.MemoryDetail
@@ -71,6 +72,14 @@ class SupabaseMemoryRepository @Inject constructor(
             }
             .decodeList<MemoryPersonDto>()
 
+        // 좋아요 — 피드(SupabasePostRepository.buildPosts())와 같은 reactions 테이블을 읽는다.
+        val myId = supabase.auth.currentUserOrNull()?.id
+        val reactions = supabase.postgrest.from("reactions")
+            .select(Columns.raw("id,memory_id,user_id")) {
+                filter { eq("memory_id", memoryId) }
+            }
+            .decodeList<ReactionDto>()
+
         val nameById = fetchNames(notes.map { it.authorId } + people.map { it.userId })
 
         // 첫 note 가 본문, 나머지는 댓글처럼 취급한다.
@@ -102,6 +111,8 @@ class SupabaseMemoryRepository @Inject constructor(
             },
             relatedPhotos = emptyList(), // 연관 사진은 후순위 기능
             comments = comments,
+            likeCount = reactions.size,
+            likedByMe = myId != null && reactions.any { it.userId == myId },
         )
     }
 

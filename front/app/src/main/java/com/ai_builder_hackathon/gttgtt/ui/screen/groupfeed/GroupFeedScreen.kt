@@ -100,6 +100,8 @@ fun GroupFeedScreen(
     onBackClick: () -> Unit,
     onChatClick: () -> Unit,
     onMemoryClick: (String) -> Unit,
+    /** 카드의 댓글 버튼 전용 — 상세로 넘어가자마자 댓글 입력창에 키보드가 뜬다. */
+    onCommentClick: (String) -> Unit,
     onCreateMemoryClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GroupFeedViewModel = hiltViewModel(),
@@ -116,6 +118,18 @@ fun GroupFeedScreen(
     // 그룹 삭제가 끝나면 이 화면에 더 보여줄 게 없다 — 목록으로 나간다.
     LaunchedEffect(uiState.isGroupDeleted) {
         if (uiState.isGroupDeleted) onBackClick()
+    }
+
+    // 공유가 성공할 때마다 카운트가 늘어난다 — 채팅방으로 넘어가서 방금 보낸 메시지를 바로 보여준다.
+    // (같은 게시물을 연달아 공유해도 매번 값이 바뀌므로 LaunchedEffect 가 매번 다시 트리거된다.)
+    // 이동 직후 onShareHandled() 로 카운트를 0으로 되돌려야 한다 — 안 그러면 채팅방에서
+    // 뒤로가기로 돌아왔을 때 이 화면이 재조립되며 "값이 여전히 그대로"인 걸 보고
+    // 또 채팅방으로 튕겨버린다 (뒤로가기가 안 먹히는 것처럼 보이는 원인이었다).
+    LaunchedEffect(uiState.shareSuccessCount) {
+        if (uiState.shareSuccessCount > 0) {
+            onChatClick()
+            viewModel.onShareHandled()
+        }
     }
 
     // 기억 상세/작성 화면에서 수정·삭제하고 돌아왔을 때 피드가 그대로 남아있지 않도록,
@@ -141,6 +155,7 @@ fun GroupFeedScreen(
         onCreateMemoryClick = onCreateMemoryClick,
         onLikeClick = viewModel::onLikeClick,
         onPostClick = onMemoryClick,
+        onCommentClick = onCommentClick,
         onMemoryClickFromAi = { memoryId ->
             isAiSheetOpen = false
             onMemoryClick(memoryId)
@@ -159,6 +174,7 @@ fun GroupFeedScreen(
         onPostDeleteClick = viewModel::onPostDeleteClick,
         onDismissPostDeleteConfirm = viewModel::onDismissPostDeleteConfirm,
         onConfirmPostDelete = viewModel::onConfirmPostDelete,
+        onShareClick = viewModel::onShareClick,
         modifier = modifier,
     )
 }
@@ -174,6 +190,7 @@ private fun GroupFeedContent(
     onCreateMemoryClick: () -> Unit,
     onLikeClick: (String) -> Unit,
     onPostClick: (String) -> Unit,
+    onCommentClick: (String) -> Unit = onPostClick,
     onMemoryClickFromAi: (String) -> Unit,
     onSettingsClick: () -> Unit = {},
     onDismissSettingsSheet: () -> Unit = {},
@@ -189,6 +206,7 @@ private fun GroupFeedContent(
     onPostDeleteClick: (String) -> Unit = {},
     onDismissPostDeleteConfirm: () -> Unit = {},
     onConfirmPostDelete: () -> Unit = {},
+    onShareClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // 패널 높이를 fillMaxHeight(fraction) 으로 구하면 부모 Column 의 imePadding() 때문에
@@ -227,7 +245,12 @@ private fun GroupFeedContent(
                     posts = uiState.posts,
                     onLikeClick = onLikeClick,
                     onPostClick = onPostClick,
+                    onCommentClick = onCommentClick,
                     onDeleteClick = onPostDeleteClick,
+                    onShareClick = onShareClick,
+                    sharingPostId = uiState.sharingPostId,
+                    shareErrorPostId = uiState.shareErrorPostId,
+                    shareError = uiState.shareError,
                 )
             }
         }
@@ -722,7 +745,12 @@ private fun PostList(
     posts: List<Post>,
     onLikeClick: (String) -> Unit,
     onPostClick: (String) -> Unit,
+    onCommentClick: (String) -> Unit,
     onDeleteClick: (String) -> Unit,
+    onShareClick: (String) -> Unit,
+    sharingPostId: String?,
+    shareErrorPostId: String?,
+    shareError: String?,
 ) {
     LazyColumn(
         // FAB 에 마지막 카드가 가리지 않도록 아래를 넉넉히 비운다.
@@ -734,7 +762,11 @@ private fun PostList(
                 post = post,
                 onLikeClick = { onLikeClick(post.id) },
                 onClick = { onPostClick(post.id) },
+                onCommentClick = { onCommentClick(post.id) },
                 onDeleteClick = { onDeleteClick(post.id) },
+                onShareClick = { onShareClick(post.id) },
+                isSharing = sharingPostId == post.id,
+                shareError = if (shareErrorPostId == post.id) shareError else null,
             )
         }
     }
@@ -746,7 +778,11 @@ private fun PostCard(
     post: Post,
     onLikeClick: () -> Unit,
     onClick: () -> Unit,
+    onCommentClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    onShareClick: () -> Unit,
+    isSharing: Boolean,
+    shareError: String?,
 ) {
     Column(
         modifier = Modifier
@@ -772,9 +808,25 @@ private fun PostCard(
             ),
             modifier = Modifier.padding(horizontal = 2.dp, vertical = 12.dp),
         )
-        // 댓글은 별도 화면이 없다 — 기억 상세 화면 안의 댓글 섹션이 유일한 댓글 UI라
-        // 댓글 아이콘도 카드 전체를 눌렀을 때와 같은 곳(상세)으로 보낸다.
-        PostFooter(post = post, onLikeClick = onLikeClick, onCommentClick = onClick)
+        // 댓글 버튼만 누르면 상세로 넘어가자마자 댓글 입력창에 키보드가 뜬다(onCommentClick).
+        // 카드의 다른 곳(사진/캡션 등)을 누르면 그냥 상세만 보여준다(onClick).
+        PostFooter(
+            post = post,
+            onLikeClick = onLikeClick,
+            onCommentClick = onCommentClick,
+            onShareClick = onShareClick,
+            isSharing = isSharing,
+        )
+        if (shareError != null) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = shareError,
+                color = DangerColor,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 2.dp),
+            )
+        }
     }
 }
 
@@ -845,22 +897,63 @@ private fun PostPhotos(post: Post) {
 }
 
 @Composable
-private fun PostFooter(post: Post, onLikeClick: () -> Unit, onCommentClick: () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Chip(
-            iconRes = if (post.likedByMe) R.drawable.ic_heart_filled else R.drawable.ic_heart,
-            label = post.likeCount.toString(),
-            background = LikeChipBackground,
-            contentColor = LikeChipText,
-            onClick = onLikeClick,
-        )
-        Chip(
-            iconRes = R.drawable.ic_message_circle,
-            label = post.commentCount.toString(),
-            background = ChipBackground,
-            contentColor = ChipText,
-            onClick = onCommentClick,
-        )
+private fun PostFooter(
+    post: Post,
+    onLikeClick: () -> Unit,
+    onCommentClick: () -> Unit,
+    onShareClick: () -> Unit,
+    isSharing: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Chip(
+                iconRes = if (post.likedByMe) R.drawable.ic_heart_filled else R.drawable.ic_heart,
+                label = post.likeCount.toString(),
+                background = LikeChipBackground,
+                contentColor = LikeChipText,
+                onClick = onLikeClick,
+            )
+            Chip(
+                iconRes = R.drawable.ic_message_circle,
+                label = post.commentCount.toString(),
+                background = ChipBackground,
+                contentColor = ChipText,
+                onClick = onCommentClick,
+            )
+        }
+        ShareButton(isSharing = isSharing, onClick = onShareClick)
+    }
+}
+
+/** 우하단 보내기 버튼 — 그룹 채팅방에 이 게시물을 공유한다. */
+@Composable
+private fun ShareButton(isSharing: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(34.dp)
+            .clip(CircleShape)
+            .background(if (isSharing) BrandGreen.copy(alpha = 0.4f) else BrandGreen)
+            .clickable(enabled = !isSharing, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (isSharing) {
+            CircularProgressIndicator(
+                color = SurfaceWhite,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(16.dp),
+            )
+        } else {
+            Icon(
+                painter = painterResource(R.drawable.ic_send),
+                contentDescription = "채팅방에 보내기",
+                tint = SurfaceWhite,
+                modifier = Modifier.size(15.dp),
+            )
+        }
     }
 }
 

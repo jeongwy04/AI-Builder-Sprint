@@ -3,6 +3,7 @@ package com.ai_builder_hackathon.gttgtt.data.repository
 import com.ai_builder_hackathon.gttgtt.domain.model.ChatMessage
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.domain.model.Photo
+import com.ai_builder_hackathon.gttgtt.domain.model.SharedMemoryPreview
 import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.repository.ChatRepository
 import kotlinx.coroutines.delay
@@ -44,6 +45,28 @@ class FakeChatRepository @Inject constructor() : ChatRepository {
             senderName = "나",
             sentAtMillis = System.currentTimeMillis(),
             text = trimmed,
+            isMine = true,
+        )
+        messages += sent
+        return Result.success(sent)
+    }
+
+    override suspend fun sendSharedMemory(archiveId: String, memoryId: String): Result<ChatMessage> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        // Fake 는 FakeMemoryRepository 의 실제 데이터를 모른다 — 그럴싸한 미리보기만 채운다.
+        // 실제 제목/사진/날짜는 SupabaseChatRepository 에서만 정확하다.
+        val sent = ChatMessage(
+            id = UUID.randomUUID().toString(),
+            archiveId = archiveId,
+            senderId = ME_ID,
+            senderName = "나",
+            sentAtMillis = System.currentTimeMillis(),
+            sharedMemory = SharedMemoryPreview(
+                memoryId = memoryId,
+                title = "공유된 기억",
+                photo = GradientTheme.SEA.asPhoto(),
+                memoryDateMillis = System.currentTimeMillis(),
+            ),
             isMine = true,
         )
         messages += sent

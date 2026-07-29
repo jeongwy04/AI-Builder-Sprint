@@ -2,10 +2,13 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.groupfeed
 
 import androidx.lifecycle.SavedStateHandle
 import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
+import com.ai_builder_hackathon.gttgtt.domain.model.ChatMessage
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.SharedMemoryPreview
 import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.model.Post
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
+import com.ai_builder_hackathon.gttgtt.domain.repository.ChatRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.MemoryRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.PostRepository
 import io.mockk.coEvery
@@ -18,6 +21,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
@@ -28,6 +32,7 @@ class GroupFeedViewModelTest {
     private val postRepository = mockk<PostRepository>()
     private val archiveRepository = mockk<ArchiveRepository>()
     private val memoryRepository = mockk<MemoryRepository>()
+    private val chatRepository = mockk<ChatRepository>()
 
     @Before
     fun setUp() {
@@ -43,7 +48,7 @@ class GroupFeedViewModelTest {
     private fun savedState() = SavedStateHandle(mapOf("archiveId" to ARCHIVE_ID))
 
     private fun viewModel() =
-        GroupFeedViewModel(postRepository, archiveRepository, memoryRepository, savedState())
+        GroupFeedViewModel(postRepository, archiveRepository, memoryRepository, chatRepository, savedState())
 
     @Test
     fun `그룹 이름과 멤버수를 함께 채운다`() = runTest(dispatcher) {
@@ -214,6 +219,100 @@ class GroupFeedViewModelTest {
         assertEquals(1, vm.uiState.value.posts.size)
         assertEquals("삭제 실패", vm.uiState.value.deletePostError)
     }
+
+    @Test
+    fun `공유에 성공하면 성공 카운트가 늘고 공유 상태가 풀린다`() = runTest(dispatcher) {
+        coEvery { archiveRepository.getMyArchives() } returns Result.success(listOf(archive))
+        coEvery { postRepository.getFeed(ARCHIVE_ID) } returns Result.success(listOf(post))
+        coEvery { chatRepository.sendSharedMemory(ARCHIVE_ID, post.id) } returns
+            Result.success(sharedChatMessage)
+
+        val vm = viewModel()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onShareClick(post.id)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals(1, state.shareSuccessCount)
+        assertEquals(null, state.sharingPostId)
+        assertEquals(null, state.shareError)
+    }
+
+    @Test
+    fun `공유 중에는 다시 눌러도 두 번 보내지 않는다`() = runTest(dispatcher) {
+        coEvery { archiveRepository.getMyArchives() } returns Result.success(listOf(archive))
+        coEvery { postRepository.getFeed(ARCHIVE_ID) } returns Result.success(listOf(post))
+        coEvery { chatRepository.sendSharedMemory(ARCHIVE_ID, post.id) } returns
+            Result.success(sharedChatMessage)
+
+        val vm = viewModel()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onShareClick(post.id)
+        // 아직 코루틴을 안 돌렸으니 sharingPostId 가 채워진 상태 — 이때 또 누르면 무시돼야 한다.
+        assertEquals(post.id, vm.uiState.value.sharingPostId)
+        vm.onShareClick(post.id)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        io.mockk.coVerify(exactly = 1) { chatRepository.sendSharedMemory(ARCHIVE_ID, post.id) }
+    }
+
+    @Test
+    fun `공유 처리 완료를 알리면 성공 카운트가 0으로 되돌아간다`() = runTest(dispatcher) {
+        // 채팅방으로 이동한 뒤 뒤로가기로 돌아왔을 때 다시 튕기지 않으려면
+        // onShareHandled() 호출 후 카운트가 리셋돼 있어야 한다.
+        coEvery { archiveRepository.getMyArchives() } returns Result.success(listOf(archive))
+        coEvery { postRepository.getFeed(ARCHIVE_ID) } returns Result.success(listOf(post))
+        coEvery { chatRepository.sendSharedMemory(ARCHIVE_ID, post.id) } returns
+            Result.success(sharedChatMessage)
+
+        val vm = viewModel()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onShareClick(post.id)
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, vm.uiState.value.shareSuccessCount)
+
+        vm.onShareHandled()
+
+        assertEquals(0, vm.uiState.value.shareSuccessCount)
+    }
+
+    @Test
+    fun `공유 실패시 그 게시물에만 에러를 담는다`() = runTest(dispatcher) {
+        coEvery { archiveRepository.getMyArchives() } returns Result.success(listOf(archive))
+        coEvery { postRepository.getFeed(ARCHIVE_ID) } returns Result.success(listOf(post))
+        coEvery { chatRepository.sendSharedMemory(ARCHIVE_ID, post.id) } returns
+            Result.failure(IllegalStateException("네트워크 오류"))
+
+        val vm = viewModel()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onShareClick(post.id)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals(0, state.shareSuccessCount)
+        assertEquals(post.id, state.shareErrorPostId)
+        assertEquals("네트워크 오류", state.shareError)
+        assertNull(state.sharingPostId)
+    }
+
+    private val sharedChatMessage = ChatMessage(
+        id = "msg-1",
+        archiveId = ARCHIVE_ID,
+        senderId = "u-me",
+        senderName = "나",
+        sentAtMillis = 0L,
+        sharedMemory = SharedMemoryPreview(
+            memoryId = "post-1",
+            title = "시험 끝나고 치킨 먹다 다 같이 울었던 날",
+            photo = null,
+            memoryDateMillis = 0L,
+        ),
+        isMine = true,
+    )
 
     private val archive = ArchiveSummary(
         id = ARCHIVE_ID,
