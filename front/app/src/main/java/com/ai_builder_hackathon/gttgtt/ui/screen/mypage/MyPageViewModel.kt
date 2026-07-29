@@ -27,6 +27,24 @@ class MyPageViewModel @Inject constructor(
         loadProfile()
     }
 
+    /** 한 줄 상태 메시지 저장. 성공 시 화면 상태도 즉시 갱신한다. */
+    fun onStatusSave(newStatus: String) {
+        viewModelScope.launch {
+            profileRepository.updateStatus(newStatus)
+                .onSuccess {
+                    val shown = newStatus.trim().ifBlank { DEFAULT_STATUS }
+                    _uiState.update { state ->
+                        state.copy(profile = state.profile?.copy(statusMessage = shown))
+                    }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(errorMessage = throwable.message ?: "상태 메시지를 저장하지 못했습니다.")
+                    }
+                }
+        }
+    }
+
     fun onSignOutClick() {
         viewModelScope.launch {
             profileRepository.signOut()
@@ -55,5 +73,9 @@ class MyPageViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    private companion object {
+        const val DEFAULT_STATUS = "추억을 모으는 중 ✨"
     }
 }

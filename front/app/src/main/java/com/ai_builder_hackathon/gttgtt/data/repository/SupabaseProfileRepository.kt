@@ -26,7 +26,7 @@ class SupabaseProfileRepository @Inject constructor(
         val user = supabase.auth.currentUserOrNull() ?: error("로그인이 필요합니다.")
 
         val profile = supabase.postgrest.from("profiles")
-            .select(Columns.raw("id,display_name,avatar_url")) {
+            .select(Columns.raw("id,display_name,avatar_url,status")) {
                 filter { eq("id", user.id) }
             }
             .decodeSingle<ProfileDto>()
@@ -55,10 +55,20 @@ class SupabaseProfileRepository @Inject constructor(
             name = profile.displayName ?: "이름 없음",
             // TODO: 연속 기록일 집계 테이블이 생기면 실제 값으로 교체.
             streakDays = 0,
-            statusMessage = "추억을 모으는 중 ✨",
+            statusMessage = profile.status?.takeIf { it.isNotBlank() } ?: DEFAULT_STATUS,
             memoryCount = myMemoryIds.size,
             mediaCount = mediaCount,
         )
+    }
+
+    override suspend fun updateStatus(status: String): Result<Unit> = runCatching {
+        val user = supabase.auth.currentUserOrNull() ?: error("로그인이 필요합니다.")
+        // 빈 값이면 null 로 저장해 기본 문구로 되돌린다.
+        val value = status.trim().ifBlank { null }
+        supabase.postgrest.from("profiles")
+            .update({ set("status", value) }) {
+                filter { eq("id", user.id) }
+            }
     }
 
     override suspend fun signOut(): Result<Unit> = runCatching {
@@ -76,5 +86,9 @@ class SupabaseProfileRepository @Inject constructor(
             .update(ProfileNicknameUpdate(displayName = trimmed)) {
                 filter { eq("id", user.id) }
             }
+    }
+
+    private companion object {
+        const val DEFAULT_STATUS = "추억을 모으는 중 ✨"
     }
 }

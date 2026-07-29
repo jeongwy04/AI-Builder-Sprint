@@ -4,6 +4,7 @@ import com.ai_builder_hackathon.gttgtt.domain.model.Comment
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.model.MemoryDetail
+import com.ai_builder_hackathon.gttgtt.domain.model.MemorySummary
 import com.ai_builder_hackathon.gttgtt.domain.model.NewMemory
 import com.ai_builder_hackathon.gttgtt.domain.model.Participant
 import com.ai_builder_hackathon.gttgtt.domain.repository.MemoryRepository
@@ -31,6 +32,30 @@ class FakeMemoryRepository @Inject constructor() : MemoryRepository {
             ?: return Result.failure(NoSuchElementException("기억을 찾을 수 없습니다."))
         return Result.success(memory)
     }
+
+    override suspend fun getMyMemories(): Result<List<MemorySummary>> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        return Result.success(
+            memories.values.map { it.toSummary() }
+                .sortedByDescending { it.memoryDateMillis }
+        )
+    }
+
+    override suspend fun getLikedMemories(): Result<List<MemorySummary>> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        // Fake 는 좋아요 상태가 없어 앞의 2개만 좋아요한 것처럼 보여준다.
+        return Result.success(
+            memories.values.take(2).map { it.toSummary() }
+        )
+    }
+
+    private fun MemoryDetail.toSummary() = MemorySummary(
+        id = id,
+        archiveId = archiveId,
+        memoryDateMillis = memoryDateMillis,
+        placeName = null,
+        preview = body.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty(),
+    )
 
     override suspend fun createMemory(memory: NewMemory): Result<String> {
         delay(FAKE_UPLOAD_DELAY_MILLIS)

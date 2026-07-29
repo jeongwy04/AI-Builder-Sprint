@@ -19,6 +19,12 @@ data class MemoryDto(
     @SerialName("created_at") val createdAt: String,
 )
 
+/** reactions 에서 memory_id 만 뽑을 때 쓰는 최소 프로젝션. */
+@Serializable
+data class MemoryIdRefDto(
+    @SerialName("memory_id") val memoryId: String,
+)
+
 @Serializable
 data class MediaAssetDto(
     @SerialName("id") val id: String,

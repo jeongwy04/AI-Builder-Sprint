@@ -2,10 +2,17 @@ package com.ai_builder_hackathon.gttgtt.domain.repository
 
 import com.ai_builder_hackathon.gttgtt.domain.model.Comment
 import com.ai_builder_hackathon.gttgtt.domain.model.MemoryDetail
+import com.ai_builder_hackathon.gttgtt.domain.model.MemorySummary
 import com.ai_builder_hackathon.gttgtt.domain.model.NewMemory
 
 interface MemoryRepository {
     suspend fun getDetail(memoryId: String): Result<MemoryDetail>
+
+    /** 내가 작성한 기억 목록 (memory_date 최근순). 여러 그룹에 걸쳐 모은다. */
+    suspend fun getMyMemories(): Result<List<MemorySummary>>
+
+    /** 내가 좋아요(reaction)한 기억 목록 (memory_date 최근순). */
+    suspend fun getLikedMemories(): Result<List<MemorySummary>>
 
     /**
      * 기억을 새로 만든다. 생성된 기억 id 를 돌려준다.

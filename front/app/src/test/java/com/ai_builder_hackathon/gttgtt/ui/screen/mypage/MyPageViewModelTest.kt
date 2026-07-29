@@ -2,6 +2,7 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.mypage
 
 import com.ai_builder_hackathon.gttgtt.domain.model.UserProfile
 import com.ai_builder_hackathon.gttgtt.domain.repository.ProfileRepository
+import io.mockk.any
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -86,6 +87,34 @@ class MyPageViewModelTest {
 
         assertEquals(false, vm.uiState.value.isSignedOut)
         assertEquals("로그아웃하지 못했습니다.", vm.uiState.value.errorMessage)
+    }
+
+    @Test
+    fun `상태 메시지를 저장하면 화면의 상태가 갱신된다`() = runTest(dispatcher) {
+        coEvery { repository.getMyProfile() } returns Result.success(profile)
+        coEvery { repository.updateStatus(any()) } returns Result.success(Unit)
+
+        val vm = MyPageViewModel(repository)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onStatusSave("오늘도 추억 저장 중")
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("오늘도 추억 저장 중", vm.uiState.value.profile?.statusMessage)
+    }
+
+    @Test
+    fun `빈 상태 메시지를 저장하면 기본 문구로 되돌린다`() = runTest(dispatcher) {
+        coEvery { repository.getMyProfile() } returns Result.success(profile)
+        coEvery { repository.updateStatus(any()) } returns Result.success(Unit)
+
+        val vm = MyPageViewModel(repository)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onStatusSave("   ")
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("추억을 모으는 중 ✨", vm.uiState.value.profile?.statusMessage)
     }
 
     private val profile = UserProfile(

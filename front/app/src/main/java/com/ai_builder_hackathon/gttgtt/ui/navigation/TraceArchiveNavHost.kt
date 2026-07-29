@@ -13,6 +13,8 @@ import com.ai_builder_hackathon.gttgtt.ui.screen.groupfeed.GroupFeedScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.grouplist.GroupListScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.memorycreate.MemoryCreateScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.memorydetail.MemoryDetailScreen
+import com.ai_builder_hackathon.gttgtt.ui.screen.memorylist.MemoryListKind
+import com.ai_builder_hackathon.gttgtt.ui.screen.memorylist.MemoryListScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.mypage.MyPageScreen
 import com.ai_builder_hackathon.gttgtt.ui.screen.signup.SignUpScreen
 
@@ -65,12 +67,30 @@ fun TraceArchiveNavHost(
         composable<Route.MyPage> {
             MyPageScreen(
                 onBackClick = { navController.popBackStack() },
+                onMyMemoriesClick = { navController.navigate(Route.MyMemories) },
+                onLikedClick = { navController.navigate(Route.LikedMemories) },
                 onSignedOut = {
                     // 로그아웃하면 뒤로가기로 되돌아올 수 없어야 한다.
                     navController.navigate(Route.Auth) {
                         popUpTo(navController.graph.id) { inclusive = true }
                     }
                 },
+            )
+        }
+
+        composable<Route.MyMemories> {
+            MemoryListScreen(
+                kind = MemoryListKind.MINE,
+                onBackClick = { navController.popBackStack() },
+                onMemoryClick = { memoryId -> navController.navigate(Route.MemoryDetail(memoryId)) },
+            )
+        }
+
+        composable<Route.LikedMemories> {
+            MemoryListScreen(
+                kind = MemoryListKind.LIKED,
+                onBackClick = { navController.popBackStack() },
+                onMemoryClick = { memoryId -> navController.navigate(Route.MemoryDetail(memoryId)) },
             )
         }
 
