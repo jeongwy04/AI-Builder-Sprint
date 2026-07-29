@@ -1,6 +1,9 @@
 package com.ai_builder_hackathon.gttgtt.ui.screen.grouplist
 
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +29,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -107,6 +113,23 @@ fun GroupListScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // 그룹 사진 변경 — 한 장만 고르면 되니 단일 선택 Photo Picker. 저장소 권한이 필요 없다.
+    //
+    // ⚠️ Photo Picker 는 별도 액티비티라, 그 사이 화면 회전이나 메모리 회수로 이 화면의
+    // ViewModel이 재생성될 수 있다. 그때 uiState.settingsArchiveId 를 다시 읽으면 이미 null로
+    // 리셋돼 있어 사진을 골라도 조용히 무시된다 — 그래서 "어느 그룹인지"는 Picker를 띄우는
+    // 시점에 rememberSaveable 에 미리 담아둔다. 이건 Bundle에 저장돼 프로세스가 죽어도 살아남는다.
+    var pendingCoverImageArchiveId by rememberSaveable { mutableStateOf<String?>(null) }
+    val coverImagePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        val archiveId = pendingCoverImageArchiveId
+        pendingCoverImageArchiveId = null
+        if (uri != null && archiveId != null) {
+            viewModel.onCoverImagePicked(archiveId, uri.toString())
+        }
+    }
+
     GroupListContent(
         uiState = uiState,
         onQueryChange = viewModel::onQueryChange,
@@ -124,6 +147,14 @@ fun GroupListScreen(
         onSwitchToJoinByCode = viewModel::onSwitchToJoinByCode,
         onGroupSettingsClick = viewModel::onGroupSettingsClick,
         onDismissSettingsSheet = viewModel::onDismissSettingsSheet,
+        onChangeCoverImageClick = {
+            // 지금 설정 시트가 어느 그룹 것인지 여기서 미리 캡처해둔다 (위 주석 참고).
+            pendingCoverImageArchiveId = uiState.settingsArchiveId
+            coverImagePicker.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        },
+        onDismissCoverImageError = viewModel::onDismissCoverImageError,
         onRenameClick = viewModel::onRenameClick,
         onDismissRenameDialog = viewModel::onDismissRenameDialog,
         onRenameTextChange = viewModel::onRenameTextChange,
@@ -155,6 +186,8 @@ private fun GroupListContent(
     onSwitchToJoinByCode: () -> Unit = {},
     onGroupSettingsClick: (String) -> Unit = {},
     onDismissSettingsSheet: () -> Unit = {},
+    onChangeCoverImageClick: () -> Unit = {},
+    onDismissCoverImageError: () -> Unit = {},
     onRenameClick: () -> Unit = {},
     onDismissRenameDialog: () -> Unit = {},
     onRenameTextChange: (String) -> Unit = {},
@@ -194,6 +227,22 @@ private fun GroupListContent(
             )
 
             Spacer(Modifier.height(8.dp))
+
+            if (uiState.updatingCoverImageArchiveId != null) {
+                CoverImageStatusBanner(
+                    text = "그룹 사진을 올리는 중이에요…",
+                    isError = false,
+                    onDismiss = null,
+                    modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 4.dp),
+                )
+            } else if (uiState.coverImageError != null) {
+                CoverImageStatusBanner(
+                    text = uiState.coverImageError,
+                    isError = true,
+                    onDismiss = onDismissCoverImageError,
+                    modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 4.dp),
+                )
+            }
 
             when {
                 uiState.isLoading -> LoadingState()
@@ -247,6 +296,7 @@ private fun GroupListContent(
         GroupSettingsSheet(
             onRenameClick = onRenameClick,
             onInviteClick = onInviteClick,
+            onChangeCoverImageClick = onChangeCoverImageClick,
             onDeleteClick = onDeleteClick,
             onDismiss = onDismissSettingsSheet,
         )
@@ -288,6 +338,7 @@ private fun GroupListContent(
 private fun GroupSettingsSheet(
     onRenameClick: () -> Unit,
     onInviteClick: () -> Unit,
+    onChangeCoverImageClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -307,11 +358,63 @@ private fun GroupSettingsSheet(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             )
             SettingsMenuRow(label = "그룹 이름 변경", onClick = onRenameClick)
+            SettingsMenuRow(label = "그룹 사진 변경", onClick = onChangeCoverImageClick)
             SettingsMenuRow(label = "그룹에 친구 추가", onClick = onInviteClick)
             SettingsMenuRow(label = "그룹 삭제", labelColor = DangerColor, onClick = onDeleteClick)
         }
     }
 }
+
+/**
+ * 그룹 사진 변경 진행/실패 상태를 알려주는 작은 배너.
+ * 이전엔 상태만 들고 있고 화면에 아무것도 그리지 않아서, 실패해도 "아무 반응 없음"으로
+ * 보이는 문제가 있었다 — 업로드 중/실패를 여기서 눈에 보이게 알린다.
+ */
+@Composable
+private fun CoverImageStatusBanner(
+    text: String,
+    isError: Boolean,
+    onDismiss: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (isError) DangerColor.copy(alpha = 0.1f) else ChipBackgroundBlue)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        if (!isError) {
+            CircularProgressIndicator(
+                color = AbodeBlue,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(14.dp),
+            )
+        }
+        Text(
+            text = text,
+            color = if (isError) DangerColor else TextPrimary,
+            fontSize = 12.5.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
+        )
+        if (onDismiss != null) {
+            Icon(
+                painter = painterResource(R.drawable.ic_x),
+                contentDescription = "닫기",
+                tint = TextSecondary,
+                modifier = Modifier
+                    .size(16.dp)
+                    .clickable(onClick = onDismiss),
+            )
+        }
+    }
+}
+
+/** 배너 배경으로 쓰는 옅은 파란색. */
+private val ChipBackgroundBlue = Color(0xFFE4EEFE)
 
 @Composable
 private fun SettingsMenuRow(
@@ -1040,7 +1143,7 @@ private fun GroupCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(13.dp),
         ) {
-            GroupThumbnail(theme = group.theme)
+            GroupThumbnail(theme = group.theme, imageUrl = group.coverImageUrl)
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(

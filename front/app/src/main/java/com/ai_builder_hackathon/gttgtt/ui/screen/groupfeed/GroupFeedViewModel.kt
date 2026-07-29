@@ -205,6 +205,41 @@ class GroupFeedViewModel @Inject constructor(
         _uiState.update { it.copy(isInviteDialogOpen = false) }
     }
 
+    // ── 그룹 대표 사진 변경 ──
+
+    /**
+     * Photo Picker 로 고른 로컬 [imageUri] 를 표지 사진으로 올린다.
+     * 업로드가 끝나면 signed URL 을 다시 받아와야 실제로 화면에 뜬다 —
+     * [imageUri] 는 로컬 content:// URI 라 앱을 나갔다 오면 더는 못 읽는다.
+     */
+    fun onCoverImagePicked(imageUri: String) {
+        _uiState.update { it.copy(isSettingsSheetOpen = false, isCoverImageUpdating = true, coverImageError = null) }
+        viewModelScope.launch {
+            archiveRepository.updateCoverImage(archiveId, imageUri)
+                .onSuccess {
+                    val refreshed = archiveRepository.getArchive(archiveId).getOrNull()
+                    _uiState.update {
+                        it.copy(
+                            isCoverImageUpdating = false,
+                            coverImageUrl = refreshed?.coverImageUrl ?: imageUri,
+                        )
+                    }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isCoverImageUpdating = false,
+                            coverImageError = throwable.message ?: "그룹 사진을 변경하지 못했습니다.",
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onDismissCoverImageError() {
+        _uiState.update { it.copy(coverImageError = null) }
+    }
+
     // ── 게시물(기억) 삭제 — 카드 우상단 점 세개 버튼 ──
 
     fun onPostDeleteClick(postId: String) {
@@ -297,6 +332,7 @@ class GroupFeedViewModel @Inject constructor(
                             memberCount = group?.totalMemberCount ?: 0,
                             posts = posts,
                             chatUnreadCount = group?.unreadCount ?: 0,
+                            coverImageUrl = group?.coverImageUrl,
                         )
                     }
                 }

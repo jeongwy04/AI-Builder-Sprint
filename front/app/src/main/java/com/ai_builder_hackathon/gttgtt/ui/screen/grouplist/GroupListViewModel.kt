@@ -35,6 +35,10 @@ class GroupListViewModel @Inject constructor(
     }
 
     fun retry() {
+        // 사진 업로드가 진행 중일 때 화면 재진입(ON_RESUME)으로 목록을 통째로 다시 불러오면,
+        // 그 새로고침 결과가 업로드 완료 후 반영보다 늦게 끝날 경우 방금 바꾼 사진이 다시
+        // 덮어써질 수 있다 — 업로드가 끝날 때까지는 재조회를 미룬다.
+        if (_uiState.value.updatingCoverImageArchiveId != null) return
         loadGroups()
     }
 
@@ -240,6 +244,50 @@ class GroupListViewModel @Inject constructor(
 
     fun onDismissInviteDialog() {
         _uiState.update { it.copy(invitingArchiveId = null) }
+    }
+
+    // ── 그룹 사진 변경 ──
+
+    /**
+     * 설정 시트의 "그룹 사진 변경"을 누르면 화면이 Photo Picker 를 띄우고, 고른 결과를 이걸로 넘긴다.
+     *
+     * ⚠️ [archiveId] 는 화면이 Photo Picker 를 띄우기 "직전"에 캡처해서 넘겨받은 값이어야 한다.
+     * 예전엔 이 함수 안에서 `_uiState.value.settingsArchiveId` 를 읽었는데, Photo Picker는
+     * 시스템 화면(별도 액티비티)이라 그 사이 화면 회전/메모리 회수로 ViewModel이 재생성되면
+     * `settingsArchiveId` 가 null 로 리셋돼 있어 사진을 골라도 조용히 아무 일도 안 일어났다
+     * (그룹 피드 화면은 archiveId 가 네비게이션 인자라 이 문제가 없어서 거기선 항상 잘 됐다).
+     */
+    fun onCoverImagePicked(archiveId: String, imageUri: String) {
+        _uiState.update {
+            it.copy(settingsArchiveId = null, updatingCoverImageArchiveId = archiveId, coverImageError = null)
+        }
+        viewModelScope.launch {
+            archiveRepository.updateCoverImage(archiveId, imageUri)
+                .onSuccess {
+                    // 로컬 content:// URI 는 신뢰할 수 없어 그대로 쓰지 않고, 서버가 발급한
+                    // signed URL 을 다시 받아온다.
+                    val refreshed = archiveRepository.getArchive(archiveId).getOrNull()
+                    if (refreshed != null) {
+                        allGroups = allGroups.map { group ->
+                            if (group.id == archiveId) group.copy(coverImageUrl = refreshed.coverImageUrl) else group
+                        }
+                    }
+                    _uiState.update { it.copy(updatingCoverImageArchiveId = null) }
+                    applyFilter()
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            updatingCoverImageArchiveId = null,
+                            coverImageError = throwable.message ?: "그룹 사진을 변경하지 못했습니다.",
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onDismissCoverImageError() {
+        _uiState.update { it.copy(coverImageError = null) }
     }
 
     // ── 그룹 삭제 ──

@@ -333,7 +333,7 @@ class SupabaseMemoryRepository @Inject constructor(
                     filter { isIn("id", removedPhotoIds) }
                 }
                 .decodeList<MediaAssetDto>()
-            media.deleteMemoryPhotos(toRemove.map { it.storagePath })
+            media.deleteStorageObjects(toRemove.map { it.storagePath })
             supabase.postgrest.from("media_assets").delete { filter { isIn("id", removedPhotoIds) } }
         }
 

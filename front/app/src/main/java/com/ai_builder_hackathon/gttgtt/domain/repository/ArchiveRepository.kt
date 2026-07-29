@@ -31,6 +31,13 @@ interface ArchiveRepository {
     suspend fun renameArchive(archiveId: String, newName: String): Result<Unit>
 
     /**
+     * 그룹 대표 사진 변경. [imageUri] 는 기기 로컬 URI 문자열(Photo Picker 결과)이다.
+     * Storage 업로드 → `archives.cover_image_path` 갱신 → 이전 사진이 있었으면 지우는 순서로 처리한다.
+     * 이름 변경과 같은 정책(`is_member`)이라 역할 구분 없이 멤버 누구나 바꿀 수 있다.
+     */
+    suspend fun updateCoverImage(archiveId: String, imageUri: String): Result<Unit>
+
+    /**
      * 그룹(보관소) 삭제. `archives_delete_member` 정책도 `is_member(id)` 라 멤버 누구나 지울 수 있다.
      * memberships/memories/notes/… 는 전부 `archive_id` FK 에 `on delete cascade` 가 걸려 있어
      * archives 한 행만 지우면 하위 데이터가 함께 정리된다 (마이그레이션 §2~8 참고).

@@ -57,6 +57,16 @@ class MediaUploader @Inject constructor(
             }.getOrNull()
         }
 
+    /** 그룹 대표 사진 업로드. 경로: `{archive_id}/cover/{uuid}.{ext}` */
+    suspend fun uploadGroupCoverImage(archiveId: String, uri: String): String? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val path = "$archiveId/cover/${UUID.randomUUID()}.${extensionOf(uri)}"
+                supabase.storage.from(BUCKET).upload(path, readBytes(uri))
+                path
+            }.getOrNull()
+        }
+
     /**
      * storage path → 화면에 쓸 [Photo].
      * URL 발급에 실패해도 화면이 깨지지 않도록 fallback 그라디언트가 남는다.
@@ -87,16 +97,21 @@ class MediaUploader @Inject constructor(
     )
 
     /**
-     * 기억에서 사진을 뺄 때 storage 오브젝트를 지운다.
-     * media_assets 행 자체는 호출한 쪽(Repository)이 지운다 — 여기선 Storage 만 담당한다.
-     * 실패해도(이미 지워졌거나 네트워크 문제) 예외를 던지지 않는다 — media_assets 행이라도
-     * 지워지는 게 사용자 입장에서 더 중요하다.
+     * storage 오브젝트를 지운다 — 기억 사진, 그룹 표지 사진 등 이 버킷의 어떤 경로든 쓸 수 있다.
+     * DB 행(media_assets 등) 자체는 호출한 쪽(Repository)이 지운다 — 여기선 Storage 만 담당한다.
+     * 실패해도(이미 지워졌거나 네트워크 문제) 예외를 던지지 않는다 — DB 쪽 정리가 더 중요하다.
      */
-    suspend fun deleteMemoryPhotos(storagePaths: List<String>) = withContext(Dispatchers.IO) {
+    suspend fun deleteStorageObjects(storagePaths: List<String>) = withContext(Dispatchers.IO) {
         if (storagePaths.isEmpty()) return@withContext
         // supabase-kt storage 의 delete() 는 vararg String 이라 List 를 그대로 넘길 수 없다 — 스프레드로 푼다.
         runCatching { supabase.storage.from(BUCKET).delete(*storagePaths.toTypedArray()) }
     }
+
+    /**
+     * signed URL 문자열만 필요할 때 쓴다 (그룹 표지 사진처럼 [Photo] 전체가 필요 없는 경우).
+     * 캐싱/발급 로직은 [toPhoto] 와 동일하게 [signedUrlOrNull] 을 공유한다.
+     */
+    suspend fun signedUrl(storagePath: String): String? = signedUrlOrNull(storagePath)
 
     /**
      * signed URL 을 메모리에 캐싱한다. 캐시가 없으면 화면을 나갔다 돌아올 때마다(ON_RESUME 재조회)

@@ -20,6 +20,11 @@ data class GroupFeedUiState(
     val isRenaming: Boolean = false,
     val renameError: String? = null,
 
+    // 그룹 대표 사진 변경
+    val coverImageUrl: String? = null,
+    val isCoverImageUpdating: Boolean = false,
+    val coverImageError: String? = null,
+
     // 삭제
     val isDeleteConfirmOpen: Boolean = false,
     val isDeleting: Boolean = false,

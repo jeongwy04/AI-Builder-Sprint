@@ -38,6 +38,9 @@ data class GroupListUiState(
     val deletingArchiveName: String = "",
     val isDeleting: Boolean = false,
     val deleteError: String? = null,
+    /** 그룹 사진 변경 — Photo Picker 로 고른 뒤 업로드가 끝날 때까지 그 그룹 id 가 담긴다. */
+    val updatingCoverImageArchiveId: String? = null,
+    val coverImageError: String? = null,
 ) {
     val isEmpty: Boolean
         get() = !isLoading && groups.isEmpty()

@@ -19,6 +19,11 @@ data class ArchiveSummary(
     val totalMemberCount: Int,
     /** 내가 안 읽은 메시지 수. `unread_counts()` RPC 결과 — 방을 열 때 chat_reads 가 갱신되면 줄어든다. */
     val unreadCount: Int = 0,
+    /**
+     * 그룹 대표 사진 signed URL. null 이면 아직 지정 안 한 그룹이라 [GroupThumbnail] 이
+     * [theme] 그라디언트로 대신 보여준다.
+     */
+    val coverImageUrl: String? = null,
 ) {
     /** 아바타를 [visibleCount]개만 보여줄 때 뒤에 붙는 "+N" 의 N */
     fun hiddenMemberCount(visibleCount: Int): Int =

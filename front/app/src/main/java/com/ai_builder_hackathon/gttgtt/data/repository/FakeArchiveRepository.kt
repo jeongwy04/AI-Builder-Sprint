@@ -66,6 +66,15 @@ class FakeArchiveRepository @Inject constructor() : ArchiveRepository {
         return Result.success(Unit)
     }
 
+    override suspend fun updateCoverImage(archiveId: String, imageUri: String): Result<Unit> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        val existing = archives[archiveId]
+            ?: return Result.failure(NoSuchElementException("그룹을 찾을 수 없습니다."))
+        // Fake 는 Storage 가 없어 signed URL 발급 없이 로컬 Photo Picker URI 를 그대로 화면에 쓴다.
+        archives[archiveId] = existing.copy(coverImageUrl = imageUri)
+        return Result.success(Unit)
+    }
+
     override suspend fun deleteArchive(archiveId: String): Result<Unit> {
         delay(FAKE_NETWORK_DELAY_MILLIS)
         archives.remove(archiveId)

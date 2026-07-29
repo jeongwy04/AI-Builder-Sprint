@@ -9,13 +9,14 @@ import kotlinx.serialization.Serializable
  * archives + 내장 memberships 조인.
  * RLS 덕에 내가 멤버인 보관소만 내려온다.
  *
- * select: id,name,group_type,created_at,memberships(user_id)
+ * select: id,name,group_type,cover_image_path,created_at,memberships(user_id)
  */
 @Serializable
 data class ArchiveWithMembersDto(
     @SerialName("id") val id: String,
     @SerialName("name") val name: String,
     @SerialName("group_type") val groupType: String? = null,
+    @SerialName("cover_image_path") val coverImagePath: String? = null,
     @SerialName("created_at") val createdAt: String,
     @SerialName("memberships") val memberships: List<MembershipUserDto> = emptyList(),
 )
@@ -76,6 +77,18 @@ data class ArchiveRowDto(
 @Serializable
 data class ArchiveRenameDto(
     @SerialName("name") val name: String,
+)
+
+/** 그룹 사진 변경 전, 지우고 넘어갈 이전 경로를 알아내려고 archives 를 조회할 때 쓴다. */
+@Serializable
+data class ArchiveCoverPathDto(
+    @SerialName("cover_image_path") val coverImagePath: String? = null,
+)
+
+/** 그룹 사진 변경 — archives.update() 요청 바디 (cover_image_path 한 컬럼만) */
+@Serializable
+data class ArchiveCoverImageUpdateDto(
+    @SerialName("cover_image_path") val coverImagePath: String,
 )
 
 /** invitations insert 요청 바디. token/expires_at 은 DB 기본값이 채운다. */
