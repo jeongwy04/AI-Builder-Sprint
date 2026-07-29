@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +42,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ai_builder_hackathon.gttgtt.R
@@ -73,14 +75,21 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val SidePadding = 20.dp
+private val DangerColor = Color(0xFFB64B39)
 
 @Composable
 fun MemoryDetailScreen(
     onBackClick: () -> Unit,
+    onEditClick: (archiveId: String, memoryId: String) -> Unit,
+    onDeleted: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MemoryDetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(uiState.isDeleted) {
+        if (uiState.isDeleted) onDeleted()
+    }
 
     MemoryDetailContent(
         uiState = uiState,
@@ -88,6 +97,17 @@ fun MemoryDetailScreen(
         onPhotoIndexChange = viewModel::onPhotoIndexChange,
         onCommentInputChange = viewModel::onCommentInputChange,
         onSubmitComment = viewModel::onSubmitComment,
+        onMoreClick = viewModel::onMoreClick,
+        onDismissOptionsSheet = viewModel::onDismissOptionsSheet,
+        onEditClick = {
+            uiState.memory?.let { memory ->
+                viewModel.onDismissOptionsSheet()
+                onEditClick(memory.archiveId, memory.id)
+            }
+        },
+        onDeleteClick = viewModel::onDeleteClick,
+        onDismissDeleteConfirm = viewModel::onDismissDeleteConfirm,
+        onConfirmDelete = viewModel::onConfirmDelete,
         modifier = modifier,
     )
 }
@@ -99,6 +119,12 @@ private fun MemoryDetailContent(
     onPhotoIndexChange: (Int) -> Unit,
     onCommentInputChange: (String) -> Unit,
     onSubmitComment: () -> Unit,
+    onMoreClick: () -> Unit,
+    onDismissOptionsSheet: () -> Unit,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onDismissDeleteConfirm: () -> Unit,
+    onConfirmDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -108,7 +134,7 @@ private fun MemoryDetailContent(
             // GroupChatScreen/AiChatSheet 와 같은 이유 — 없으면 키보드가 댓글 입력바를 그대로 덮는다.
             .imePadding()
     ) {
-        DetailTopBar(onBackClick = onBackClick)
+        DetailTopBar(onBackClick = onBackClick, onMoreClick = onMoreClick)
 
         when {
             uiState.isLoading -> CenterBox { CircularProgressIndicator(color = BrandGreen) }
@@ -138,6 +164,23 @@ private fun MemoryDetailContent(
             }
         }
     }
+
+    if (uiState.isOptionsSheetOpen) {
+        MemoryOptionsSheet(
+            onEditClick = onEditClick,
+            onDeleteClick = onDeleteClick,
+            onDismiss = onDismissOptionsSheet,
+        )
+    }
+
+    if (uiState.isDeleteConfirmOpen) {
+        DeleteMemoryConfirmDialog(
+            isDeleting = uiState.isDeleting,
+            errorMessage = uiState.deleteError,
+            onConfirm = onConfirmDelete,
+            onDismiss = onDismissDeleteConfirm,
+        )
+    }
 }
 
 /**
@@ -145,7 +188,7 @@ private fun MemoryDetailContent(
  * 사진과 제목이 바로 아래에 크게 나오므로 상단에 제목을 또 적으면 중복이다.
  */
 @Composable
-private fun DetailTopBar(onBackClick: () -> Unit) {
+private fun DetailTopBar(onBackClick: () -> Unit, onMoreClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -165,8 +208,133 @@ private fun DetailTopBar(onBackClick: () -> Unit) {
             contentDescription = "더보기",
             background = SurfaceWhite,
             tint = MoreIcon,
-            onClick = { /* TODO: 수정·삭제 메뉴 */ },
+            onClick = onMoreClick,
         )
+    }
+}
+
+/** 더보기 버튼을 누르면 뜨는 수정/삭제 메뉴. GroupFeedScreen 의 GroupSettingsSheet 와 같은 모양. */
+@Composable
+private fun MemoryOptionsSheet(
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(SurfaceWhite)
+                .padding(vertical = 8.dp),
+        ) {
+            Text(
+                text = "기억 관리",
+                color = TextPrimary,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            )
+            OptionsMenuRow(label = "수정", onClick = onEditClick)
+            OptionsMenuRow(label = "삭제", labelColor = DangerColor, onClick = onDeleteClick)
+        }
+    }
+}
+
+@Composable
+private fun OptionsMenuRow(
+    label: String,
+    onClick: () -> Unit,
+    labelColor: Color = TextPrimary,
+) {
+    Text(
+        text = label,
+        color = labelColor,
+        fontSize = 15.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+    )
+}
+
+/** 삭제 확인 다이얼로그. GroupFeedScreen 의 DeleteGroupConfirmDialog 와 같은 모양. */
+@Composable
+private fun DeleteMemoryConfirmDialog(
+    isDeleting: Boolean,
+    errorMessage: String?,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(SurfaceWhite)
+                .padding(24.dp),
+        ) {
+            Text(
+                text = "기억을 삭제할까요?",
+                color = TextPrimary,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Black,
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = "사진과 댓글이 함께 삭제되고, 되돌릴 수 없어요.",
+                color = TextSecondary,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 19.sp,
+            )
+
+            if (errorMessage != null) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = errorMessage,
+                    color = DangerColor,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(ScreenBackground)
+                        .clickable(enabled = !isDeleting, onClick = onDismiss),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(text = "취소", color = TextSecondary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(DangerColor)
+                        .clickable(enabled = !isDeleting, onClick = onConfirm),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(
+                            color = SurfaceWhite,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    } else {
+                        Text(text = "삭제", color = SurfaceWhite, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -227,30 +395,6 @@ private fun DetailBody(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 items(memory.participants, key = { it.id }) { ParticipantItem(it) }
-            }
-        }
-
-        if (memory.relatedPhotos.isNotEmpty()) {
-            item(key = "related-label") {
-                SectionLabel(
-                    text = "관련 사진",
-                    trailing = "전체 보기",
-                    onTrailingClick = { /* TODO: 그룹 앨범 화면 */ },
-                )
-            }
-            item(key = "related") {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = SidePadding),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(memory.relatedPhotos.size) { index ->
-                        PhotoImage(
-                            photo = memory.relatedPhotos[index],
-                            corner = 16.dp,
-                            modifier = Modifier.size(74.dp),
-                        )
-                    }
-                }
             }
         }
 
@@ -564,6 +708,12 @@ private fun MemoryDetailContentPreview() {
             onPhotoIndexChange = {},
             onCommentInputChange = {},
             onSubmitComment = {},
+            onMoreClick = {},
+            onDismissOptionsSheet = {},
+            onEditClick = {},
+            onDeleteClick = {},
+            onDismissDeleteConfirm = {},
+            onConfirmDelete = {},
         )
     }
 }

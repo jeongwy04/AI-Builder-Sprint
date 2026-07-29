@@ -76,17 +76,33 @@ fun TraceArchiveNavHost(
         }
 
         composable<Route.MemoryDetail> {
-            MemoryDetailScreen(onBackClick = { navController.popBackStack() })
+            MemoryDetailScreen(
+                onBackClick = { navController.popBackStack() },
+                onEditClick = { archiveId, memoryId ->
+                    navController.navigate(Route.MemoryCreate(archiveId = archiveId, memoryId = memoryId))
+                },
+                onDeleted = { navController.popBackStack() },
+            )
         }
 
-        composable<Route.MemoryCreate> {
+        composable<Route.MemoryCreate> { entry ->
+            val isEditMode = entry.toRoute<Route.MemoryCreate>().memoryId != null
             MemoryCreateScreen(
                 onBackClick = { navController.popBackStack() },
                 onSaved = { memoryId ->
-                    // 작성 화면을 백스택에서 걷어내고 방금 만든 기억으로 이동한다.
-                    // 뒤로가기로 작성 폼에 되돌아오면 안 되기 때문.
-                    navController.popBackStack()
-                    navController.navigate(Route.MemoryDetail(memoryId))
+                    if (isEditMode) {
+                        // 수정 화면 밑에는 "수정 전" 상세 화면이 그대로 깔려 있다 —
+                        // 그걸 남겨두면 저장 후 뒤로가기를 눌렀을 때 수정 전 내용이 다시 보인다.
+                        // 같은 memoryId 의 상세 화면까지 걷어내고 새로 고친 화면 하나만 남긴다.
+                        navController.navigate(Route.MemoryDetail(memoryId)) {
+                            popUpTo(Route.MemoryDetail(memoryId)) { inclusive = true }
+                        }
+                    } else {
+                        // 작성 화면을 백스택에서 걷어내고 방금 만든 기억으로 이동한다.
+                        // 뒤로가기로 작성 폼에 되돌아오면 안 되기 때문.
+                        navController.popBackStack()
+                        navController.navigate(Route.MemoryDetail(memoryId))
+                    }
                 },
             )
         }

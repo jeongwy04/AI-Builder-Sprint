@@ -3,7 +3,9 @@ package com.ai_builder_hackathon.gttgtt.ui.screen.memorycreate
 import androidx.lifecycle.SavedStateHandle
 import com.ai_builder_hackathon.gttgtt.domain.model.ArchiveSummary
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
+import com.ai_builder_hackathon.gttgtt.domain.model.MemoryDetail
 import com.ai_builder_hackathon.gttgtt.domain.model.NewMemory
+import com.ai_builder_hackathon.gttgtt.domain.model.Participant
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.MemoryRepository
 import com.ai_builder_hackathon.gttgtt.domain.repository.PhotoMetadataReader
@@ -43,11 +45,16 @@ class MemoryCreateViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel() = MemoryCreateViewModel(
+    private fun viewModel(memoryId: String? = null) = MemoryCreateViewModel(
         memoryRepository,
         archiveRepository,
         photoMetadataReader,
-        SavedStateHandle(mapOf("archiveId" to ARCHIVE_ID)),
+        SavedStateHandle(
+            buildMap {
+                put("archiveId", ARCHIVE_ID)
+                if (memoryId != null) put("memoryId", memoryId)
+            }
+        ),
     )
 
     @Test
@@ -154,6 +161,88 @@ class MemoryCreateViewModelTest {
         assertEquals(false, vm.uiState.value.isSaving)
     }
 
+    @Test
+    fun `memoryId 가 있으면 편집 모드로 기존 값을 불러온다`() = runTest(dispatcher) {
+        coEvery { memoryRepository.getDetail(MEMORY_ID) } returns Result.success(existingMemory)
+
+        val vm = viewModel(memoryId = MEMORY_ID)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals(true, state.isEditMode)
+        assertEquals(existingMemory.body, state.body)
+        assertEquals(existingMemory.memoryDateMillis, state.memoryDateMillis)
+        assertEquals(setOf("u-minji"), state.selectedParticipantIds)
+    }
+
+    @Test
+    fun `편집 모드에서 저장하면 createMemory 대신 updateMemory 를 호출한다`() = runTest(dispatcher) {
+        coEvery { memoryRepository.getDetail(MEMORY_ID) } returns Result.success(existingMemory)
+        coEvery {
+            memoryRepository.updateMemory(
+                memoryId = MEMORY_ID,
+                archiveId = ARCHIVE_ID,
+                title = any(),
+                body = any(),
+                memoryDateMillis = any(),
+                participantIds = any(),
+            )
+        } returns Result.success(Unit)
+
+        val vm = viewModel(memoryId = MEMORY_ID)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onBodyChange("고친 본문")
+        vm.onSaveClick()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(MEMORY_ID, vm.uiState.value.savedMemoryId)
+        io.mockk.coVerify(exactly = 0) { memoryRepository.createMemory(any()) }
+    }
+
+    @Test
+    fun `제목만 바꿔 저장하면 입력한 그대로 title body 를 넘긴다`() = runTest(dispatcher) {
+        // title 을 본문 첫 줄로 접어 넣는 건 Supabase 스키마 제약 때문에 리포지토리(구현체)가 할 일이다.
+        // ViewModel 은 그대로 전달만 해야 한다 — 여기서 손대면 편집을 반복할 때 제목 줄이 쌓인다.
+        coEvery { memoryRepository.getDetail(MEMORY_ID) } returns Result.success(existingMemory)
+        val capturedTitle = slot<String>()
+        val capturedBody = slot<String>()
+        coEvery {
+            memoryRepository.updateMemory(
+                memoryId = MEMORY_ID,
+                archiveId = ARCHIVE_ID,
+                title = capture(capturedTitle),
+                body = capture(capturedBody),
+                memoryDateMillis = any(),
+                participantIds = any(),
+            )
+        } returns Result.success(Unit)
+
+        val vm = viewModel(memoryId = MEMORY_ID)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(existingMemory.body, vm.uiState.value.body)
+
+        vm.onTitleChange("새 제목")
+        vm.onSaveClick()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("새 제목", capturedTitle.captured)
+        assertEquals(existingMemory.body, capturedBody.captured)
+    }
+
+    private val existingMemory = MemoryDetail(
+        id = MEMORY_ID,
+        archiveId = ARCHIVE_ID,
+        memoryDateMillis = 1_700_000_000_000L,
+        title = "강릉 여행 둘째 날",
+        body = "바다 보고 회 먹었다",
+        photos = emptyList(),
+        participants = listOf(Participant("u-minji", "민지")),
+        relatedPhotos = emptyList(),
+        comments = emptyList(),
+    )
+
     private val archive = ArchiveSummary(
         id = ARCHIVE_ID,
         name = "강릉 여행",
@@ -166,6 +255,7 @@ class MemoryCreateViewModelTest {
 
     private companion object {
         const val ARCHIVE_ID = "archive-gangneung"
+        const val MEMORY_ID = "mem-gangneung-2"
         const val PHOTO_URI = "content://photo/1"
         const val CAPTURED_AT = 1_766_361_600_000L
         const val MANUAL_DATE = 1_700_000_000_000L

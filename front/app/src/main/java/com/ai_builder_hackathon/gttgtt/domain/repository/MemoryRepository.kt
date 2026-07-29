@@ -22,4 +22,28 @@ interface MemoryRepository {
      * 그룹 멤버는 전원 동일 권한이라 다른 사람의 기억에도 누구나 댓글을 달 수 있다 (CLAUDE.md §6.1).
      */
     suspend fun addComment(memoryId: String, text: String): Result<Comment>
+
+    /**
+     * 기억 수정. 제목/본문/날짜/함께한 사람만 바꾼다 — 사진은 이 메서드로 건드리지 않는다.
+     *
+     * ⚠️ title 은 실제로는 저장되지 않는다 (getDetail() 이 매번 본문 첫 줄에서 다시 계산한다 —
+     * createMemory() 와 같은 이유). Fake 구현만 title 을 따로 들고 있어서 값을 반영한다.
+     * 본문이 바뀌면 검색 재료가 바뀌므로 구현체는 embed-memory 를 다시 호출해야 한다 (CLAUDE.md §5.6).
+     */
+    suspend fun updateMemory(
+        memoryId: String,
+        archiveId: String,
+        title: String,
+        body: String,
+        memoryDateMillis: Long,
+        participantIds: List<String>,
+    ): Result<Unit>
+
+    /**
+     * 기억 삭제. media_assets/notes/memory_people 은 memory_id FK 에 on delete cascade 라
+     * memories 한 행만 지우면 하위 데이터가 함께 정리된다 (마이그레이션 참고).
+     *
+     * 그룹 멤버는 전원 동일 권한이라 다른 사람이 남긴 기억도 지울 수 있다 (CLAUDE.md §6.1).
+     */
+    suspend fun deleteMemory(memoryId: String): Result<Unit>
 }

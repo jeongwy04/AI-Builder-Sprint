@@ -28,11 +28,41 @@ class MemoryCreateViewModel @Inject constructor(
         "archiveId 인자가 없다. Route.MemoryCreate 로 진입했는지 확인할 것."
     }
 
-    private val _uiState = MutableStateFlow(MemoryCreateUiState())
+    /** null 이면 새 기억 작성, 있으면 해당 기억을 수정하는 모드. */
+    private val editMemoryId: String? = savedStateHandle["memoryId"]
+
+    private val _uiState = MutableStateFlow(MemoryCreateUiState(isEditMode = editMemoryId != null))
     val uiState: StateFlow<MemoryCreateUiState> = _uiState.asStateFlow()
 
     init {
         loadMembers()
+        editMemoryId?.let(::loadExistingMemory)
+    }
+
+    private fun loadExistingMemory(memoryId: String) {
+        _uiState.update { it.copy(isLoadingExisting = true) }
+        viewModelScope.launch {
+            memoryRepository.getDetail(memoryId)
+                .onSuccess { memory ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingExisting = false,
+                            title = memory.title,
+                            body = memory.body,
+                            memoryDateMillis = memory.memoryDateMillis,
+                            selectedParticipantIds = memory.participants.map { p -> p.id }.toSet(),
+                        )
+                    }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingExisting = false,
+                            errorMessage = throwable.message ?: "기억을 불러오지 못했습니다.",
+                        )
+                    }
+                }
+        }
     }
 
     fun onTitleChange(value: String) {
@@ -87,20 +117,37 @@ class MemoryCreateViewModel @Inject constructor(
 
         _uiState.update { it.copy(isSaving = true, errorMessage = null) }
 
+        val title = state.title.ifBlank {
+            state.body.lineSequence().firstOrNull { it.isNotBlank() }?.take(TITLE_MAX) ?: ""
+        }
+
         viewModelScope.launch {
-            memoryRepository.createMemory(
-                NewMemory(
+            val memoryId = editMemoryId
+            val result = if (memoryId != null) {
+                memoryRepository.updateMemory(
+                    memoryId = memoryId,
                     archiveId = archiveId,
-                    // 제목을 비워두면 본문 첫 줄을 제목으로 삼는다.
-                    title = state.title.ifBlank { state.body.lineSequence().first().take(TITLE_MAX) },
+                    title = title,
                     body = state.body,
                     memoryDateMillis = state.memoryDateMillis,
-                    photoUris = state.photoUris,
                     participantIds = state.selectedParticipantIds.toList(),
+                ).map { memoryId }
+            } else {
+                memoryRepository.createMemory(
+                    NewMemory(
+                        archiveId = archiveId,
+                        title = title,
+                        body = state.body,
+                        memoryDateMillis = state.memoryDateMillis,
+                        photoUris = state.photoUris,
+                        participantIds = state.selectedParticipantIds.toList(),
+                    )
                 )
-            )
-                .onSuccess { memoryId ->
-                    _uiState.update { it.copy(isSaving = false, savedMemoryId = memoryId) }
+            }
+
+            result
+                .onSuccess { savedId ->
+                    _uiState.update { it.copy(isSaving = false, savedMemoryId = savedId) }
                 }
                 .onFailure { throwable ->
                     _uiState.update {

@@ -113,6 +113,54 @@ class MemoryDetailViewModelTest {
         assertEquals(2, vm.uiState.value.currentPhotoIndex)
     }
 
+    @Test
+    fun `더보기를 누르면 메뉴가 열리고 삭제를 누르면 확인창으로 넘어간다`() = runTest(dispatcher) {
+        coEvery { repository.getDetail(MEMORY_ID) } returns Result.success(memory)
+
+        val vm = viewModel()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onMoreClick()
+        assertEquals(true, vm.uiState.value.isOptionsSheetOpen)
+
+        vm.onDeleteClick()
+        assertEquals(false, vm.uiState.value.isOptionsSheetOpen)
+        assertEquals(true, vm.uiState.value.isDeleteConfirmOpen)
+    }
+
+    @Test
+    fun `삭제를 확인하면 성공 시 화면을 나가는 신호가 켜진다`() = runTest(dispatcher) {
+        coEvery { repository.getDetail(MEMORY_ID) } returns Result.success(memory)
+        coEvery { repository.deleteMemory(MEMORY_ID) } returns Result.success(Unit)
+
+        val vm = viewModel()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onDeleteClick()
+        vm.onConfirmDelete()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(true, vm.uiState.value.isDeleted)
+        assertEquals(false, vm.uiState.value.isDeleting)
+    }
+
+    @Test
+    fun `삭제에 실패하면 화면에 머물고 에러를 알린다`() = runTest(dispatcher) {
+        coEvery { repository.getDetail(MEMORY_ID) } returns Result.success(memory)
+        coEvery { repository.deleteMemory(MEMORY_ID) } returns
+            Result.failure(IllegalStateException("삭제 실패"))
+
+        val vm = viewModel()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onDeleteClick()
+        vm.onConfirmDelete()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(false, vm.uiState.value.isDeleted)
+        assertEquals("삭제 실패", vm.uiState.value.deleteError)
+    }
+
     private val memory = MemoryDetail(
         id = MEMORY_ID,
         archiveId = "archive-gangneung",

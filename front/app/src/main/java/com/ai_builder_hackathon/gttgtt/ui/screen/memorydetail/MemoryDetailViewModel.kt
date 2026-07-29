@@ -72,6 +72,42 @@ class MemoryDetailViewModel @Inject constructor(
         }
     }
 
+    fun onMoreClick() {
+        _uiState.update { it.copy(isOptionsSheetOpen = true) }
+    }
+
+    fun onDismissOptionsSheet() {
+        _uiState.update { it.copy(isOptionsSheetOpen = false) }
+    }
+
+    fun onDeleteClick() {
+        _uiState.update { it.copy(isOptionsSheetOpen = false, isDeleteConfirmOpen = true) }
+    }
+
+    fun onDismissDeleteConfirm() {
+        _uiState.update { it.copy(isDeleteConfirmOpen = false, deleteError = null) }
+    }
+
+    fun onConfirmDelete() {
+        if (_uiState.value.isDeleting) return
+        _uiState.update { it.copy(isDeleting = true, deleteError = null) }
+
+        viewModelScope.launch {
+            memoryRepository.deleteMemory(memoryId)
+                .onSuccess {
+                    _uiState.update { it.copy(isDeleting = false, isDeleteConfirmOpen = false, isDeleted = true) }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isDeleting = false,
+                            deleteError = throwable.message ?: "삭제하지 못했습니다.",
+                        )
+                    }
+                }
+        }
+    }
+
     private fun loadDetail() {
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {

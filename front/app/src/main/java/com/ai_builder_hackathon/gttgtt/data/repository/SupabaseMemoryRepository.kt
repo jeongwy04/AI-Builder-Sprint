@@ -3,10 +3,12 @@ package com.ai_builder_hackathon.gttgtt.data.repository
 import com.ai_builder_hackathon.gttgtt.data.dto.EmbedMemoryRequest
 import com.ai_builder_hackathon.gttgtt.data.dto.MediaAssetDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MediaAssetInsert
+import com.ai_builder_hackathon.gttgtt.data.dto.MemoryDateUpdate
 import com.ai_builder_hackathon.gttgtt.data.dto.MemoryDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MemoryInsert
 import com.ai_builder_hackathon.gttgtt.data.dto.MemoryPersonDto
 import com.ai_builder_hackathon.gttgtt.data.dto.MemoryPersonInsert
+import com.ai_builder_hackathon.gttgtt.data.dto.NoteBodyUpdate
 import com.ai_builder_hackathon.gttgtt.data.dto.NoteDto
 import com.ai_builder_hackathon.gttgtt.data.dto.NoteInsert
 import com.ai_builder_hackathon.gttgtt.data.dto.ProfileDto
@@ -71,7 +73,9 @@ class SupabaseMemoryRepository @Inject constructor(
 
         // 첫 note 가 본문, 나머지는 댓글처럼 취급한다.
         // 스키마에 comments 테이블이 없어 notes 를 겸용하는 구조다.
-        val body = notes.firstOrNull()?.body.orEmpty()
+        val storedBody = notes.firstOrNull()?.body.orEmpty()
+        val title = storedBody.lineSequence().firstOrNull { it.isNotBlank() }?.take(TITLE_MAX)
+            ?: "제목 없는 기억"
         val comments = notes.drop(1).map { note ->
             Comment(
                 id = note.id,
@@ -86,9 +90,10 @@ class SupabaseMemoryRepository @Inject constructor(
             id = memory.id,
             archiveId = memory.archiveId,
             memoryDateMillis = parseDateMillis(memory.memoryDate),
-            title = body.lineSequence().firstOrNull { it.isNotBlank() }?.take(TITLE_MAX)
-                ?: "제목 없는 기억",
-            body = body,
+            title = title,
+            // storedBody 는 저장용 원문이라 title 이 첫 줄에 접혀 들어가 있다.
+            // 화면엔 title 을 따로 보여주므로, 본문에서는 그 줄을 떼어내야 안 겹친다.
+            body = stripTitleLine(title, storedBody),
             photos = media.toPhotos(assets.map { it.storagePath }),
             participants = people.map { p ->
                 Participant(id = p.userId, name = nameById[p.userId] ?: "멤버")
@@ -125,12 +130,15 @@ class SupabaseMemoryRepository @Inject constructor(
         }
 
         // 3) 본문을 note 로 저장 — 검색의 유일한 재료다.
-        if (memory.body.isNotBlank()) {
+        // ⚠️ memories 테이블엔 title 컬럼이 없다. getDetail() 이 저장된 본문 첫 줄로 title 을
+        // 다시 계산하므로, 여기서 title 을 첫 줄로 접어 넣어야 다음에 불러올 때도 살아남는다.
+        val storedBody = composeStoredBody(memory.title, memory.body)
+        if (storedBody.isNotBlank()) {
             supabase.postgrest.from("notes").insert(
                 NoteInsert(
                     memoryId = created.id,
                     archiveId = memory.archiveId,
-                    body = memory.body,
+                    body = storedBody,
                 )
             )
         }
@@ -183,6 +191,62 @@ class SupabaseMemoryRepository @Inject constructor(
         )
     }
 
+    override suspend fun updateMemory(
+        memoryId: String,
+        archiveId: String,
+        title: String,
+        body: String,
+        memoryDateMillis: Long,
+        participantIds: List<String>,
+    ): Result<Unit> = runCatching {
+        // 1) 날짜 갱신
+        supabase.postgrest.from("memories")
+            .update(MemoryDateUpdate(memoryDate = toDateString(memoryDateMillis))) {
+                filter { eq("id", memoryId) }
+            }
+
+        // 2) 본문(첫 note) 갱신 — 검색 재료가 바뀐다.
+        // title 은 첫 줄로 접어 넣는다 — createMemory() 와 같은 이유(§주석 참고).
+        val storedBody = composeStoredBody(title, body)
+
+        val firstNote = supabase.postgrest.from("notes")
+            .select(Columns.raw("id,memory_id,archive_id,author_id,body,created_at")) {
+                filter { eq("memory_id", memoryId) }
+                order("created_at", Order.ASCENDING)
+                limit(1)
+            }
+            .decodeList<NoteDto>()
+            .firstOrNull()
+
+        when {
+            firstNote != null -> supabase.postgrest.from("notes")
+                .update(NoteBodyUpdate(body = storedBody)) {
+                    filter { eq("id", firstNote.id) }
+                }
+            storedBody.isNotBlank() -> supabase.postgrest.from("notes")
+                .insert(NoteInsert(memoryId = memoryId, archiveId = archiveId, body = storedBody))
+        }
+
+        // 3) 함께한 사람 — 전체 삭제 후 재삽입이 가장 단순하고 안전하다.
+        supabase.postgrest.from("memory_people").delete { filter { eq("memory_id", memoryId) } }
+        if (participantIds.isNotEmpty()) {
+            supabase.postgrest.from("memory_people").insert(
+                participantIds.map { userId ->
+                    MemoryPersonInsert(memoryId = memoryId, archiveId = archiveId, userId = userId)
+                }
+            )
+        }
+
+        // 4) ⚠️ 임베딩 갱신 — 이 호출을 빠뜨리면 검색에 안 잡힌다.
+        requestEmbedding(memoryId)
+    }
+
+    override suspend fun deleteMemory(memoryId: String): Result<Unit> = runCatching {
+        // media_assets/notes/memory_people 은 memory_id FK 에 on delete cascade 라
+        // memories 한 행만 지우면 하위 데이터가 함께 정리된다.
+        supabase.postgrest.from("memories").delete { filter { eq("id", memoryId) } }
+    }
+
     /**
      * 임베딩 갱신 요청.
      * 실패해도 기억 저장 자체는 성공으로 둔다 — 사용자가 쓴 글이 날아가는 것보다,
@@ -223,6 +287,30 @@ class SupabaseMemoryRepository @Inject constructor(
 
     private fun parseMillis(iso: String): Long =
         runCatching { OffsetDateTime.parse(iso).toInstant().toEpochMilli() }.getOrDefault(0L)
+
+    /**
+     * memories 테이블엔 title 컬럼이 없어서, 저장용 본문 첫 줄에 title 을 접어 넣는 방식으로
+     * 흉내낸다. title 이 이미 본문 첫 줄과 같으면(=고칠 게 없으면) 그대로 둔다 — 안 그러면
+     * 저장할 때마다 제목 줄이 계속 쌓인다.
+     */
+    private fun composeStoredBody(title: String, body: String): String {
+        if (title.isBlank()) return body
+        val firstLine = body.lineSequence().firstOrNull { it.isNotBlank() }
+        if (firstLine == title) return body
+        return if (body.isBlank()) title else "$title\n$body"
+    }
+
+    /** composeStoredBody() 의 반대 — 화면에 보여줄 본문에서는 title 로 쓰인 첫 줄을 뺀다. */
+    private fun stripTitleLine(title: String, storedBody: String): String {
+        val lines = storedBody.lines()
+        val firstNonBlankIndex = lines.indexOfFirst { it.isNotBlank() }
+        if (firstNonBlankIndex == -1 || lines[firstNonBlankIndex] != title) return storedBody
+
+        val rest = lines.toMutableList()
+        rest.removeAt(firstNonBlankIndex)
+        while (rest.isNotEmpty() && rest.first().isBlank()) rest.removeAt(0)
+        return rest.joinToString("\n")
+    }
 
     private companion object {
         const val TITLE_MAX = 40

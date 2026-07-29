@@ -119,8 +119,9 @@ class SupabasePostRepository @Inject constructor(
                 authorName = nameById[memory.authorId] ?: "멤버",
                 memoryDateMillis = parseDateMillis(memory.memoryDate),
                 photos = photos,
-                // 첫 note = 본문/캡션, 나머지 = 댓글 (comments 테이블 부재 워크어라운드).
-                caption = notes.firstOrNull()?.body.orEmpty(),
+                // 피드에는 제목만 보여준다 — 첫 note 는 "title\n본문"으로 접혀 저장되어 있으므로
+                // (SupabaseMemoryRepository 와 같은 워크어라운드) 첫 줄만 뽑아 쓴다.
+                caption = extractTitle(notes.firstOrNull()?.body.orEmpty()),
                 likeCount = reactions.size,
                 commentCount = (notes.size - 1).coerceAtLeast(0),
                 likedByMe = myId != null && reactions.any { it.userId == myId },
@@ -143,4 +144,13 @@ class SupabasePostRepository @Inject constructor(
         runCatching {
             LocalDate.parse(date).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         }.getOrDefault(0L)
+
+    /** SupabaseMemoryRepository.getDetail() 의 title 계산과 같은 규칙 — 저장된 본문 첫 줄. */
+    private fun extractTitle(storedBody: String): String =
+        storedBody.lineSequence().firstOrNull { it.isNotBlank() }?.take(TITLE_MAX)
+            ?: "제목 없는 기억"
+
+    private companion object {
+        const val TITLE_MAX = 40
+    }
 }

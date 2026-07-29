@@ -67,6 +67,18 @@ data class NoteInsert(
     @SerialName("body") val body: String,
 )
 
+// ── 수정용 (부분 update payload) ──
+
+@Serializable
+data class MemoryDateUpdate(
+    @SerialName("memory_date") val memoryDate: String,
+)
+
+@Serializable
+data class NoteBodyUpdate(
+    @SerialName("body") val body: String,
+)
+
 @Serializable
 data class MediaAssetInsert(
     @SerialName("memory_id") val memoryId: String,

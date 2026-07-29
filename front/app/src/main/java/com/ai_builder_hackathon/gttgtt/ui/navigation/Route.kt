@@ -35,7 +35,10 @@ sealed interface Route {
     @Serializable
     data class MemoryDetail(val memoryId: String) : Route
 
-    /** S4 기억 작성 */
+    /**
+     * S4 기억 작성 / 수정.
+     * memoryId 가 있으면 수정 모드 — 제목/본문/날짜/함께한 사람만 고칠 수 있고 사진은 그대로 둔다.
+     */
     @Serializable
-    data class MemoryCreate(val archiveId: String) : Route
+    data class MemoryCreate(val archiveId: String, val memoryId: String? = null) : Route
 }

@@ -73,6 +73,32 @@ class FakeMemoryRepository @Inject constructor() : MemoryRepository {
         return Result.success(comment)
     }
 
+    override suspend fun updateMemory(
+        memoryId: String,
+        archiveId: String,
+        title: String,
+        body: String,
+        memoryDateMillis: Long,
+        participantIds: List<String>,
+    ): Result<Unit> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        val existing = memories[memoryId]
+            ?: return Result.failure(NoSuchElementException("기억을 찾을 수 없습니다."))
+        memories[memoryId] = existing.copy(
+            title = title.ifBlank { existing.title },
+            body = body,
+            memoryDateMillis = memoryDateMillis,
+            participants = participantIds.map { Participant(it, it.removePrefix("u-")) },
+        )
+        return Result.success(Unit)
+    }
+
+    override suspend fun deleteMemory(memoryId: String): Result<Unit> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        memories.remove(memoryId)
+        return Result.success(Unit)
+    }
+
     private fun seed(): List<MemoryDetail> = listOf(
         MemoryDetail(
             id = "mem-chicken",

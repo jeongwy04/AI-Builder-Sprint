@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -53,6 +55,8 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
@@ -113,6 +117,19 @@ fun GroupFeedScreen(
     // 그룹 삭제가 끝나면 이 화면에 더 보여줄 게 없다 — 목록으로 나간다.
     LaunchedEffect(uiState.isGroupDeleted) {
         if (uiState.isGroupDeleted) onBackClick()
+    }
+
+    // 기억 상세/작성 화면에서 수정·삭제하고 돌아왔을 때 피드가 그대로 남아있지 않도록,
+    // 화면이 다시 보일 때마다(RESUME) 새로 불러온다. GroupListScreen 과 같은 이유 —
+    // ViewModel 은 백스택에 남아있는 동안 재생성되지 않아 init { loadFeed() } 한 번만으로는
+    // 갱신되지 않는다.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.retry()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     GroupFeedContent(

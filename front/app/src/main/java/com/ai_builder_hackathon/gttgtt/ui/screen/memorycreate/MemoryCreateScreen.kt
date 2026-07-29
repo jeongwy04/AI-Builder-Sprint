@@ -136,6 +136,7 @@ private fun MemoryCreateContent(
             .background(ScreenBackground)
     ) {
         CreateTopBar(
+            title = if (uiState.isEditMode) "기억 수정" else "기억 남기기",
             canSave = uiState.canSave,
             isSaving = uiState.isSaving,
             onBackClick = onBackClick,
@@ -147,11 +148,22 @@ private fun MemoryCreateContent(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
         ) {
-            PhotoStrip(
-                photoUris = uiState.photoUris,
-                onPickPhotos = onPickPhotos,
-                onPhotoRemove = onPhotoRemove,
-            )
+            if (uiState.isEditMode) {
+                // 사진은 이 화면에서 고치지 않는다 — 기존 사진은 그대로 유지된다.
+                Text(
+                    text = "사진은 여기서 수정할 수 없어요.",
+                    color = TextSecondary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = SidePadding, vertical = 12.dp),
+                )
+            } else {
+                PhotoStrip(
+                    photoUris = uiState.photoUris,
+                    onPickPhotos = onPickPhotos,
+                    onPhotoRemove = onPhotoRemove,
+                )
+            }
 
             Spacer(Modifier.height(20.dp))
             DateChip(
@@ -232,6 +244,7 @@ private fun MemoryCreateContent(
 
 @Composable
 private fun CreateTopBar(
+    title: String,
     canSave: Boolean,
     isSaving: Boolean,
     onBackClick: () -> Unit,
@@ -252,7 +265,7 @@ private fun CreateTopBar(
             onClick = onBackClick,
         )
         Text(
-            text = "기억 남기기",
+            text = title,
             color = TextPrimary,
             fontSize = 18.sp,
             fontWeight = FontWeight.Black,
@@ -267,8 +280,9 @@ private fun SaveButton(canSave: Boolean, isSaving: Boolean, onClick: () -> Unit)
     Box(
         modifier = Modifier
             .clip(CircleShape)
-            .background(BrandGreen)
-            .alpha(if (canSave) 1f else 0.4f)
+            // GroupChatScreen 등과 같은 이유로 alpha() 대신 색 자체에 투명도를 넣는다 —
+            // 그렇지 않으면 일부 기기에서 버튼이 하얗게(비활성 색이 안 먹은 채) 보인다.
+            .background(if (canSave) BrandGreen else BrandGreen.copy(alpha = 0.4f))
             .clickable(enabled = canSave, onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
