@@ -43,7 +43,9 @@ import com.ai_builder_hackathon.gttgtt.domain.model.AiMessage
 import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.model.MemoryHit
+import com.ai_builder_hackathon.gttgtt.ui.component.AlbumLoader
 import com.ai_builder_hackathon.gttgtt.ui.component.PhotoImage
+import com.ai_builder_hackathon.gttgtt.ui.theme.DisplayFontFamily
 import com.ai_builder_hackathon.gttgtt.ui.theme.AiFabGradient
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
@@ -158,8 +160,9 @@ private fun SheetHeader() {
             Text(
                 text = "AI 추억 찾기",
                 color = TextPrimary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Black,
+                fontFamily = DisplayFontFamily,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
             )
             Text(
                 text = "이 그룹의 기록에서만 찾아요",
@@ -300,11 +303,7 @@ private fun MemoryHitCard(hit: MemoryHit, onClick: () -> Unit) {
 private fun ThinkingBubble() {
     Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
         SparkleAvatar(size = 28.dp)
-        Text(
-            text = "기억을 찾고 있어요…",
-            color = TextSecondary,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
+        Row(
             modifier = Modifier
                 .clip(
                     RoundedCornerShape(
@@ -314,7 +313,17 @@ private fun ThinkingBubble() {
                 )
                 .background(SurfaceWhite)
                 .padding(horizontal = 14.dp, vertical = 11.dp),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            AlbumLoader()
+            Text(
+                text = "추억을 뒤적이는 중…",
+                color = TextSecondary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
     }
 }
 

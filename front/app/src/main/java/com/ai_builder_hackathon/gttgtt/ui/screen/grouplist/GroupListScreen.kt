@@ -53,6 +53,11 @@ import com.ai_builder_hackathon.gttgtt.ui.component.GroupAvatarStack
 import com.ai_builder_hackathon.gttgtt.ui.component.GroupThumbnail
 import com.ai_builder_hackathon.gttgtt.ui.component.SearchField
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
+import androidx.compose.ui.draw.shadow
+import com.ai_builder_hackathon.gttgtt.ui.component.AlbumLoader
+import com.ai_builder_hackathon.gttgtt.ui.component.bounceClick
+import com.ai_builder_hackathon.gttgtt.ui.theme.CardShadow
+import com.ai_builder_hackathon.gttgtt.ui.theme.DisplayFontFamily
 import com.ai_builder_hackathon.gttgtt.ui.theme.CardBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
@@ -528,10 +533,10 @@ private fun HomeHeader(
             text = "그때그때",
             style = TextStyle(
                 color = BrandGreen,
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Black,
-                fontStyle = FontStyle.Italic,
-                letterSpacing = (-0.04).em,
+                fontFamily = DisplayFontFamily,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.02).em,
             ),
         )
         MyButton(onClick = onProfileClick)
@@ -590,11 +595,12 @@ private fun GroupCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            // 시안 .gcard : radius 22, padding 13, gap 13
+            // Abode 카드: 흰색 + 소프트 섀도우 + 큰 라운드
+            .shadow(elevation = 7.dp, shape = RoundedCornerShape(22.dp), spotColor = CardShadow, ambientColor = CardShadow)
             .clip(RoundedCornerShape(22.dp))
-            .background(CardBackground)
-            .clickable(onClick = onClick)
-            .padding(13.dp),
+            .background(SurfaceWhite)
+            .bounceClick(onClick = onClick)
+            .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(13.dp),
     ) {
@@ -651,10 +657,7 @@ private fun LoadingState() {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopCenter,
     ) {
-        CircularProgressIndicator(
-            color = BrandGreen,
-            modifier = Modifier.padding(top = 40.dp),
-        )
+        AlbumLoader(modifier = Modifier.padding(top = 48.dp))
     }
 }
 

@@ -6,34 +6,51 @@ import androidx.compose.ui.graphics.Color
 // design/redesign-mockup.html 의 :root CSS 변수를 그대로 옮긴 값이다.
 // 눈대중으로 고치지 말고 시안 파일을 기준으로 갱신할 것.
 
-/** --brand */
-val BrandGreen = Color(0xFF12A575)
+// ── 감성 리디자인 팔레트 (2026-07) ──
+// 톤: 차분한 스카이 블루(신뢰) + 따뜻한 크림 배경 + 차콜 텍스트 + 코랄 포인트.
+// 이름은 유지하고 값만 교체해 전 화면 무드를 일괄 전환한다.
 
-/** --brand-d · 밝은 배경 위의 그린 텍스트 */
-val BrandGreenDark = Color(0xFF0B6B4E)
+/** 메인 — 차분한 스카이 블루 (구 BrandGreen) */
+val BrandGreen = Color(0xFF4C8DF6)
 
-/** --brand-soft · "+N" 배지처럼 연한 그린 배경 */
-val BrandGreenSoft = Color(0xFFE1F3EC)
+/** 진한 스카이 블루 — 텍스트/강조 */
+val BrandGreenDark = Color(0xFF2F6FD8)
 
-/** --ink */
-val TextPrimary = Color(0xFF14141A)
+/** 연한 블루 배경 — 배지/틴트 */
+val BrandGreenSoft = Color(0xFFEAF2FE)
 
-/** --sub */
-val TextSecondary = Color(0xFF9A9AA3)
+/** 차콜 그레이 — 순수 검정 대신 부드럽게 */
+val TextPrimary = Color(0xFF34373E)
 
-/** .gtime · 부가 정보 중에서도 더 약한 톤 */
-val TextMuted = Color(0xFFB6B4BF)
+/** 서브 텍스트 */
+val TextSecondary = Color(0xFF8A8E97)
 
-/** --screen · 화면 배경. 순백이 아니라 니어화이트다. */
-val ScreenBackground = Color(0xFFF5F6F8)
+/** 더 약한 톤 */
+val TextMuted = Color(0xFFB4B8C0)
 
-/** --cardsoft · 카드/검색창 배경 */
-val CardBackground = Color(0xFFECEDF1)
+/** 화면 배경 — 따뜻한 크림 (순백 아님) */
+val ScreenBackground = Color(0xFFFAF7F2)
 
+/** 카드/검색창 연한 배경 — 웜 라이트 */
+val CardBackground = Color(0xFFF1EEE7)
+
+/** 카드 표면 — 크림 배경 위에 뜨는 흰 '종이 사진' */
 val SurfaceWhite = Color(0xFFFFFFFF)
 
-/** .tbar .bk 아이콘 색 */
-val TopBarIcon = Color(0xFF2A2836)
+/** 상단바 아이콘 — 차콜 */
+val TopBarIcon = Color(0xFF34373E)
+
+// ── 포인트 컬러 + 파스텔 틴트 ──
+val AbodeBlue = Color(0xFF4C8DF6)
+val AbodeYellow = Color(0xFFF3B24A)
+val AbodeCoral = Color(0xFFFB7A6A)
+val AbodeGreen = Color(0xFF37BE8C)
+val AbodeBlueTint = Color(0xFFEAF2FE)
+val AbodeYellowTint = Color(0xFFFCF3E2)
+val AbodeCoralTint = Color(0xFFFFEDE9)
+val AbodeGreenTint = Color(0xFFE7F6EF)
+/** 카드 소프트 섀도우 — 차콜 저투명 (토스풍 도톰한 그림자) */
+val CardShadow = Color(0x1A3A3D44)
 
 /** .chip — 댓글 등 기본 칩 */
 val ChipBackground = Color(0xFFF4F3F0)

@@ -28,29 +28,38 @@ val PretendardFontFamily = FontFamily(
     Font(R.font.pretendard_black, FontWeight.Black),
 )
 
-// Set of Material typography styles to start with
+/**
+ * 헤딩·큰 문구·숫자용 디스플레이 서체 = **Gmarket Sans** (둥근 헤비 톤).
+ * "그때그때", 온보딩 헤딩, 마이페이지 이름/통계 숫자 등 큰 문구에 쓴다.
+ * 화면에서 `fontFamily = DisplayFontFamily` 로 지정한다.
+ */
+val DisplayFontFamily = FontFamily(
+    Font(R.font.gmarketsans_light, FontWeight.Light),
+    Font(R.font.gmarketsans_medium, FontWeight.Normal),
+    Font(R.font.gmarketsans_medium, FontWeight.Medium),
+    Font(R.font.gmarketsans_bold, FontWeight.SemiBold),
+    Font(R.font.gmarketsans_bold, FontWeight.Bold),
+)
+
 val Typography = Typography(
+    // 본문 기본 — 화면들이 fontFamily 를 안 줘도 여기서 Pretendard 를 상속한다.
     bodyLarge = TextStyle(
         fontFamily = PretendardFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
+        letterSpacing = 0.sp
+    ),
     titleLarge = TextStyle(
-        fontFamily = PretendardFontFamily,
+        fontFamily = DisplayFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 22.sp,
         lineHeight = 28.sp,
-        letterSpacing = 0.sp
     ),
-    labelSmall = TextStyle(
-        fontFamily = PretendardFontFamily,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
+    headlineSmall = TextStyle(
+        fontFamily = DisplayFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 26.sp,
+        lineHeight = 30.sp,
+    ),
 )

@@ -47,7 +47,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.domain.model.UserProfile
+import com.ai_builder_hackathon.gttgtt.ui.component.AlbumLoader
 import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
+import com.ai_builder_hackathon.gttgtt.ui.theme.DisplayFontFamily
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
 import com.ai_builder_hackathon.gttgtt.ui.theme.ChevronIcon
@@ -136,7 +138,7 @@ private fun MyPageContent(
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(top = 80.dp),
                     contentAlignment = Alignment.Center,
-                ) { CircularProgressIndicator(color = BrandGreen) }
+                ) { AlbumLoader() }
             }
 
             uiState.profile == null -> {
@@ -226,9 +228,10 @@ private fun ProfileHeader(
                 text = profile.name,
                 style = TextStyle(
                     color = TextPrimary,
-                    fontSize = 23.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = (-0.03).em,
+                    fontFamily = DisplayFontFamily,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.02).em,
                 ),
             )
 
