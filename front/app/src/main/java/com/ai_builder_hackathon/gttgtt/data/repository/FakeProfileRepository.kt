@@ -52,6 +52,13 @@ class FakeProfileRepository @Inject constructor() : ProfileRepository {
         return Result.success(nickname.trim().lowercase() in TAKEN_NICKNAMES)
     }
 
+    override suspend fun updateAvatar(imageUri: String): Result<String> {
+        delay(FAKE_NETWORK_DELAY_MILLIS)
+        // 실제 업로드가 없는 Fake 라, 고른 로컬 content:// URI 를 그대로 "signed URL"인 척 돌려준다.
+        // Coil 은 content URI 도 그대로 로드할 수 있어 프리뷰에서도 바로 화면에 뜬다.
+        return Result.success(imageUri)
+    }
+
     private companion object {
         const val FAKE_NETWORK_DELAY_MILLIS = 300L
 

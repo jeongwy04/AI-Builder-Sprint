@@ -1,5 +1,8 @@
 package com.ai_builder_hackathon.gttgtt.ui.screen.mypage
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -70,6 +73,9 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.TextSecondary
 
 private val SidePadding = 20.dp
 
+/** 다른 화면들(GroupFeedScreen, GroupListScreen 등)과 같은 에러 강조색. */
+private val DangerColor = Color(0xFFB64B39)
+
 @Composable
 fun MyPageScreen(
     onBackClick: () -> Unit,
@@ -86,11 +92,29 @@ fun MyPageScreen(
         if (uiState.isSignedOut) onSignedOut()
     }
 
+    // 프로필 사진 변경 — 한 장만 고르면 되니 단일 선택 Photo Picker. 저장소 권한이 필요 없다
+    // (GroupFeedScreen 의 그룹 표지 사진 변경과 같은 방식).
+    val avatarPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) viewModel.onAvatarPicked(uri.toString())
+    }
+
     MyPageContent(
         uiState = uiState,
         onBackClick = onBackClick,
         onSignOutClick = viewModel::onSignOutClick,
         onStatusSave = viewModel::onStatusSave,
+        onEditNicknameClick = viewModel::onEditNicknameClick,
+        onNicknameDraftChange = viewModel::onNicknameDraftChange,
+        onNicknameSaveClick = viewModel::onNicknameSaveClick,
+        onNicknameEditDismiss = viewModel::onNicknameEditDismiss,
+        onChangeAvatarClick = {
+            avatarPicker.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        },
+        onDismissAvatarError = viewModel::onDismissAvatarError,
         onMyMemoriesClick = onMyMemoriesClick,
         onLikedClick = onLikedClick,
         modifier = modifier,
@@ -103,6 +127,12 @@ private fun MyPageContent(
     onBackClick: () -> Unit,
     onSignOutClick: () -> Unit,
     onStatusSave: (String) -> Unit,
+    onEditNicknameClick: () -> Unit,
+    onNicknameDraftChange: (String) -> Unit,
+    onNicknameSaveClick: () -> Unit,
+    onNicknameEditDismiss: () -> Unit,
+    onChangeAvatarClick: () -> Unit,
+    onDismissAvatarError: () -> Unit,
     onMyMemoriesClick: () -> Unit,
     onLikedClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -120,6 +150,16 @@ private fun MyPageContent(
                 editingStatus = false
             },
             onDismiss = { editingStatus = false },
+        )
+    }
+    if (uiState.isEditingNickname) {
+        NicknameEditDialog(
+            value = uiState.nicknameDraft,
+            onValueChange = onNicknameDraftChange,
+            isSaving = uiState.isSavingNickname,
+            errorMessage = uiState.nicknameError,
+            onSave = onNicknameSaveClick,
+            onDismiss = onNicknameEditDismiss,
         )
     }
 
@@ -156,6 +196,11 @@ private fun MyPageContent(
                     profile = uiState.profile,
                     onBackClick = onBackClick,
                     onStatusClick = { editingStatus = true },
+                    onNicknameClick = onEditNicknameClick,
+                    isAvatarUploading = uiState.isAvatarUploading,
+                    avatarError = uiState.avatarError,
+                    onChangeAvatarClick = onChangeAvatarClick,
+                    onDismissAvatarError = onDismissAvatarError,
                 )
 
                 Spacer(Modifier.height(12.dp))
@@ -184,6 +229,11 @@ private fun ProfileHeader(
     profile: UserProfile,
     onBackClick: () -> Unit,
     onStatusClick: () -> Unit,
+    onNicknameClick: () -> Unit,
+    isAvatarUploading: Boolean,
+    avatarError: String?,
+    onChangeAvatarClick: () -> Unit,
+    onDismissAvatarError: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -207,19 +257,56 @@ private fun ProfileHeader(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            AvatarWithCamera(profile)
+            AvatarWithCamera(
+                profile = profile,
+                isUploading = isAvatarUploading,
+                onCameraClick = onChangeAvatarClick,
+            )
+            if (avatarError != null) {
+                Spacer(Modifier.height(6.dp))
+                // 탭하면 닫힌다 — 다시 시도하려면 카메라 버튼을 다시 누르면 된다.
+                Text(
+                    text = avatarError,
+                    color = DangerColor,
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = onDismissAvatarError)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                )
+            }
 
             Spacer(Modifier.height(14.dp))
-            Text(
-                text = profile.name,
-                style = TextStyle(
-                    color = TextPrimary,
-                    fontFamily = DisplayFontFamily,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.02).em,
-                ),
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                // 연필 아이콘과 폭을 맞춘 투명 스페이서 — 이게 없으면 아이콘 쪽으로
+                // 이름이 쏠려 보여서(오른쪽만 아이콘 폭만큼 넓어짐) 화면 정중앙이 아니게 된다.
+                Spacer(Modifier.size(28.dp))
+                Text(
+                    text = profile.name,
+                    style = TextStyle(
+                        color = TextPrimary,
+                        fontFamily = DisplayFontFamily,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.02).em,
+                    ),
+                )
+                // 이름 옆 연필 아이콘 — 눌러야 닉네임 수정 다이얼로그가 열린다.
+                Icon(
+                    painter = painterResource(R.drawable.ic_pencil),
+                    contentDescription = "닉네임 수정",
+                    tint = MyPageSubText,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = onNicknameClick)
+                        .padding(6.dp),
+                )
+            }
 
             Spacer(Modifier.height(10.dp))
             StreakBadge(days = profile.streakDays)
@@ -241,16 +328,38 @@ private fun ProfileHeader(
 }
 
 @Composable
-private fun AvatarWithCamera(profile: UserProfile) {
+private fun AvatarWithCamera(
+    profile: UserProfile,
+    isUploading: Boolean,
+    onCameraClick: () -> Unit,
+) {
     Box {
         MemberAvatar(
             memberId = profile.id,
             size = 92.dp,
             showRing = false,
+            imageUrl = profile.avatarUrl,
             modifier = Modifier
                 .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
                 .border(width = 4.dp, color = SurfaceWhite, shape = CircleShape),
         )
+        if (isUploading) {
+            // 업로드 중엔 아바타 위에 반투명 오버레이 + 스피너 — 카메라 버튼도 같이 막는다
+            // (아래에서 clickable enabled = !isUploading).
+            Box(
+                modifier = Modifier
+                    .size(92.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.35f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(
+                    color = SurfaceWhite,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+        }
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -258,7 +367,7 @@ private fun AvatarWithCamera(profile: UserProfile) {
                 .clip(CircleShape)
                 .background(BrandGreen)
                 .border(width = 3.dp, color = SurfaceWhite, shape = CircleShape)
-                .clickable { /* TODO: 프로필 사진 변경 */ },
+                .clickable(enabled = !isUploading, onClick = onCameraClick),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -446,6 +555,66 @@ private fun StatusEditDialog(
     )
 }
 
+/**
+ * 닉네임 수정 다이얼로그. 회원가입 화면과 같은 순서로 검증한다 — 저장 버튼을 누르면
+ * ViewModel 이 `is_nickname_taken` RPC 로 먼저 중복을 확인한 뒤 저장한다.
+ * 확인·저장이 진행되는 동안([isSaving])에는 입력·버튼을 막아 중복 요청을 방지한다.
+ */
+@Composable
+private fun NicknameEditDialog(
+    value: String,
+    onValueChange: (String) -> Unit,
+    isSaving: Boolean,
+    errorMessage: String?,
+    onSave: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { if (!isSaving) onDismiss() },
+        confirmButton = {
+            TextButton(onClick = onSave, enabled = !isSaving) {
+                if (isSaving) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                } else {
+                    Text("저장", color = BrandGreenDark, fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isSaving) {
+                Text("취소", color = TextSecondary, fontWeight = FontWeight.SemiBold)
+            }
+        },
+        title = {
+            Text("닉네임 변경", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Black)
+        },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = value,
+                    // 20자 제한 — 회원가입 닉네임 입력과 동일한 길이 제약.
+                    onValueChange = { if (it.length <= 20) onValueChange(it) },
+                    placeholder = { Text("사용할 닉네임을 입력해주세요") },
+                    singleLine = true,
+                    isError = errorMessage != null,
+                    enabled = !isSaving,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (errorMessage != null) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = errorMessage,
+                        color = DangerColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        },
+        containerColor = SurfaceWhite,
+    )
+}
+
 @Composable
 private fun MenuItem(iconRes: Int, label: String, onClick: () -> Unit) {
     Row(
@@ -505,6 +674,12 @@ private fun MyPageContentPreview() {
             onBackClick = {},
             onSignOutClick = {},
             onStatusSave = {},
+            onEditNicknameClick = {},
+            onNicknameDraftChange = {},
+            onNicknameSaveClick = {},
+            onNicknameEditDismiss = {},
+            onChangeAvatarClick = {},
+            onDismissAvatarError = {},
             onMyMemoriesClick = {},
             onLikedClick = {},
         )

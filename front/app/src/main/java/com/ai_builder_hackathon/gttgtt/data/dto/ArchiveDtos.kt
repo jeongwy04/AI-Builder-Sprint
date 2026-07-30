@@ -49,6 +49,22 @@ data class ProfileNicknameUpdate(
     @SerialName("display_name") val displayName: String,
 )
 
+/** 마이페이지 프로필 사진 변경 — profiles.update() 요청 바디 (avatar_url 한 컬럼만, storage path 저장) */
+@Serializable
+data class ProfileAvatarUpdate(
+    @SerialName("avatar_url") val avatarUrl: String,
+)
+
+/**
+ * 프로필 사진 변경 전, 지우고 넘어갈 이전 경로만 알아내려고 조회할 때 쓴다.
+ * [ProfileDto] 는 `id` 가 필수 필드라 avatar_url 한 컬럼만 select 한 응답을 디코드할 수 없어서
+ * (ArchiveCoverPathDto 와 같은 이유) 별도로 둔다.
+ */
+@Serializable
+data class ProfileAvatarPathDto(
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+)
+
 /** unread_counts() RPC 응답 행 */
 @Serializable
 data class UnreadCountDto(

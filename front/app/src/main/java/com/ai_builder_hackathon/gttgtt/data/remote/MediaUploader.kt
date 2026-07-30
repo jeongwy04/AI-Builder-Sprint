@@ -96,6 +96,34 @@ class MediaUploader @Inject constructor(
         fallback = fallbackFor(storagePath),
     )
 
+    // ── 프로필 아바타 (별도 버킷) ──
+    // 'memories' 버킷은 경로 1단계가 archive_id 라 RLS 가 is_member(archive_id) 로 격리한다.
+    // 아바타는 archive 소속이 아니라 사용자 전역 소지물이라 같은 버킷을 못 쓴다 —
+    // 대신 'avatars' 버킷에 {user_id}/{uuid}.{ext} 로 올리고, 소유자만 쓰기 허용한다
+    // (마이그레이션 20260730150000_avatar_storage.sql).
+
+    /** 프로필 사진 업로드. 경로: `{user_id}/{uuid}.{ext}` */
+    suspend fun uploadAvatar(userId: String, uri: String): String? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val path = "$userId/${UUID.randomUUID()}.${extensionOf(uri)}"
+                supabase.storage.from(AVATAR_BUCKET).upload(path, readBytes(uri))
+                path
+            }.getOrNull()
+        }
+
+    /** 아바타 signed URL. 프로필 조회·업로드 직후 화면에 바로 띄울 때 쓴다. */
+    suspend fun avatarSignedUrl(storagePath: String): String? = withContext(Dispatchers.IO) {
+        runCatching {
+            supabase.storage.from(AVATAR_BUCKET).createSignedUrl(storagePath, SIGNED_URL_TTL)
+        }.getOrNull()
+    }
+
+    /** 이전 아바타 오브젝트를 지운다 — 갱신 뒤 orphan 정리용. 실패해도 예외를 던지지 않는다. */
+    suspend fun deleteAvatarObject(storagePath: String) = withContext(Dispatchers.IO) {
+        runCatching { supabase.storage.from(AVATAR_BUCKET).delete(storagePath) }
+    }
+
     /**
      * storage 오브젝트를 지운다 — 기억 사진, 그룹 표지 사진 등 이 버킷의 어떤 경로든 쓸 수 있다.
      * DB 행(media_assets 등) 자체는 호출한 쪽(Repository)이 지운다 — 여기선 Storage 만 담당한다.
@@ -156,6 +184,7 @@ class MediaUploader @Inject constructor(
 
     private companion object {
         const val BUCKET = "memories"
+        const val AVATAR_BUCKET = "avatars"
 
         /** signed URL 유효기간. 화면을 오래 열어둬도 사진이 깨지지 않을 만큼. */
         val SIGNED_URL_TTL = 2.hours

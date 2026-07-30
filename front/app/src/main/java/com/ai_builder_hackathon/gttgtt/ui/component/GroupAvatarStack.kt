@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -12,11 +13,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.ai_builder_hackathon.gttgtt.ui.theme.AvatarGradients
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenSoft
@@ -58,6 +61,8 @@ fun GroupAvatarStack(
 /**
  * 멤버 한 명의 원형 아바타.
  * @param showRing 겹쳐 쌓을 때만 흰 테두리를 두른다. 단독으로 쓸 때는 불필요.
+ * @param imageUrl 실제 프로필 사진 URL. null 이면(대부분의 멤버가 아직 이렇다) [memberId] 해시로
+ * 고정 배정한 그라디언트를 대신 보여준다 — 이 파라미터 하나만 채우면 되고 호출부는 그대로 둘 수 있다.
  */
 @Composable
 fun MemberAvatar(
@@ -65,6 +70,7 @@ fun MemberAvatar(
     size: Dp,
     modifier: Modifier = Modifier,
     showRing: Boolean = true,
+    imageUrl: String? = null,
 ) {
     Box(
         modifier = modifier
@@ -78,7 +84,16 @@ fun MemberAvatar(
                     Modifier
                 }
             )
-    )
+    ) {
+        if (imageUrl != null) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
 }
 
 /** 시안의 .plusn — 진한 그린이 아니라 연한 그린 배경 + 진한 그린 글자. */

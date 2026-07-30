@@ -29,4 +29,12 @@ interface ProfileRepository {
      * [updateNickname] 의 유니크 제약이다.
      */
     suspend fun isNicknameTaken(nickname: String): Result<Boolean>
+
+    /**
+     * 갤러리(Photo Picker)에서 고른 로컬 이미지를 프로필 사진으로 올린다.
+     * `avatars` 버킷(private, 본인만 쓰기)에 업로드하고 `profiles.avatar_url` 을 갱신한 뒤,
+     * 화면에 바로 띄울 수 있는 signed URL 을 돌려준다.
+     * 이전 사진이 있었다면 갱신 뒤 orphan 오브젝트로 지운다(best-effort, 실패해도 갱신 자체는 성공).
+     */
+    suspend fun updateAvatar(imageUri: String): Result<String>
 }

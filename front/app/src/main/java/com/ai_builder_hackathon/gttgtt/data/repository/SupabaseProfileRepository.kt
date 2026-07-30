@@ -1,15 +1,20 @@
 package com.ai_builder_hackathon.gttgtt.data.repository
 
 import com.ai_builder_hackathon.gttgtt.data.dto.IdOnlyDto
+import com.ai_builder_hackathon.gttgtt.data.dto.ProfileAvatarPathDto
+import com.ai_builder_hackathon.gttgtt.data.dto.ProfileAvatarUpdate
 import com.ai_builder_hackathon.gttgtt.data.dto.ProfileDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ProfileNicknameUpdate
+import com.ai_builder_hackathon.gttgtt.data.remote.MediaUploader
 import com.ai_builder_hackathon.gttgtt.domain.model.UserProfile
 import com.ai_builder_hackathon.gttgtt.domain.repository.ProfileRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.exception.PostgrestRestException
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import javax.inject.Inject
@@ -23,9 +28,22 @@ import javax.inject.Inject
  */
 class SupabaseProfileRepository @Inject constructor(
     private val supabase: SupabaseClient,
+    private val media: MediaUploader,
 ) : ProfileRepository {
 
+    /**
+     * SupabaseArchiveRepository.awaitSessionReady() 와 같은 이유로 여기도 필요하다: 프로필 사진
+     * 변경은 Photo Picker(별도 액티비티)를 띄웠다 돌아오는 흐름이라, 그 사이 OS가 프로세스를
+     * 회수했다 복귀 시 새로 만들면 supabase-kt 가 저장된 세션을 비동기로 복원 중일 수 있다
+     * (`SessionStatus.Initializing`). 이 상태에서 currentUserOrNull() 을 부르면 실제로는
+     * 로그인되어 있는데도 null 이 나와 "로그인이 필요합니다" 오류로 잘못 보인다.
+     */
+    private suspend fun awaitSessionReady() {
+        supabase.auth.sessionStatus.first { it !is SessionStatus.Initializing }
+    }
+
     override suspend fun getMyProfile(): Result<UserProfile> = runCatching {
+        awaitSessionReady()
         val user = supabase.auth.currentUserOrNull() ?: error("로그인이 필요합니다.")
 
         val profile = supabase.postgrest.from("profiles")
@@ -33,6 +51,11 @@ class SupabaseProfileRepository @Inject constructor(
                 filter { eq("id", user.id) }
             }
             .decodeSingle<ProfileDto>()
+
+        // profiles.avatar_url 엔 storage path 가 들어있다(signed URL 자체가 아니다) —
+        // 조회할 때마다 새로 발급받는다. 실패해도(네트워크 등) 프로필 자체는 보여줘야 하니
+        // avatarUrl 만 null 로 남기고(그라디언트 기본 아바타로 대체) 예외를 던지지 않는다.
+        val avatarUrl = profile.avatarUrl?.let { path -> media.avatarSignedUrl(path) }
 
         // 내가 작성한 기억 id 목록 — RLS 상 내가 멤버인 archive 것만 내려온다.
         val myMemoryIds = supabase.postgrest.from("memories")
@@ -61,10 +84,12 @@ class SupabaseProfileRepository @Inject constructor(
             statusMessage = profile.status?.takeIf { it.isNotBlank() } ?: DEFAULT_STATUS,
             memoryCount = myMemoryIds.size,
             mediaCount = mediaCount,
+            avatarUrl = avatarUrl,
         )
     }
 
     override suspend fun updateStatus(status: String): Result<Unit> = runCatching {
+        awaitSessionReady()
         val user = supabase.auth.currentUserOrNull() ?: error("로그인이 필요합니다.")
         // 빈 값이면 null 로 저장해 기본 문구로 되돌린다.
         val value = status.trim().ifBlank { null }
@@ -82,6 +107,7 @@ class SupabaseProfileRepository @Inject constructor(
         val trimmed = nickname.trim()
         require(trimmed.isNotEmpty()) { "닉네임을 입력해주세요." }
 
+        awaitSessionReady()
         val user = supabase.auth.currentUserOrNull() ?: error("로그인이 필요합니다.")
 
         try {
@@ -99,6 +125,42 @@ class SupabaseProfileRepository @Inject constructor(
             }
             throw e
         }
+    }
+
+    /**
+     * SupabaseArchiveRepository.updateCoverImage() 와 같은 순서: 이전 경로를 먼저 알아두고,
+     * 새 사진을 올려 DB를 갱신한 뒤, 이전 오브젝트를 정리한다. 이전 경로 조회가 실패해도
+     * (네트워크 등) 갱신 자체를 막을 이유는 없어 조용히 null 로 넘어간다.
+     */
+    override suspend fun updateAvatar(imageUri: String): Result<String> = runCatching {
+        // Photo Picker 를 열었다 돌아온 직후라 특히 여기서 세션 복원이 덜 끝났을 가능성이 높다.
+        awaitSessionReady()
+        val user = supabase.auth.currentUserOrNull() ?: error("로그인이 필요합니다.")
+
+        val previousPath = runCatching {
+            supabase.postgrest.from("profiles")
+                .select(Columns.raw("avatar_url")) {
+                    filter { eq("id", user.id) }
+                }
+                .decodeList<ProfileAvatarPathDto>()
+                .firstOrNull()
+                ?.avatarUrl
+        }.getOrNull()
+
+        val uploadedPath = media.uploadAvatar(user.id, imageUri)
+            ?: error("사진 업로드에 실패했습니다.")
+
+        // profiles_update_self 정책이 id = auth.uid() 라 본인 행만 바꿀 수 있다.
+        supabase.postgrest.from("profiles")
+            .update(ProfileAvatarUpdate(avatarUrl = uploadedPath)) {
+                filter { eq("id", user.id) }
+            }
+
+        if (previousPath != null && previousPath != uploadedPath) {
+            media.deleteAvatarObject(previousPath)
+        }
+
+        media.avatarSignedUrl(uploadedPath) ?: error("사진을 불러오지 못했습니다.")
     }
 
     override suspend fun isNicknameTaken(nickname: String): Result<Boolean> = runCatching {
