@@ -457,7 +457,7 @@ private fun FieldLabel(text: String) {
     Text(
         text = text,
         color = TextPrimary,
-        fontSize = 13.sp,
+        fontSize = 15.sp,
         fontWeight = FontWeight.ExtraBold,
         modifier = Modifier.padding(start = SidePadding, end = SidePadding, bottom = 8.dp),
     )

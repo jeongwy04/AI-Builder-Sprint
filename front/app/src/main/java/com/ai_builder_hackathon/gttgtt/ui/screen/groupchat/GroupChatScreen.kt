@@ -153,6 +153,8 @@ private fun GroupChatContent(
     // 않아서 — 키보드가 올라오면 방금까지 보이던 마지막 메시지가 화면 밖으로 밀려난다.
     val density = LocalDensity.current
     val imeBottomPx = WindowInsets.ime.getBottom(density)
+    val isKeyboardOpen = imeBottomPx > 0
+
     LaunchedEffect(imeBottomPx) {
         jumpToBottom()
     }
@@ -222,7 +224,13 @@ private fun GroupChatContent(
             onValueChange = onInputChange,
             onSendClick = onSendClick,
             canSend = uiState.canSend,
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(
+                start = 16.dp,
+                end = 16.dp,
+                top = 12.dp,
+                // 🚀 키보드가 켜졌을 땐 하단 여백을 4dp로 확 줄여서 키보드에 딱 붙임
+                bottom = if (isKeyboardOpen) 4.dp else 16.dp
+            ),
         )
     }
 }
