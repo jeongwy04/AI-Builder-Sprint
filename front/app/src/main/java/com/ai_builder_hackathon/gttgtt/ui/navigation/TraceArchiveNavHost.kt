@@ -124,6 +124,10 @@ fun TraceArchiveNavHost(
                     navController.navigate(Route.MemoryDetail(memoryId, focusComment = true))
                 },
                 onCreateMemoryClick = { navController.navigate(Route.MemoryCreate(archiveId)) },
+                // 카드 점 세개 → "수정" — 기억 상세 화면의 수정 진입(Route.MemoryDetail의 onEditClick)과 같은 목적지.
+                onEditClick = { editArchiveId, memoryId ->
+                    navController.navigate(Route.MemoryCreate(archiveId = editArchiveId, memoryId = memoryId))
+                },
             )
         }
 

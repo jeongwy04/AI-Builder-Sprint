@@ -58,6 +58,7 @@ import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.ui.component.AppTopBar
 import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
 import com.ai_builder_hackathon.gttgtt.ui.component.PhotoImage
+import com.ai_builder_hackathon.gttgtt.ui.component.SearchField
 import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
@@ -93,6 +94,9 @@ fun GroupChatScreen(
         onInputChange = viewModel::onInputChange,
         onSendClick = viewModel::onSendClick,
         onMemoryClick = onMemoryClick,
+        onSearchClick = viewModel::onSearchClick,
+        onSearchQueryChange = viewModel::onSearchQueryChange,
+        onDismissSearch = viewModel::onDismissSearch,
         modifier = modifier,
     )
 }
@@ -104,6 +108,9 @@ private fun GroupChatContent(
     onInputChange: (String) -> Unit,
     onSendClick: () -> Unit,
     onMemoryClick: (String) -> Unit = {},
+    onSearchClick: () -> Unit = {},
+    onSearchQueryChange: (String) -> Unit = {},
+    onDismissSearch: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -160,20 +167,32 @@ private fun GroupChatContent(
     ) {
         // 상단바만 목록 화면과 같은 배경을 써서 대화 영역과 층이 나뉜다.
         Box(modifier = Modifier.background(ScreenBackground)) {
-            AppTopBar(
-                title = uiState.groupName,
-                subtitle = "멤버 ${uiState.memberCount}명",
-                onBackClick = onBackClick,
-                action = {
-                    TopBarButton(
-                        iconRes = R.drawable.ic_search,
-                        contentDescription = "대화 검색",
-                        background = BrandGreenSoft,
-                        tint = BrandGreenDark,
-                        onClick = { /* TODO: 대화 검색 시안 나오면 연결 */ },
+            Column {
+                AppTopBar(
+                    title = uiState.groupName,
+                    onBackClick = onBackClick,
+                    centerTitle = true,
+                    action = {
+                        TopBarButton(
+                            iconRes = R.drawable.ic_search,
+                            contentDescription = "대화 검색",
+                            background = BrandGreenSoft,
+                            tint = BrandGreenDark,
+                            onClick = onSearchClick,
+                        )
+                    },
+                )
+
+                if (uiState.isSearchActive) {
+                    ChatSearchBar(
+                        query = uiState.searchQuery,
+                        onQueryChange = onSearchQueryChange,
+                        onClose = onDismissSearch,
+                        resultCount = if (uiState.searchQuery.isBlank()) null else uiState.messageCount,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                     )
-                },
-            )
+                }
+            }
         }
 
         Box(modifier = Modifier.weight(1f)) {
@@ -205,6 +224,52 @@ private fun GroupChatContent(
             canSend = uiState.canSend,
             modifier = Modifier.padding(16.dp),
         )
+    }
+}
+
+/**
+ * 상단바 검색 버튼을 누르면 그 아래 나타나는 검색창.
+ * 입력하는 대로 [GroupChatViewModel] 이 메시지 목록을 필터링한다 — 여기선 그리기만 한다.
+ */
+@Composable
+private fun ChatSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClose: () -> Unit,
+    resultCount: Int?,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            SearchField(
+                query = query,
+                onQueryChange = onQueryChange,
+                placeholder = "대화 내용 검색",
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                painter = painterResource(R.drawable.ic_x),
+                contentDescription = "검색 닫기",
+                tint = TextSecondary,
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onClose)
+                    .padding(4.dp),
+            )
+        }
+        if (resultCount != null) {
+            Text(
+                text = if (resultCount > 0) "${resultCount}건 찾았어요" else "검색 결과가 없어요",
+                color = TextSecondary,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(top = 6.dp, start = 4.dp),
+            )
+        }
     }
 }
 

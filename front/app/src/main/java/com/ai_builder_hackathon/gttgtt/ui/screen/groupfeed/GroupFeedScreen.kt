@@ -66,10 +66,10 @@ import com.ai_builder_hackathon.gttgtt.domain.model.GradientTheme
 import com.ai_builder_hackathon.gttgtt.domain.model.asPhoto
 import com.ai_builder_hackathon.gttgtt.domain.model.Post
 import com.ai_builder_hackathon.gttgtt.ui.component.AppTopBar
+import com.ai_builder_hackathon.gttgtt.ui.component.GroupAvatarStack
 import com.ai_builder_hackathon.gttgtt.ui.component.GroupBottomNavBar
 import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
 import com.ai_builder_hackathon.gttgtt.ui.component.PhotoImage
-import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
 import com.ai_builder_hackathon.gttgtt.ui.screen.chat.AiChatPanel
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.CardBackground
@@ -86,7 +86,6 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackgroundBrush
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextPrimary
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextSecondary
-import com.ai_builder_hackathon.gttgtt.ui.theme.TopBarIcon
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -95,6 +94,9 @@ import java.time.format.DateTimeFormatter
 private val DangerColor = Color(0xFFB64B39)
 
 private val ScreenPadding = 20.dp
+
+/** 상단바 우측 겹친 아바타 — 이 개수까지만 보여주고 나머지는 "+N" 배지로 뭉친다. */
+private const val VISIBLE_AVATAR_COUNT = 3
 
 /** AI 패널이 차지하는 화면 비율. 뒤의 피드가 보여야 맥락이 산다. */
 private const val AI_PANEL_HEIGHT_FRACTION = 0.58f
@@ -110,6 +112,8 @@ fun GroupFeedScreen(
     /** 카드의 댓글 버튼 전용 — 상세로 넘어가자마자 댓글 입력창에 키보드가 뜬다. */
     onCommentClick: (String) -> Unit,
     onCreateMemoryClick: () -> Unit,
+    /** 카드 점 세개 → "수정" — 기억 상세 화면의 수정 진입과 같은 목적지(Route.MemoryCreate)로 보낸다. */
+    onEditClick: (archiveId: String, memoryId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GroupFeedViewModel = hiltViewModel(),
 ) {
@@ -191,6 +195,15 @@ fun GroupFeedScreen(
         onDismissDeleteConfirm = viewModel::onDismissDeleteConfirm,
         onConfirmDelete = viewModel::onConfirmDelete,
         onDismissInviteDialog = viewModel::onDismissInviteDialog,
+        onPostMoreClick = viewModel::onPostMoreClick,
+        onDismissPostOptionsSheet = viewModel::onDismissPostOptionsSheet,
+        onEditPostClick = {
+            val postId = uiState.postOptionsSheetId
+            if (postId != null) {
+                viewModel.onDismissPostOptionsSheet()
+                onEditClick(viewModel.archiveId, postId)
+            }
+        },
         onPostDeleteClick = viewModel::onPostDeleteClick,
         onDismissPostDeleteConfirm = viewModel::onDismissPostDeleteConfirm,
         onConfirmPostDelete = viewModel::onConfirmPostDelete,
@@ -225,6 +238,9 @@ private fun GroupFeedContent(
     onDismissDeleteConfirm: () -> Unit = {},
     onConfirmDelete: () -> Unit = {},
     onDismissInviteDialog: () -> Unit = {},
+    onPostMoreClick: (String) -> Unit = {},
+    onDismissPostOptionsSheet: () -> Unit = {},
+    onEditPostClick: () -> Unit = {},
     onPostDeleteClick: (String) -> Unit = {},
     onDismissPostDeleteConfirm: () -> Unit = {},
     onConfirmPostDelete: () -> Unit = {},
@@ -243,18 +259,18 @@ private fun GroupFeedContent(
             .background(ScreenBackgroundBrush)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // 채팅·AI·기억 남기기가 전부 하단 바로 내려가서 상단엔 뒤로가기/제목/설정만 남는다.
+            // 채팅·AI·기억 남기기가 전부 하단 바로 내려가서 상단엔 뒤로가기/제목만 남는다.
+            // 톱니 버튼 대신 가운데의 그룹 이름을 누르면 설정이 열린다.
             AppTopBar(
                 title = uiState.groupName,
-                subtitle = "멤버 ${uiState.memberCount}명",
                 onBackClick = onBackClick,
+                centerTitle = true,
+                onTitleClick = onSettingsClick,
                 action = {
-                    TopBarButton(
-                        iconRes = R.drawable.ic_settings,
-                        contentDescription = "그룹 설정",
-                        background = SurfaceWhite,
-                        tint = TopBarIcon,
-                        onClick = onSettingsClick,
+                    val shownMembers = uiState.memberIds.take(VISIBLE_AVATAR_COUNT)
+                    GroupAvatarStack(
+                        memberIds = shownMembers,
+                        hiddenCount = (uiState.memberCount - shownMembers.size).coerceAtLeast(0),
                     )
                 },
             )
@@ -284,7 +300,7 @@ private fun GroupFeedContent(
                     onLikeClick = onLikeClick,
                     onPostClick = onPostClick,
                     onCommentClick = onCommentClick,
-                    onDeleteClick = onPostDeleteClick,
+                    onMoreClick = onPostMoreClick,
                     onShareClick = onShareClick,
                     sharingPostId = uiState.sharingPostId,
                     shareErrorPostId = uiState.shareErrorPostId,
@@ -379,6 +395,15 @@ private fun GroupFeedContent(
         )
     }
 
+    val optionsSheetPostId = uiState.postOptionsSheetId
+    if (optionsSheetPostId != null) {
+        PostOptionsSheet(
+            onEditClick = onEditPostClick,
+            onDeleteClick = { onPostDeleteClick(optionsSheetPostId) },
+            onDismiss = onDismissPostOptionsSheet,
+        )
+    }
+
     if (uiState.postPendingDeleteId != null) {
         PostDeleteConfirmDialog(
             isDeleting = uiState.isDeletingPost,
@@ -386,6 +411,34 @@ private fun GroupFeedContent(
             onConfirm = onConfirmPostDelete,
             onDismiss = onDismissPostDeleteConfirm,
         )
+    }
+}
+
+/** 게시물 카드 점 세개 버튼을 누르면 뜨는 수정/삭제 메뉴. GroupSettingsSheet 와 같은 모양. */
+@Composable
+private fun PostOptionsSheet(
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(SurfaceWhite)
+                .padding(vertical = 8.dp),
+        ) {
+            Text(
+                text = "게시물 관리",
+                color = TextPrimary,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            )
+            SettingsMenuRow(label = "수정", onClick = onEditClick)
+            SettingsMenuRow(label = "삭제", labelColor = DangerColor, onClick = onDeleteClick)
+        }
     }
 }
 
@@ -836,7 +889,7 @@ private fun PostList(
     onLikeClick: (String) -> Unit,
     onPostClick: (String) -> Unit,
     onCommentClick: (String) -> Unit,
-    onDeleteClick: (String) -> Unit,
+    onMoreClick: (String) -> Unit,
     onShareClick: (String) -> Unit,
     sharingPostId: String?,
     shareErrorPostId: String?,
@@ -853,7 +906,7 @@ private fun PostList(
                 onLikeClick = { onLikeClick(post.id) },
                 onClick = { onPostClick(post.id) },
                 onCommentClick = { onCommentClick(post.id) },
-                onDeleteClick = { onDeleteClick(post.id) },
+                onMoreClick = { onMoreClick(post.id) },
                 onShareClick = { onShareClick(post.id) },
                 isSharing = sharingPostId == post.id,
                 shareError = if (shareErrorPostId == post.id) shareError else null,
@@ -869,7 +922,7 @@ private fun PostCard(
     onLikeClick: () -> Unit,
     onClick: () -> Unit,
     onCommentClick: () -> Unit,
-    onDeleteClick: () -> Unit,
+    onMoreClick: () -> Unit,
     onShareClick: () -> Unit,
     isSharing: Boolean,
     shareError: String?,
@@ -884,7 +937,7 @@ private fun PostCard(
             .clickable(onClick = onClick)
             .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 12.dp)
     ) {
-        PostHeader(post, onDeleteClick = onDeleteClick)
+        PostHeader(post, onMoreClick = onMoreClick)
         Spacer(Modifier.height(12.dp))
         PostPhotos(post)
         Text(
@@ -921,7 +974,7 @@ private fun PostCard(
 }
 
 @Composable
-private fun PostHeader(post: Post, onDeleteClick: () -> Unit) {
+private fun PostHeader(post: Post, onMoreClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -942,16 +995,16 @@ private fun PostHeader(post: Post, onDeleteClick: () -> Unit) {
                 fontWeight = FontWeight.SemiBold,
             )
         }
-        // 점 세개 버튼 = 게시물(기억) 삭제. Chip 과 같은 이유로 카드 전체 클릭 위에
-        // 얹혀도 이것만 반응한다 (nested clickable 은 안쪽이 우선).
+        // 점 세개 버튼 = 게시물(기억) 옵션(수정/삭제) 시트. Chip 과 같은 이유로 카드 전체
+        // 클릭 위에 얹혀도 이것만 반응한다 (nested clickable 은 안쪽이 우선).
         Icon(
             painter = painterResource(R.drawable.ic_dots),
-            contentDescription = "게시물 삭제",
-            tint = DangerColor,
+            contentDescription = "게시물 관리",
+            tint = TextSecondary,
             modifier = Modifier
                 .size(28.dp)
                 .clip(CircleShape)
-                .clickable(onClick = onDeleteClick)
+                .clickable(onClick = onMoreClick)
                 .padding(4.dp),
         )
     }

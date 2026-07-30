@@ -6,6 +6,8 @@ data class GroupFeedUiState(
     val isLoading: Boolean = true,
     val groupName: String = "",
     val memberCount: Int = 0,
+    /** 상단바 우측의 겹친 아바타 표시용. [memberCount] 와 별개로 실제 id 몇 개만 있으면 된다. */
+    val memberIds: List<String> = emptyList(),
     val posts: List<Post> = emptyList(),
     val errorMessage: String? = null,
     /** 하단 네비게이션 바 채팅 버튼 우측 상단 배지 — 이 그룹방의 안 읽은 메시지 수. */
@@ -38,7 +40,11 @@ data class GroupFeedUiState(
     val inviteToken: String? = null,
     val inviteError: String? = null,
 
-    // 게시물(기억) 삭제 — 카드 우상단 점 세개 버튼
+    // 게시물(기억) 옵션 — 카드 우상단 점 세개 버튼 (수정/삭제 선택)
+    /** 옵션 시트가 떠 있는 게시물 id. null 이면 닫힌 상태. */
+    val postOptionsSheetId: String? = null,
+
+    // 게시물(기억) 삭제 — 옵션 시트의 "삭제"
     /** 삭제 확인창이 떠 있는 게시물 id. null 이면 닫힌 상태. */
     val postPendingDeleteId: String? = null,
     val isDeletingPost: Boolean = false,

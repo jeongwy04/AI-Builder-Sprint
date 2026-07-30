@@ -55,7 +55,7 @@ class GroupChatViewModel @Inject constructor(
             chatRepository.sendMessage(archiveId, text)
                 .onSuccess { sent ->
                     messages = messages + sent
-                    _uiState.update { it.copy(items = messages.toListItems()) }
+                    _uiState.update { it.copy(items = computeItems()) }
                 }
                 .onFailure { throwable ->
                     _uiState.update {
@@ -66,6 +66,39 @@ class GroupChatViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    // ── 대화 검색 — 상단바 검색 버튼 ──
+
+    fun onSearchClick() {
+        _uiState.update { it.copy(isSearchActive = true) }
+    }
+
+    fun onSearchQueryChange(query: String) {
+        _uiState.update { it.copy(searchQuery = query, items = computeItems(query)) }
+    }
+
+    fun onDismissSearch() {
+        _uiState.update { it.copy(isSearchActive = false, searchQuery = "", items = computeItems("")) }
+    }
+
+    /**
+     * 검색어에 매치되는 메시지만 남긴 목록을 다시 조립한다.
+     * 텍스트/보낸 사람 이름/공유된 기억 제목 중 하나라도 매치되면 남긴다.
+     * 검색어가 비어 있으면 전체 목록을 그대로 돌려준다.
+     */
+    private fun computeItems(query: String = _uiState.value.searchQuery): List<ChatListItem> {
+        val trimmed = query.trim()
+        val filtered = if (trimmed.isEmpty()) {
+            messages
+        } else {
+            messages.filter { message ->
+                message.text?.contains(trimmed, ignoreCase = true) == true ||
+                    message.senderName.contains(trimmed, ignoreCase = true) ||
+                    message.sharedMemory?.title?.contains(trimmed, ignoreCase = true) == true
+            }
+        }
+        return filtered.toListItems()
     }
 
     private fun loadMessages() {
@@ -86,7 +119,7 @@ class GroupChatViewModel @Inject constructor(
                             isLoading = false,
                             groupName = group?.name.orEmpty(),
                             memberCount = group?.totalMemberCount ?: 0,
-                            items = loaded.toListItems(),
+                            items = computeItems(),
                         )
                     }
                     // 방을 열었으니 안 읽음 배지 기준(chat_reads)을 갱신한다. 실패해도 채팅 자체는

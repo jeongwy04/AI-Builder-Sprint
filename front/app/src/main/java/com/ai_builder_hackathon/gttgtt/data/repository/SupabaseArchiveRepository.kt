@@ -17,11 +17,13 @@ import com.ai_builder_hackathon.gttgtt.domain.model.GroupType
 import com.ai_builder_hackathon.gttgtt.domain.repository.ArchiveRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -43,7 +45,21 @@ class SupabaseArchiveRepository @Inject constructor(
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    /**
+     * supabase-kt 는 기기에 저장된 세션을 앱 시작 시 비동기로 복원한다(`SessionStatus.Initializing`).
+     * 화면이 통째로 다시 만들어지는 경우 — 예: Photo Picker에서 카메라를 골라 한참
+     * 백그라운드에 있는 동안 OS가 프로세스를 회수했다가 복귀 시 새로 만드는 경우 — 이
+     * 복원이 끝나기 전에 조회가 나가면 Authorization 헤더 없이 요청돼 RLS가 전부 막아버려
+     * "그룹이 하나도 없다"처럼 보인다. OnboardingScreen/AuthScreen 이 이미 하는 것과 같은
+     * 방식으로, Initializing 을 벗어날 때까지 여기서 기다린다.
+     */
+    private suspend fun awaitSessionReady() {
+        supabase.auth.sessionStatus.first { it !is SessionStatus.Initializing }
+    }
+
     override suspend fun getMyArchives(): Result<List<ArchiveSummary>> = runCatching {
+        awaitSessionReady()
+
         // RLS: 내가 멤버인 archives 만 내려온다. memberships 는 내장 조인.
         val archives = supabase.postgrest.from("archives")
             .select(Columns.raw("id,name,group_type,cover_image_path,created_at,memberships(user_id)"))
@@ -102,6 +118,8 @@ class SupabaseArchiveRepository @Inject constructor(
     )
 
     override suspend fun getArchive(archiveId: String): Result<ArchiveSummary> = runCatching {
+        awaitSessionReady()
+
         // decodeSingle() 은 내부적으로 List.single() 이라 결과가 0건이면 "List is empty." 처럼
         // 원인을 알 수 없는 메시지를 그대로 던진다. RLS 타이밍(방금 막 멤버가 됐거나, 세션이
         // 잠깐 갱신 중인 경우 등)으로 0건이 오는 경우를 구분해 알아볼 수 있는 메시지로 바꾼다.
@@ -188,6 +206,8 @@ class SupabaseArchiveRepository @Inject constructor(
     }
 
     override suspend fun updateCoverImage(archiveId: String, imageUri: String): Result<Unit> = runCatching {
+        awaitSessionReady()
+
         // 이전 사진 경로를 먼저 알아둔다 — 업로드/갱신이 끝난 뒤 orphan 오브젝트로 지우기 위해서다.
         // ⚠️ decodeSingle() 은 0건이면 "List is empty." 를 던진다 — 이전 경로를 못 구했다고
         // 사진 변경 자체를 실패시킬 이유는 없다(정리를 못 할 뿐 갱신은 계속 진행되어야 한다),

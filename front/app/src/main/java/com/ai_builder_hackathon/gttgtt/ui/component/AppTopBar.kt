@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.ai_builder_hackathon.gttgtt.R
+import com.ai_builder_hackathon.gttgtt.ui.theme.DisplayFontFamily
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import com.ai_builder_hackathon.gttgtt.ui.theme.TextSecondary
@@ -45,6 +46,10 @@ fun AppTopBar(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    /** 그룹 채팅방처럼 제목을 바 중앙에 크게 놓고 싶을 때 켠다 (헤딩 폰트 + 더 크고 굵게). */
+    centerTitle: Boolean = false,
+    /** 제목을 눌렀을 때 할 동작 — 예: 제목을 누르면 그룹 설정이 열리는 화면. */
+    onTitleClick: (() -> Unit)? = null,
     action: (@Composable () -> Unit)? = null,
 ) {
     Row(
@@ -62,16 +67,23 @@ fun AppTopBar(
             onClick = onBackClick,
         )
 
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = if (centerTitle) Alignment.CenterHorizontally else Alignment.Start,
+        ) {
             Text(
                 text = title,
                 style = TextStyle(
-                    fontSize = 18.sp,
+                    fontFamily = if (centerTitle) DisplayFontFamily else null,
+                    fontSize = if (centerTitle) 21.sp else 18.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = (-0.02).em,
                 ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                // 클릭 영역을 글자 자기 너비만큼만 준다 — Column 전체(weight(1f))에 걸면
+                // 빈 여백까지 눌리는 버튼처럼 커져 보인다.
+                modifier = if (onTitleClick != null) Modifier.clickable(onClick = onTitleClick) else Modifier,
             )
             if (subtitle != null) {
                 Text(
@@ -83,7 +95,13 @@ fun AppTopBar(
             }
         }
 
-        action?.invoke()
+        if (action != null) {
+            action()
+        } else if (centerTitle) {
+            // 우측 액션이 없으면 왼쪽 뒤로가기 버튼만큼 빈 자리를 남겨 제목이 바 전체
+            // 기준으로 정말 가운데에 오게 한다 (weight(1f) 만으로는 왼쪽 버튼 쪽으로 치우친다).
+            Box(modifier = Modifier.size(ActionSize))
+        }
     }
 }
 

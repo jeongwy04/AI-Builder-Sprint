@@ -240,10 +240,22 @@ class GroupFeedViewModel @Inject constructor(
         _uiState.update { it.copy(coverImageError = null) }
     }
 
-    // ── 게시물(기억) 삭제 — 카드 우상단 점 세개 버튼 ──
+    // ── 게시물(기억) 옵션 — 카드 우상단 점 세개 버튼 (수정/삭제 선택) ──
+
+    fun onPostMoreClick(postId: String) {
+        _uiState.update { it.copy(postOptionsSheetId = postId) }
+    }
+
+    fun onDismissPostOptionsSheet() {
+        _uiState.update { it.copy(postOptionsSheetId = null) }
+    }
+
+    // ── 게시물(기억) 삭제 — 옵션 시트의 "삭제" ──
 
     fun onPostDeleteClick(postId: String) {
-        _uiState.update { it.copy(postPendingDeleteId = postId, deletePostError = null) }
+        _uiState.update {
+            it.copy(postOptionsSheetId = null, postPendingDeleteId = postId, deletePostError = null)
+        }
     }
 
     fun onDismissPostDeleteConfirm() {
@@ -330,6 +342,7 @@ class GroupFeedViewModel @Inject constructor(
                             isLoading = false,
                             groupName = group?.name.orEmpty(),
                             memberCount = group?.totalMemberCount ?: 0,
+                            memberIds = group?.memberIds.orEmpty(),
                             posts = posts,
                             chatUnreadCount = group?.unreadCount ?: 0,
                             coverImageUrl = group?.coverImageUrl,

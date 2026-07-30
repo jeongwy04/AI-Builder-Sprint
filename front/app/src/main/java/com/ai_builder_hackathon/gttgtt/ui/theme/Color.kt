@@ -155,9 +155,9 @@ val ChevronIcon = Color(0xFFC9C7D2)
 /** AI 추억 찾기 FAB 그라디언트 (140deg) */
 val AiFabGradient = Brush.linearGradient(
     colorStops = arrayOf(
-        0f to Color(0xFF34C48F),
-        0.55f to Color(0xFF17A67C),
-        1f to Color(0xFF0C6E52),
+        0f to Color(0xFF60A5FA),
+        0.55f to Color(0xFF3B82F6),
+        1f to Color(0xFF1D4ED8),
     )
 )
 
