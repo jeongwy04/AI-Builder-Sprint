@@ -442,20 +442,20 @@ private fun DetailBody(
             )
         }
 
+        // DetailBody 내부의 'head' 아이템 영역
         item(key = "head") {
             Column(modifier = Modifier.padding(horizontal = SidePadding)) {
                 Spacer(Modifier.height(16.dp))
-                // 날짜와 같은 줄, 같은 높이에 오른쪽 정렬로 좋아요 · 채팅방 보내기.
-                // 시안엔 없어 피드 카드(PostFooter/ShareButton)와 같은 모양으로 맞춘다.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
+                    // 📌 날짜 (13sp -> 14sp)
                     Text(
                         text = formatDate(memory.memoryDateMillis),
                         color = BrandGreenDark,
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.ExtraBold,
                     )
                     LikeAndShareActions(
@@ -476,23 +476,25 @@ private fun DetailBody(
                     )
                 }
                 Spacer(Modifier.height(7.dp))
+                // 📌 제목 (22sp -> 24sp, lineHeight 조정)
                 Text(
                     text = memory.title,
                     style = TextStyle(
                         color = TextPrimary,
-                        fontSize = 22.sp,
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = (-0.03).em,
-                        lineHeight = 28.sp,
+                        lineHeight = 32.sp, // 폰트가 커진 만큼 줄 간격 확보
                     ),
                 )
                 Spacer(Modifier.height(10.dp))
+                // 📌 본문 (15sp -> 16sp, lineHeight 조정)
                 Text(
                     text = memory.body,
                     color = DetailBodyText,
-                    fontSize = 13.5.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    lineHeight = 21.6.sp,
+                    lineHeight = 24.sp, // 읽기 편안한 줄 간격 비율(1.5배)
                 )
             }
         }
@@ -702,41 +704,43 @@ private fun CommentCard(comment: Comment) {
             horizontalArrangement = Arrangement.spacedBy(9.dp),
         ) {
             MemberAvatar(memberId = comment.authorId, size = 30.dp, showRing = false)
+            // 📌 댓글 작성자 이름 (13sp -> 14sp)
             Text(
                 text = comment.authorName,
                 color = TextPrimary,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.weight(1f),
             )
+            // 📌 댓글 날짜 (11sp -> 12sp)
             Text(
                 text = formatShortDate(comment.createdAtMillis),
                 color = CommentMetaText,
-                fontSize = 11.sp,
+                fontSize = 10.5.sp,
                 fontWeight = FontWeight.SemiBold,
             )
         }
+
         Spacer(Modifier.height(8.dp))
-        Text(
-            text = comment.text,
-            color = CommentText,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            lineHeight = 19.5.sp,
-        )
-        Spacer(Modifier.height(9.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            // 📌 댓글 본문 내용 (13sp -> 15sp, lineHeight 조정)
             Text(
-                text = "답글 달기",
-                color = CommentMetaText,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable { /* TODO: 대댓글 */ },
+                text = comment.text,
+                color = CommentText,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                lineHeight = 22.sp,
+                modifier = Modifier.weight(1f)
             )
+
+            Spacer(Modifier.width(12.dp))
+
+            // 하트 아이콘 및 카운트
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -750,7 +754,7 @@ private fun CommentCard(comment: Comment) {
                 Text(
                     text = comment.likeCount.toString(),
                     color = CommentMetaText,
-                    fontSize = 11.sp,
+                    fontSize = 11.sp, // 하트 숫자도 날짜와 동일하게 12sp로 맞춤
                     fontWeight = FontWeight.SemiBold,
                 )
             }
