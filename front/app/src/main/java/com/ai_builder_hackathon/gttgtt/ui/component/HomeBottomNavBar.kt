@@ -1,141 +1,126 @@
 package com.ai_builder_hackathon.gttgtt.ui.component
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
-import com.ai_builder_hackathon.gttgtt.ui.theme.DarkGlassBorder
-import com.ai_builder_hackathon.gttgtt.ui.theme.DarkGlassTint
-import com.ai_builder_hackathon.gttgtt.ui.theme.GlassTopHighlight
+import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
-import dev.chrisbanes.haze.HazeState
 
 /** 홈 하단 탭. 카메라는 촬영 액션, 그룹은 현재 목록 화면. */
 enum class HomeTab { CAMERA, GROUP }
 
+// GroupBottomNavBar(그룹 피드 하단 바)와 정확히 같은 치수 — 두 화면을 오가도 바 크기가 안 흔들리게.
 private val BarHeight = 60.dp
-private val NavShadow = Color(0x40000000)
-private val UnselectedContent = Color.White.copy(alpha = 0.55f)
+private val ItemWidth = 58.dp
+private val ItemHeight = 42.dp
 
 /**
- * 홈 하단 [카메라 | 그룹] 세그먼트 캡슐.
- * - 다크 프로스트 글래스(뒤 목록이 블러되어 비침, [HazeState] 공유).
- * - 선택 칩이 250ms 로 슬라이딩, 상단 가장자리에 흰색 하이라이트로 3D 광원 느낌.
+ * 홈 하단 [카메라 | 그룹] 플로팅 바.
+ *
+ * 그룹 피드 하단 바([GroupBottomNavBar])와 같은 디자인 언어로 통일했다 — 다크 프로스트
+ * 글래스 + 슬라이딩 세그먼트 대신, 흰 알약(pill) 배경 위에 원형 아이템을 나란히 두고
+ * 선택된 항목만 그린으로 차오르며 아이콘이 흰색으로 반전된다.
  */
 @Composable
 fun HomeBottomNavBar(
     selected: HomeTab,
-    hazeState: HazeState,
     onCameraClick: () -> Unit,
     onGroupClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 캡슐 유지(완전 라운드) + 게시물 박스와 같은 RoundedCornerShape 계열(스퀴클 아님).
-    val barShape = RoundedCornerShape(BarHeight / 2)
-    val chipShape = RoundedCornerShape((BarHeight - 12.dp) / 2)
-
-    // -1 = 왼쪽(카메라), +1 = 오른쪽(그룹). 탭이 바뀌면 250ms 로 미끄러진다.
-    val bias by animateFloatAsState(
-        targetValue = if (selected == HomeTab.CAMERA) -1f else 1f,
-        animationSpec = tween(durationMillis = 250),
-        label = "segmentSlide",
-    )
-
-    Box(
+    Row(
         modifier = modifier
             .height(BarHeight)
-            .shadow(elevation = 18.dp, shape = barShape, clip = false, spotColor = NavShadow, ambientColor = NavShadow)
-            .frostedGlass(hazeState, barShape, tint = DarkGlassTint, blurRadius = 30.dp, borderColor = DarkGlassBorder)
-            .padding(6.dp),
+            // 높이의 절반이 radius 인 완전한 알약(타원) 형태 — GroupBottomNavBar와 동일.
+            .shadow(elevation = 16.dp, shape = CircleShape, clip = false)
+            .clip(CircleShape)
+            .background(SurfaceWhite)
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        // 슬라이딩 하이라이트 — 선택된 칩. 상단 하이라이트 테두리로 광원 느낌.
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(0.5f)
-                .align(BiasAlignment(horizontalBias = bias, verticalBias = 0f))
-                .clip(chipShape)
-                .background(BrandGreen)
-                .border(width = 1.dp, color = GlassTopHighlight, shape = chipShape),
+        HomeNavItem(
+            iconRes = R.drawable.ic_camera,
+            contentDescription = "카메라",
+            isSelected = selected == HomeTab.CAMERA,
+            onClick = onCameraClick,
         )
-        Row(modifier = Modifier.fillMaxSize()) {
-            SegmentLabel(
-                iconRes = R.drawable.ic_camera,
-                label = "카메라",
-                selected = selected == HomeTab.CAMERA,
-                onClick = onCameraClick,
-                modifier = Modifier.weight(1f),
-            )
-            SegmentLabel(
-                iconRes = R.drawable.ic_message_2,
-                label = "그룹",
-                selected = selected == HomeTab.GROUP,
-                onClick = onGroupClick,
-                modifier = Modifier.weight(1f),
-            )
-        }
+        HomeNavItem(
+            iconRes = R.drawable.ic_message_2,
+            contentDescription = "그룹",
+            isSelected = selected == HomeTab.GROUP,
+            onClick = onGroupClick,
+        )
     }
 }
 
+/**
+ * 타원형 토글 항목. GroupBottomNavBar.NavItem 과 동일한 애니메이션·색 규칙(선택 시
+ * 그린 배경 + 흰 아이콘, 아닐 때는 투명 배경 + 그린 아이콘)을 그대로 따른다.
+ */
 @Composable
-private fun SegmentLabel(
+private fun HomeNavItem(
     iconRes: Int,
-    label: String,
-    selected: Boolean,
+    contentDescription: String,
+    isSelected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    val content by animateColorAsState(
-        targetValue = if (selected) SurfaceWhite else UnselectedContent,
-        animationSpec = tween(durationMillis = 250),
-        label = "segmentContent",
+    val background by animateColorAsState(
+        targetValue = if (isSelected) BrandGreen else Color.Transparent,
+        label = "homeNavItemBackground",
     )
-    Row(
-        modifier = modifier
-            .fillMaxHeight()
+    val iconTint by animateColorAsState(
+        targetValue = if (isSelected) SurfaceWhite else BrandGreen,
+        label = "homeNavItemIcon",
+    )
+
+    Box(
+        modifier = Modifier
+            .width(ItemWidth)
+            .height(ItemHeight)
+            .clip(CircleShape)
+            .background(background)
             .clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
+        contentAlignment = Alignment.Center,
     ) {
         Icon(
             painter = painterResource(iconRes),
-            contentDescription = label,
-            tint = content,
-            modifier = Modifier.size(19.dp),
+            contentDescription = contentDescription,
+            tint = iconTint,
+            modifier = Modifier.size(23.dp),
         )
-        Text(
-            text = label,
-            color = content,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F6F8)
+@Composable
+private fun HomeBottomNavBarPreview() {
+    GttgttTheme {
+        HomeBottomNavBar(
+            selected = HomeTab.GROUP,
+            onCameraClick = {},
+            onGroupClick = {},
         )
     }
 }

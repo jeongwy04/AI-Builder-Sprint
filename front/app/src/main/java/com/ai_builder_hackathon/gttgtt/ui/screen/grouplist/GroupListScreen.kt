@@ -335,7 +335,6 @@ private fun GroupListContent(
         // ── 3) 하단 플로팅 세그먼트 — 카메라(촬영) / 그룹(현재 화면) ──
         HomeBottomNavBar(
             selected = HomeTab.GROUP,
-            hazeState = hazeState,
             onCameraClick = onCameraClick,
             onGroupClick = {},
             modifier = Modifier
