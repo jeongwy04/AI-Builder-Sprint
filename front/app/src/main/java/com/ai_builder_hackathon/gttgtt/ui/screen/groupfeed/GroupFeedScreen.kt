@@ -79,8 +79,7 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.component.AlbumLoader
 import com.ai_builder_hackathon.gttgtt.ui.component.LikeButton
 import com.ai_builder_hackathon.gttgtt.ui.theme.DisplayFontFamily
-import com.ai_builder_hackathon.gttgtt.ui.theme.AbodeCoralTint
-import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipBackground
+import com.ai_builder_hackathon.gttgtt.ui.theme.AbodeBlue
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackgroundBrush
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
@@ -944,12 +943,12 @@ private fun PostCard(
             text = post.caption,
             style = TextStyle(
                 color = TextPrimary,
-                fontSize = 14.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 lineHeight = 19.6.sp,
                 letterSpacing = (-0.01).em,
             ),
-            modifier = Modifier.padding(horizontal = 2.dp, vertical = 12.dp),
+            modifier = Modifier.padding(start = 2.dp, end = 2.dp, top = 12.dp, bottom = 0.dp)
         )
         // 댓글 버튼만 누르면 상세로 넘어가자마자 댓글 입력창에 키보드가 뜬다(onCommentClick).
         // 카드의 다른 곳(사진/캡션 등)을 누르면 그냥 상세만 보여준다(onClick).
@@ -1053,23 +1052,17 @@ private fun PostFooter(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(if (post.likedByMe) AbodeCoralTint else LikeChipBackground)
-                    .padding(horizontal = 13.dp, vertical = 8.dp),
-            ) {
-                LikeButton(
-                    liked = post.likedByMe,
-                    count = post.likeCount,
-                    onToggle = onLikeClick,
-                )
-            }
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            LikeButton(
+                liked = post.likedByMe,
+                count = post.likeCount,
+                onToggle = onLikeClick,
+                modifier = Modifier.padding(vertical = 4.dp),
+            )
             Chip(
                 iconRes = R.drawable.ic_message_circle,
                 label = post.commentCount.toString(),
-                background = ChipBackground,
+                background = Color.Transparent,
                 contentColor = ChipText,
                 onClick = onCommentClick,
             )
@@ -1078,20 +1071,19 @@ private fun PostFooter(
     }
 }
 
-/** 우하단 보내기 버튼 — 그룹 채팅방에 이 게시물을 공유한다. */
+/** 우하단 보내기 버튼 — 그룹 채팅방에 이 게시물을 공유한다. 배경 없이 파란 아이콘만. */
 @Composable
 private fun ShareButton(isSharing: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(34.dp)
             .clip(CircleShape)
-            .background(if (isSharing) BrandGreen.copy(alpha = 0.4f) else BrandGreen)
             .clickable(enabled = !isSharing, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         if (isSharing) {
             CircularProgressIndicator(
-                color = SurfaceWhite,
+                color = AbodeBlue,
                 strokeWidth = 2.dp,
                 modifier = Modifier.size(16.dp),
             )
@@ -1099,8 +1091,8 @@ private fun ShareButton(isSharing: Boolean, onClick: () -> Unit) {
             Icon(
                 painter = painterResource(R.drawable.ic_send),
                 contentDescription = "채팅방에 보내기",
-                tint = SurfaceWhite,
-                modifier = Modifier.size(15.dp),
+                tint = AbodeBlue,
+                modifier = Modifier.size(18.dp),
             )
         }
     }
@@ -1119,7 +1111,7 @@ private fun Chip(
             .clip(CircleShape)
             .background(background)
             .clickable(onClick = onClick)
-            .padding(horizontal = 13.dp, vertical = 8.dp),
+            .padding(horizontal = 13.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -1127,12 +1119,12 @@ private fun Chip(
             painter = painterResource(iconRes),
             contentDescription = null,
             tint = contentColor,
-            modifier = Modifier.size(15.dp),
+            modifier = Modifier.size(18.dp),
         )
         Text(
             text = label,
             color = contentColor,
-            fontSize = 12.5.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
         )
     }
