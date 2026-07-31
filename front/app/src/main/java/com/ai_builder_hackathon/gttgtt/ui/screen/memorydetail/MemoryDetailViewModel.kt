@@ -40,10 +40,6 @@ class MemoryDetailViewModel @Inject constructor(
         loadDetail()
     }
 
-    fun retry() {
-        loadDetail()
-    }
-
     fun onPhotoIndexChange(index: Int) {
         _uiState.update { it.copy(currentPhotoIndex = index) }
     }

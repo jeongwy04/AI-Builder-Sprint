@@ -80,9 +80,4 @@ class AiChatViewModel @Inject constructor(
                 }
         }
     }
-
-    /** 시트를 닫았다 다시 열면 처음부터 묻는다. 대화 이력 저장은 서버 붙은 뒤에. */
-    fun reset() {
-        _uiState.value = AiChatUiState(messages = listOf(aiChatRepository.greeting()))
-    }
 }

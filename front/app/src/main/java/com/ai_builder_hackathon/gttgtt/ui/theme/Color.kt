@@ -136,9 +136,6 @@ val MyPageHeaderGradient = Brush.linearGradient(
     )
 )
 
-/** .mp-set — 헤더 우상단 설정 아이콘 */
-val MyPageSettingsIcon = Color(0xFF4A6D61)
-
 /** .mp-sub — 상태 문구 */
 val MyPageSubText = Color(0xFF5F7A70)
 

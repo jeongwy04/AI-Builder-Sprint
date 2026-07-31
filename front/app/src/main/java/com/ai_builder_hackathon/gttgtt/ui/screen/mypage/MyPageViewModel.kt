@@ -23,10 +23,6 @@ class MyPageViewModel @Inject constructor(
         loadProfile()
     }
 
-    fun retry() {
-        loadProfile()
-    }
-
     /** 한 줄 상태 메시지 저장. 성공 시 화면 상태도 즉시 갱신한다. */
     fun onStatusSave(newStatus: String) {
         viewModelScope.launch {
