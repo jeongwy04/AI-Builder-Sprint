@@ -7,6 +7,7 @@
 > - `20260727130000_create_archive_rpc.sql` — `create_archive()`
 > - `20260727140000_social_features.sql` — `messages` / `chat_reads`+`unread_counts()` / `reactions` / `memory_people`
 > - `20260728120000_comments.sql` — `comments` (게시물 댓글)
+> - `20260731180000_match_memories_similarity_threshold.sql` — `match_memories()`에 `p_max_distance` 유사도 임계값 추가
 
 ---
 
@@ -290,6 +291,7 @@ data class ChatResponse(
 ## 4. 반드시 지킬 규칙 (요약)
 - 정렬·검색은 항상 `memory_date` (created_at 아님).
 - 미디어는 signed URL 로만. 버킷 `memories`(private). 경로 `{archive_id}/{memory_id}/{uuid}.{ext}`, 채팅사진 `{archive_id}/chat/{uuid}.{ext}`.
+- 프로필 아바타는 별도 버킷 `avatars`(private). 경로 `{user_id}/{uuid}.{ext}`, 본인만 쓰기, 로그인 사용자 전체 읽기(signed URL).
 - note 변경 후 `embed-memory` 호출.
 - 그룹 생성은 `create_archive` RPC, 가입은 `accept_invitation` RPC.
 - 역할·권한 등급 없음 — 멤버 전원 동일. 권한 판정은 서버 RLS(`is_member`)가 담당.

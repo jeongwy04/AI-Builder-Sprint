@@ -18,6 +18,12 @@ enabled = true
 # 딥링크(초대 링크) 복귀용. 실제 스킴은 앱 확정 후 반영.
 additional_redirect_urls = ["trace-archive://auth-callback"]
 
+[auth.email]
+# 해커톤 데모 흐름상 가입 즉시 로그인돼야 한다 — 메일함 인증 단계를 없앤다.
+# ⚠️ 이건 로컬 에뮬레이터(supabase start)에만 적용된다. 실제 호스팅 프로젝트는
+# 대시보드에서 Authentication > Providers > Email > "Confirm email" 을 따로 꺼야 한다.
+enable_confirmations = false
+
 [auth.external.google]
 enabled = true
 client_id = "env(GOOGLE_CLIENT_ID)"
