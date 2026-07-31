@@ -1,4 +1,4 @@
-# Trace Archive — 개발 지침
+# 그때그때 — 개발 지침
 
 > 이 문서는 이 저장소에서 작업하는 모든 AI 코딩 에이전트와 개발자가 따르는 규칙이다.
 > 코드를 작성하기 전에 **§5 아키텍처 불변 규칙**과 **§13 스코프 밖**을 반드시 확인한다.
@@ -7,7 +7,7 @@
 
 ## 1. 프로젝트 개요
 
-**우리의 흔적, 보관소 (Trace Archive)** — 소그룹이 함께 만드는 **대화형 공유 다이어리** (Android 앱).
+**그때그때** — 소그룹이 함께 만드는 **대화형 공유 다이어리** (Android 앱).
 
 가족·연인·친구 단위의 소그룹이 사진과 동영상을 올리고 **메모(이야기)** 를 함께 적는다.
 나중에 그 기억을 찾을 때는 검색창이 아니라 **AI와의 대화**로 찾는다.
@@ -26,7 +26,7 @@ AI는 조건이 부족하면 되묻고, 확보된 조건으로 그룹의 기록�
 | App | **Kotlin + Jetpack Compose** (minSdk 26, targetSdk 36) |
 | 아키텍처 | MVVM + Repository, Hilt DI, Coroutines/Flow |
 | 네비게이션 | Navigation Compose (type-safe routes, kotlinx.serialization) |
-| 이미지 | Coil |
+| 이미지 | Coil3 |
 | BaaS | **Supabase** — Auth · Postgres(+pgvector) · Storage · Edge Functions |
 | SDK | `supabase-kt` (`auth-kt`, `postgrest-kt`, `storage-kt`, `functions-kt`, `compose-auth`) |
 | 서버 로직 | **Supabase Edge Functions** (Deno / TypeScript) — 2개뿐 |
@@ -40,7 +40,7 @@ AI는 조건이 부족하면 되묻고, 확보된 조건으로 그룹의 기록�
 ## 3. 디렉토리 구조
 
 ```
-trace-archive/
+gttgtt/
 ├── CLAUDE.md / AGENTS.md          # 본 문서 (동일 내용, 복사본)
 ├── AI_USAGE.md                    # AI 활용 기록
 ├── README.md

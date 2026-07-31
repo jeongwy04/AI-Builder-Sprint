@@ -1,4 +1,4 @@
-# Trace Archive — 스키마 레퍼런스 (DTO 매핑용)
+# 그때그때 — 스키마 레퍼런스 (DTO 매핑용)
 
 > 프론트엔드 DTO(`@Serializable`) 작성을 위한 참조 문서.
 > **원천은 `supabase/migrations/` SQL 파일이다.** 스키마가 바뀌면 마이그레이션이 먼저 바뀌고, 이 문서를 뒤따라 갱신한다.

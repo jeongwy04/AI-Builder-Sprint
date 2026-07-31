@@ -2,7 +2,6 @@
 
 > 이 문서는 개발 과정 전반에서 AI를 **어디에, 어떻게** 사용했는지 기록한다.
 > 서비스 안의 AI 기능(런타임)과 개발 과정의 AI 활용(프로세스)을 구분해 정리한다.
-> *(개발이 진행되면서 각 섹션을 채워 나간다. 현재는 뼈대.)*
 
 ---
 
@@ -10,7 +9,7 @@
 
 | 구분 | 내용 |
 |---|---|
-| 프로젝트 | 우리의 흔적, 보관소 (Trace Archive) |
+| 프로젝트 | 그때그때 |
 | 런타임 AI | Upstage Solar Pro 3 (대화 + function calling), Upstage Embed 2 (의미 검색) |
 | 개발 보조 AI | AI 코딩 에이전트 (지침 파일 · 서브에이전트 · 프롬프트/eval 기반) |
 
@@ -23,18 +22,18 @@
 - **위치:** `supabase/functions/chat/index.ts`
 - **역할:** 사용자 자연어 질의를 받아 function calling으로 `search_memories` 도구를 호출하고,
   결과(기억 목록) 안에서만 자연어로 답한다. 조건이 부족하면 되묻는다.
-- **모델 문자열:** 환경변수 `SOLAR_MODEL` 로 주입 *(확정값: 콘솔 확인 후 기입)*
-- **프롬프트:** `prompts/search_agent_v{n}.md` *(버전별 이력 관리)*
+- **모델 문자열:** 환경변수 `SOLAR_MODEL` 로 주입 (현재 값: `solar-pro3`)
+- **프롬프트:** `prompts/search_agent_v{n}.md` *(현재 활성 버전: v2, 버전별 이력 관리)*
 - **호출 방식:** OpenAI SDK 호환, `baseURL="https://api.upstage.ai/v1"`
 - **로그:** 모델명 · 토큰 수 · 소요시간 기록
 - **폴백:** LLM 호출 실패 시 키워드 기반 검색으로 전환 (빈 화면 금지)
 
 ### 2-2. 의미 임베딩 — Embed 2
 
-- **위치:** `supabase/functions/embed-memory/index.ts`
+- **위치:** `supabase/functions/embed-memory/index.ts` (임베딩), `supabase/functions/chat/index.ts` (질의 임베딩)
 - **역할:** `search_text`(메모 + 장소 + 날짜) 조립 → 임베딩 → `memories.embedding` 갱신
-- **모델 문자열:** 환경변수 `EMBED_MODEL` 로 주입 *(확정값 기입)*
-- **출력 차원:** *(콘솔 확인 후 기입 — `VECTOR(n)` 확정의 선행 조건)*
+- **모델 문자열:** 환경변수 `EMBED_PASSAGE_MODEL`(문서 임베딩, 현재 값: `embedding-passage`) / `EMBED_QUERY_MODEL`(질의 임베딩, 현재 값: `embedding-query`) 로 각각 주입
+- **출력 차원:** `memories.embedding vector(4096)` — 마이그레이션 주석상 TODO로 남아 있어 배포 전 콘솔 값과 재확인 필요
 - **트리거:** 메모(note) 추가·수정·삭제 시 앱이 이 함수를 연쇄 호출
 
 ### 2-3. 왜 이미지 Vision을 쓰지 않는가 (설계 의도)
@@ -76,12 +75,12 @@ Solar Pro 3는 텍스트 전용이며, 더 중요하게는 **사람이 남긴 �
 
 | 위치 | AI | 용도 | 상태 |
 |---|---|---|---|
-| `functions/chat` | Solar Pro 3 | 대화형 검색 오케스트레이션 | 예정 (D5) |
-| `functions/embed-memory` | Embed 2 | search_text 임베딩 | 예정 (D4) |
+| `functions/chat` | Solar Pro 3 | 대화형 검색 오케스트레이션 | ✅ 구현 완료 |
+| `functions/embed-memory` | Embed 2 | search_text 임베딩 | ✅ 구현 완료 |
 | `CLAUDE.md`/`AGENTS.md` | 코딩 에이전트 지침 | 규칙 강제 | ✅ |
 | `.claude/agents/` | 리뷰 서브에이전트 | 코드/SQL/프롬프트 검토 | ✅ (정의) |
-| `prompts/` | 프롬프트 자산 | 버전 관리 | 예정 |
-| `evals/` | 검증 산출물 | 회귀 방지 | 예정 |
+| `prompts/` | 프롬프트 자산 | 버전 관리 | ✅ (v1 → v2 이력) |
+| `evals/` | 검증 산출물 | 회귀 방지 | 🟡 진행 중 — 앱 측 규칙은 단위 테스트로 검증 완료, 서버 프롬프트 실 실행은 대기 (`evals/results/` 참조) |
 
 ---
 

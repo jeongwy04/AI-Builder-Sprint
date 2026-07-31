@@ -5,17 +5,22 @@ Compose 화면을 만들 때 참조하는 디자인 이미지를 여기에 둔�
 
 ## 파일 이름 규칙
 
-`S{번호}_{화면}_{변형}.png` 형태로 저장한다. 화면-코드 대응이 바로 잡힌다.
+`{화면}_{변형}.png` 형태로 저장한다. 화면-코드 대응이 바로 잡힌다.
 
 | 파일명 예시 | 대응 패키지 |
 |---|---|
-| `S0_auth.png` | `ui/screen/auth/` |
-| `S1_grouplist.png` | `ui/screen/grouplist/` |
-| `S2_chat.png` | `ui/screen/chat/` ⭐ 우선 작업 대상 |
-| `S2_chat_result.png` | 〃 (검색 결과가 표시된 상태) |
-| `S3_memorydetail.png` | `ui/screen/memorydetail/` |
-| `S4_memorycreate.png` | `ui/screen/memorycreate/` |
-| `S5_timeline.png` | `ui/screen/timeline/` |
+| `auth.png` | `ui/screen/auth/` |
+| `onboarding.png` | `ui/screen/onboarding/` |
+| `signup.png` | `ui/screen/signup/` |
+| `grouplist.png` | `ui/screen/grouplist/` |
+| `groupfeed.png` | `ui/screen/groupfeed/` |
+| `groupchat.png` | `ui/screen/groupchat/` |
+| `chat.png` | `ui/screen/chat/` (AI 대화형 검색) |
+| `chat_result.png` | 〃 (검색 결과가 표시된 상태) |
+| `memorylist.png` | `ui/screen/memorylist/` |
+| `memorydetail.png` | `ui/screen/memorydetail/` |
+| `memorycreate.png` | `ui/screen/memorycreate/` |
+| `mypage.png` | `ui/screen/mypage/` |
 
 한 화면에 상태가 여러 개면 `_empty`, `_loading`, `_error` 등을 뒤에 붙인다.
 빈 상태·로딩 시안이 있으면 UiState 설계가 훨씬 정확해진다.
