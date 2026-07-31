@@ -12,7 +12,11 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.ktor.client.network.sockets.SocketTimeoutException
+import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.ZoneId
@@ -45,11 +49,7 @@ class SupabaseAiChatRepository @Inject constructor(
     )
 
     override suspend fun send(archiveId: String, text: String): Result<AiMessage> = runCatching {
-        // body 를 직접 넘기면 SDK가 JSON 직렬화와 Content-Type 을 알아서 처리한다.
-        val response = supabase.functions.invoke(
-            function = "chat",
-            body = ChatRequest(archiveId = archiveId, message = text, sessionId = sessionId),
-        )
+        val response = invokeChatWithRetry(archiveId, text)
         val chat = json.decodeFromString<ChatResponse>(response.bodyAsText())
         sessionId = chat.sessionId
 
@@ -66,6 +66,30 @@ class SupabaseAiChatRepository @Inject constructor(
             },
             results = hits,
         )
+    }.recoverCatching { throwable ->
+        // 타임아웃(20초, SupabaseModule 설정) 을 넘기고도 실패하면 여기까지 온다 — 원본 예외의
+        // 기술적인 문구("request timeout has expired [...]", "Socket timeout has expired [...]")를
+        // 그대로 보여주지 않고 사용자가 이해할 수 있는 문구로 바꾼다.
+        if (throwable is HttpRequestTimeoutException || throwable is SocketTimeoutException) {
+            error("서버 응답이 늦어지고 있어요. 잠시 후 다시 시도해주세요.")
+        }
+        throw throwable
+    }
+
+    /**
+     * `chat` 호출은 콜드스타트 + Solar Pro 3 function calling 왕복이 겹치면 오래 걸려서
+     * 가끔 실패한다. 무한 재시도는 금지고(CLAUDE.md §8.2), 딱 1번만 더 시도한다.
+     * 코루틴 취소(CancellationException)는 재시도 대상이 아니라 그대로 던진다.
+     */
+    private suspend fun invokeChatWithRetry(archiveId: String, text: String): HttpResponse {
+        val request = ChatRequest(archiveId = archiveId, message = text, sessionId = sessionId)
+        return try {
+            supabase.functions.invoke(function = "chat", body = request)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            supabase.functions.invoke(function = "chat", body = request)
+        }
     }
 
     private suspend fun fetchHits(memoryIds: List<String>): List<MemoryHit> {

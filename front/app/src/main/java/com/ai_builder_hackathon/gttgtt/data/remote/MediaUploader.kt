@@ -200,9 +200,16 @@ class MediaUploader @Inject constructor(
         val contentUri = uri.toUri()
 
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        context.contentResolver.openInputStream(contentUri)?.use { input ->
+        // ⚠️ inJustDecodeBounds = true 일 때 decodeStream() 은 항상 null 을 반환한다(Android 문서상
+        // 정상 동작 — 크기만 bounds 에 채우고 비트맵은 안 만든다). 그 반환값에 `?: error(...)` 를
+        // 걸면 스트림이 멀쩡히 열려도 매번 예외가 나서, 사진 업로드가 통째로 조용히 실패했었다
+        // (uploadMemoryPhotos 등이 runCatching 으로 감싸고 있어 에러가 사용자에게 안 보였다).
+        // openInputStream() 의 null 여부만 확인하고, decode 자체는 side-effect(bounds 채우기)로만 쓴다.
+        val boundsStream = context.contentResolver.openInputStream(contentUri)
+            ?: error("사진을 읽을 수 없습니다: $uri")
+        boundsStream.use { input ->
             BitmapFactory.decodeStream(input, null, bounds)
-        } ?: error("사진을 읽을 수 없습니다: $uri")
+        }
 
         val sampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight, maxDimension)
         val sampleOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }

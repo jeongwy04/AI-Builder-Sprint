@@ -11,11 +11,13 @@ import com.ai_builder_hackathon.gttgtt.domain.model.Post
 import com.ai_builder_hackathon.gttgtt.domain.repository.PostRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -32,7 +34,20 @@ class SupabasePostRepository @Inject constructor(
     private val media: MediaUploader,
 ) : PostRepository {
 
+    /**
+     * SupabaseArchiveRepository/SupabaseProfileRepository 의 awaitSessionReady() 와 같은 이유로
+     * 여기도 필요하다: 그룹 대표 사진 변경처럼 Photo Picker(별도 액티비티)를 띄웠다 돌아오는
+     * 흐름에서는, 화면이 ON_RESUME 되며 피드를 다시 불러오는 시점에 세션 복원이 아직 덜 끝나
+     * 있을 수 있다(`SessionStatus.Initializing`). 이 상태에서 조회하면 RLS가 막아 게시물이
+     * 0건("아직 올라온 추억이 없어요.")으로 잘못 보였다가, 화면을 나갔다 다시 들어오면
+     * (그때는 세션 복원이 끝나 있어) 정상적으로 보이는 문제로 나타났다.
+     */
+    private suspend fun awaitSessionReady() {
+        supabase.auth.sessionStatus.first { it !is SessionStatus.Initializing }
+    }
+
     override suspend fun getFeed(archiveId: String): Result<List<Post>> = runCatching {
+        awaitSessionReady()
         val memories = supabase.postgrest.from("memories")
             // embedding 은 4096차원이라 select 하지 않는다.
             .select(Columns.raw("id,archive_id,author_id,memory_date,place_name,search_text,created_at")) {
@@ -46,6 +61,7 @@ class SupabasePostRepository @Inject constructor(
     }
 
     override suspend fun toggleLike(postId: String): Result<Post> = runCatching {
+        awaitSessionReady()
         val userId = supabase.auth.currentUserOrNull()?.id
             ?: error("좋아요를 누르려면 로그인이 필요합니다.")
 
