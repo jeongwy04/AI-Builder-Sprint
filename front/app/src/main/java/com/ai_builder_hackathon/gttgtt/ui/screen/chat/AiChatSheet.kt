@@ -142,7 +142,10 @@ private fun AiChatSheetContent(
             onValueChange = onInputChange,
             onSendClick = onSendClick,
             canSend = uiState.canSend,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+            // bottom 여백은 일부러 작게 둔다 — 이 패널 전체가 이미 GroupFeedScreen 에서
+            // imePadding() 으로 키보드 바로 위까지 밀려 올라오므로, 여기서 큰 여백을 더 주면
+            // 입력창과 키보드 사이에 빈 공간이 그대로 남는다.
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
         )
     }
 }
