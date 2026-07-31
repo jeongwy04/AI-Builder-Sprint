@@ -59,16 +59,6 @@ class MediaUploader @Inject constructor(
         }
     }
 
-    /** 채팅 사진 업로드. 경로: `{archive_id}/chat/{uuid}.jpg` */
-    suspend fun uploadChatPhoto(archiveId: String, uri: String): String? =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                val path = "$archiveId/chat/${UUID.randomUUID()}.jpg"
-                supabase.storage.from(BUCKET).upload(path, compressToJpeg(uri, PHOTO_MAX_DIMENSION))
-                path
-            }.getOrNull()
-        }
-
     /** 그룹 대표 사진 업로드. 경로: `{archive_id}/cover/{uuid}.jpg` */
     suspend fun uploadGroupCoverImage(archiveId: String, uri: String): String? =
         withContext(Dispatchers.IO) {
@@ -290,7 +280,7 @@ class MediaUploader @Inject constructor(
         /** JPEG 압축 품질. 85 정도면 육안으로는 원본과 거의 구분이 안 되면서 용량은 크게 준다. */
         const val JPEG_QUALITY = 85
 
-        /** 기억/채팅 사진 — 전체화면 뷰어(PhotoViewerDialog)에서 봐도 흐리지 않을 정도. */
+        /** 기억 사진 — 전체화면 뷰어(PhotoViewerDialog)에서 봐도 흐리지 않을 정도. */
         const val PHOTO_MAX_DIMENSION = 1600
 
         /** 그룹 대표 사진 — 목록/헤더 썸네일로만 쓰여서 사진보다 작아도 된다. */

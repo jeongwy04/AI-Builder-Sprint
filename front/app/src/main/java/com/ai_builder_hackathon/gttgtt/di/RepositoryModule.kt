@@ -23,12 +23,8 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * Repository 구현체 바인딩. 한 줄씩 바꿔 Fake ↔ Supabase 를 스위칭한다.
- *
- * 로그인이 실제로 붙어서(구글 네이티브 로그인) RLS 가 걸리는 5개는 Supabase 로 전환했다.
- *
- * ⚠️ AiChatRepository 만 아직 Fake 다 — `chat`/`embed-memory` Edge Function 배포 여부가
- * 확인되지 않았다. 배포가 확인되면 SupabaseAiChatRepository 로 바꾼다 (작성은 이미 끝남).
+ * Repository 구현체 바인딩. 전부 Supabase 실구현으로 전환 완료됐다
+ * (Fake*Repository 들은 개발 초기 임시 구현이었고, 전환이 끝나 삭제했다).
  */
 @Module
 @InstallIn(SingletonComponent::class)
