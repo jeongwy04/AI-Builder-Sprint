@@ -1,6 +1,6 @@
 # 그때그때
 
-> 대화하면 기억이 알아서 튀어나오는, 우리 그룹의 살아있는 추억 아카이브
+> 사진이 아니라, 사진 뒤에 남긴 우리의 말로 추억을 다시 찾는 소그룹 공유 다이어리
 >
 > AI Builder Sprint 2026 · 주제 "AI를 통해 인간다움을 더 잘 드러내는 서비스"
 
@@ -10,14 +10,18 @@
 
 우리의 추억은 수천 장의 사진 속에 흩어져 있지만, 그 사진 뒤의 *이야기와 감정*은 어디에도 남지 않습니다. 클라우드에 잘 저장돼 있어도 "그때 우리 진짜 웃겼던 그날"을 다시 꺼내려면 폴더를 끝없이 뒤져야 합니다.
 
-**그때그때**는 사진에 담긴 *사람의 이야기(메모)*를 함께 저장하고, 대화만으로 그 순간을 되살려줍니다. 기술이 추억을 차가운 저장소로 만들었다면, 그때그때는 그 뒤의 사람 이야기를 다시 잇습니다.
+**그때그때**는 가족·연인·친구 같은 소그룹이 사진과 함께 그 순간의 **메모(이야기)**를 남기고, 나중에는 검색창이 아니라 **AI와의 대화**로 그 기억을 다시 찾는 공유 다이어리입니다.
+
+핵심 설계 원칙은 하나입니다 — **사진의 픽셀이 아니라 사람이 남긴 문장을 분석합니다.** 이미지 캡셔닝이나 문서 인식을 쓰지 않는 것은 기술적 한계가 아니라 의도된 선택입니다. 검색의 유일한 근거는 사용자가 직접 쓴 메모, 장소, 날짜뿐입니다.
 
 ## 주요 기능
 
-- **추억 수집** — 사진·문서를 올리고, 그에 얽힌 썰(메모)을 남깁니다
-- **AI 메모 초안** — 업로드 시 AI가 사진을 보고 메모 초안을 제안 → 사용자는 진짜 이야기만 덧붙입니다
-- **대화형 검색** — "그때 그거 기억나?" 하고 물으면, AI가 필요한 만큼 되물어 좁힌 뒤 관련 사진을 찾아줍니다
-- **추억 상세** — 사진 + 남겨진 이야기 + 작성자/시점
+- **기억 남기기** — 사진과 함께 그날의 이야기(메모), 장소, 함께한 사람을 기록합니다. 사진 촬영일을 EXIF에서 읽어 날짜 기본값으로 채웁니다.
+- **그룹 피드** — 그룹원이 남긴 기억을 피드로 보고, 좋아요·댓글을 남기거나 그룹 채팅방에 공유합니다.
+- **AI 추억 찾기** — "그때 그거 기억나?" 하고 물으면 AI가 조건이 부족할 땐 되묻고, 충분해지면 그룹의 기록 안에서만 관련 기억을 찾아 보여줍니다. 검색 결과에 없는 기억은 절대 지어내지 않습니다.
+- **그룹 채팅** — 그룹 멤버끼리 대화하고, 피드의 기억을 채팅방에 바로 공유할 수 있습니다.
+- **마이페이지** — 닉네임·프로필 사진·상태 메시지를 관리하고, 내가 남긴 기억과 좋아요한 기억을 모아 봅니다.
+- **그룹 관리** — 그룹 생성, 이름/대표 사진 변경, 초대 코드로 멤버 추가.
 
 ### 사용 예시
 
@@ -30,133 +34,122 @@ AI:  찾았어요! 2025년 12월 강릉이네요.
      [사진 카드]
 ```
 
-## 데모
-
-- 데모 영상: `docs/demo.mp4` _(제출 시 링크로 대체)_
-- APK 다운로드: _(Firebase App Distribution 링크)_
-- 테스트 계정: _(제출 시 기입)_
-
 ## 기술 스택
 
 | 영역 | 기술 |
 |---|---|
-| 앱 (프론트) | Kotlin · Jetpack Compose |
-| 앱 라이브러리 | Coil · Supabase Kotlin SDK · Coroutines/Flow · Photo Picker |
-| 백엔드 | Supabase Edge Functions (Deno / TypeScript) |
-| 데이터 | Supabase (Postgres + pgvector + Storage + Auth) |
-| AI · 대화 Agent | Upstage Solar LLM |
-| AI · 문서 처리 | Upstage Document Parse / Information Extract |
-| AI · 임베딩 | 임베딩 모델 (메모 벡터화) |
+| 앱 | Kotlin · Jetpack Compose (MVVM + Repository, Hilt DI, Coroutines/Flow) |
+| 앱 라이브러리 | Coil3 · supabase-kt(auth/postgrest/storage/functions/compose-auth) · Navigation Compose · Photo Picker |
+| 백엔드 | Supabase — Auth · Postgres(+pgvector) · Storage · Edge Functions |
+| Edge Functions | `chat` (대화형 검색 오케스트레이션) · `embed-memory` (검색 인덱스 임베딩), 단 2개 — 단순 CRUD는 RLS + SDK로 직접 처리 |
+| AI · 대화 Agent | Upstage **Solar Pro 3** (OpenAI SDK 호환, function calling) |
+| AI · 임베딩 | Upstage **Embed 2** (의미 기반 검색) |
+
+> 이미지 Vision 캡셔닝·문서 파싱(OCR)은 쓰지 않습니다 — "사람이 남긴 문장만이 검색의 근거"라는 설계 원칙에 따른 의도된 선택입니다 (자세한 이유는 [`AI_USAGE.md`](./AI_USAGE.md) 참고).
 
 ## 시스템 구조
 
 ```
 [안드로이드 앱 · Kotlin/Compose]
-   업로드(사진/문서+메모) · 채팅형 검색 UI
-        │                          │
-        │ Supabase Kotlin SDK      │ Edge Function 호출
-        │ (사진→Storage, 메모 CRUD) │ (임베딩·Agent 검색·문서 파싱)
-        ▼                          ▼
-[Supabase]                 [Edge Functions · Deno/TS]  ← Upstage 키는 secrets에만
-  Postgres + pgvector        Document Parse / 임베딩 / Solar Agent
-  Storage · Auth (RLS)              │
-        ▲                          ▼
-        └──────────────── [Upstage] Solar LLM · Document Parse · Information Extract
+   기억 작성/피드/채팅/마이페이지 · AI 대화형 검색 UI
+        │                                    │
+        │ supabase-kt (anon key, RLS로 보호)  │ functions.invoke("chat" / "embed-memory")
+        ▼                                    ▼
+[Supabase]                           [Edge Functions · Deno/TS]  ← Upstage 키는 secrets에만
+  Postgres + pgvector                  chat: Solar Pro 3 대화 + function calling
+  Storage (private, signed URL)        embed-memory: search_text 조립 + Embed 2 임베딩
+  Auth (Google 네이티브 로그인)               │
+        ▲                                    ▼
+        └───────────────────────── [Upstage] Solar Pro 3 · Embed 2
 ```
 
-- **RAG**: 메모 임베딩 → pgvector 의미 검색 → 사진 소환
-- **Agent**: 질문이 모호할 때 Edge Function 안의 Solar가 스스로 되물어 검색 정확도를 높임
-
-> 일반 CRUD(사진·메모)는 앱에서 Supabase SDK로 직접 처리하며 RLS로 보호합니다.
-> Upstage API 키는 앱에 포함하지 않고 Edge Function secrets에만 저장합니다.
+- **일반 CRUD**(기억·메모·좋아요·댓글 등)는 앱이 Supabase SDK로 직접 처리하며, `is_member()` 기반 RLS가 유일한 보안 경계입니다.
+- **검색**만 Edge Function을 거칩니다: 질의 임베딩(Embed 2) → `match_memories()` RPC로 유사도 검색 → Solar Pro 3가 결과 안에서만 자연어로 요약합니다.
+- Upstage API 키는 앱에 절대 포함하지 않고 Edge Function secrets로만 관리합니다 (APK 디컴파일 유출 방지).
 
 ## 실행 방법
 
 ### 사전 준비
-- JDK 17+, Android Studio (Koala 이상)
-- Supabase 프로젝트, Supabase CLI, Upstage API 키
+- JDK 17+, Android Studio
+- Supabase 프로젝트, Supabase CLI, Upstage API 키(Solar Pro 3 · Embed 2)
 
 ### 1. Supabase 설정
-`vector` 확장을 켜고 스키마를 생성합니다.
-
-```sql
-create extension if not exists vector;
-
-create table groups (
-  id uuid primary key default gen_random_uuid(),
-  name text not null
-);
-
-create table memories (
-  id uuid primary key default gen_random_uuid(),
-  group_id uuid references groups(id),
-  image_url text not null,
-  memo_text text,
-  memo_embedding vector(N),   -- N = 사용 임베딩 모델의 차원
-  taken_at timestamptz,
-  author text,
-  created_at timestamptz default now()
-);
-```
-
-의미 검색은 pgvector 코사인 거리(`<=>`)를 쓰는 RPC 함수로 수행합니다.
-사진 파일은 Supabase Storage 버킷(`memories`)에 업로드합니다.
-테이블에는 RLS 정책을 적용합니다.
-
-### 2. 백엔드 (Supabase Edge Functions)
-Upstage 키는 함수 시크릿으로만 저장합니다. 앱에는 넣지 않습니다.
 
 ```bash
 supabase login
 supabase link --project-ref <your-project-ref>
+supabase db push   # supabase/migrations/ 의 스키마 + RLS + RPC 적용
+```
 
-# Upstage 키를 함수 시크릿으로 등록 (앱에는 미포함)
+마이그레이션에는 `pgvector` 확장, 11개 테이블(`profiles`/`archives`/`memberships`/`invitations`/`memories`/`media_assets`/`notes`/`chat_sessions`/`chat_messages`/`post_likes`/`comments`), `is_member()` 헬퍼 기반 RLS, `match_memories()`/`create_archive()`/`accept_invitation()` 등의 RPC, private Storage 버킷(`memories`, `avatars`)이 모두 포함되어 있습니다.
+
+### 2. 백엔드 (Supabase Edge Functions)
+
+Upstage 키는 함수 시크릿으로만 저장합니다. 앱에는 넣지 않습니다.
+
+```bash
 supabase secrets set UPSTAGE_API_KEY=your_key
+supabase secrets set SOLAR_MODEL=solar-pro3
+supabase secrets set EMBED_PASSAGE_MODEL=embedding-passage
+supabase secrets set EMBED_QUERY_MODEL=embedding-query
 
-# 함수 배포 (예: 임베딩·검색·문서파싱)
-supabase functions deploy embed
-supabase functions deploy search
-supabase functions deploy parse-doc
+supabase functions deploy chat
+supabase functions deploy embed-memory
 ```
 
 ### 3. 안드로이드 앱
-`app` 설정(`local.properties` 등)에 Supabase 접속 정보를 넣습니다. anon 키는 클라이언트 공개가 안전하며 RLS로 보호됩니다.
+
+`front/local.properties.example` 을 `front/local.properties` 로 복사하고 값을 채웁니다 (anon 키는 RLS로 보호되므로 클라이언트에 포함해도 안전합니다).
 
 ```properties
 SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_ANON_KEY=eyJ...
+GOOGLE_WEB_CLIENT_ID=xxxx.apps.googleusercontent.com
 ```
 
-Android Studio에서 `app` 모듈을 실행합니다. 앱은 사진/메모는 Supabase SDK로, AI 검색은 Edge Function 호출로 처리합니다.
+```bash
+cd front
+./gradlew assembleDebug
+```
+
+Android Studio에서 `front` 프로젝트를 열어 실행할 수도 있습니다.
 
 ## 프로젝트 구조
 
 ```
-ttgttg/
-├── app/                    # 안드로이드 (Kotlin + Jetpack Compose)
+gttgtt/
+├── front/                          # 안드로이드 (Kotlin + Jetpack Compose)
+│   └── app/src/main/java/.../gttgtt/
+│       ├── data/                   # remote(Supabase 접근) · dto · repository
+│       ├── domain/                 # model · repository 인터페이스
+│       ├── ui/                     # screen(auth/grouplist/groupfeed/groupchat/chat/
+│       │                             memorycreate/memorydetail/memorylist/mypage) · component
+│       └── di/                     # Hilt 모듈
 ├── supabase/
-│   ├── functions/          # Edge Functions (embed · search · parse-doc)
-│   └── migrations/         # DB 스키마 · RPC 함수
-├── docs/                   # 발표자료 · 데모 영상 · AI 활용 증빙
-├── CLAUDE.md               # AI 코딩 어시스턴트 지침
+│   ├── functions/                  # chat · embed-memory (Edge Functions, 이 2개뿐)
+│   └── migrations/                 # 스키마 · RLS · RPC
+├── prompts/                        # 검색 Agent 시스템 프롬프트 (버전 관리)
+├── evals/                          # 프롬프트 품질 검증 산출물
+├── docs/                           # 아키텍처 문서 · 스키마 레퍼런스
+├── .claude/agents/                 # 코드 리뷰 서브에이전트 정의
+├── CLAUDE.md / AGENTS.md           # AI 코딩 에이전트 지침 (동일 내용)
+├── AI_USAGE.md                     # AI 활용 기록
 └── README.md
 ```
 
 ## AI 활용
 
-- **Upstage Solar LLM** — 대화형 검색 Agent의 질문 분석·되묻기·응답 생성
-- **Upstage Document Parse / Information Extract** — 업로드된 문서에서 텍스트·핵심 정보 추출
-- **임베딩 모델** — 메모를 벡터로 변환해 의미 기반 검색에 사용
-- **개발 과정** — AI 코딩 어시스턴트를 활용했으며, 지침은 [`CLAUDE.md`](./CLAUDE.md)에 정리
-- 모델·API 사용 위치, 프롬프트, 검증 산출물은 `docs/ai-usage.md` 참고
+- **Upstage Solar Pro 3** — 대화형 검색 Agent. 조건이 부족하면 되묻고, 충분하면 `search_memories` 도구를 호출해 결과 안에서만 답합니다 (`supabase/functions/chat`).
+- **Upstage Embed 2** — 메모·장소·날짜를 조합한 `search_text`를 벡터로 변환해 의미 기반 검색에 사용합니다 (`supabase/functions/embed-memory`).
+- **개발 과정** — AI 코딩 에이전트를 프로젝트 전반의 구현·리뷰·마이그레이션 작성에 활용했으며, 지침은 [`CLAUDE.md`](./CLAUDE.md)에, 활용 내역과 설계 이유는 [`AI_USAGE.md`](./AI_USAGE.md)에 정리되어 있습니다.
 
 ## 팀
 
 | 이름 | 역할 |
 |---|---|
-| _정우영_ | 안드로이드 (Compose) |
-| _조우진_ | Supabase / Edge Functions |
-| _정우영, 조우진_ | AI / 기획 |
+| 정우영 | 안드로이드 (Compose) |
+| 조우진 | Supabase / Edge Functions |
+| 정우영, 조우진 | AI / 기획 |
 
 ## 라이선스
 
