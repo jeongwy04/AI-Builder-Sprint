@@ -339,6 +339,7 @@ private fun AvatarWithCamera(
             size = 92.dp,
             showRing = false,
             imageUrl = profile.avatarUrl,
+            imagePath = profile.avatarPath,
             modifier = Modifier
                 .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
                 .border(width = 4.dp, color = SurfaceWhite, shape = CircleShape),

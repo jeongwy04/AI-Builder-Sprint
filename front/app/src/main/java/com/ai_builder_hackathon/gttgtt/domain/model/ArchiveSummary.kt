@@ -16,6 +16,10 @@ data class ArchiveSummary(
     val theme: GradientTheme,
     /** 아바타로 표시할 멤버 id. 색은 id 해시로 정해진다. */
     val memberIds: List<String>,
+    /** memberId → 프로필 사진 signed URL. 없는 멤버는 키 자체가 없다 — GroupAvatarStack 이 그때 그라디언트로 대체한다. */
+    val memberAvatarUrls: Map<String, String> = emptyMap(),
+    /** memberId → 프로필 사진 storage path (signed URL 아님). Coil 캐시 키 고정용 — [memberAvatarUrls] 참고. */
+    val memberAvatarPaths: Map<String, String> = emptyMap(),
     val totalMemberCount: Int,
     /** 내가 안 읽은 메시지 수. `unread_counts()` RPC 결과 — 방을 열 때 chat_reads 가 갱신되면 줄어든다. */
     val unreadCount: Int = 0,

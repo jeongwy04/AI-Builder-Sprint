@@ -1,5 +1,6 @@
 package com.ai_builder_hackathon.gttgtt.domain.repository
 
+import com.ai_builder_hackathon.gttgtt.domain.model.AvatarUpload
 import com.ai_builder_hackathon.gttgtt.domain.model.UserProfile
 
 interface ProfileRepository {
@@ -36,5 +37,5 @@ interface ProfileRepository {
      * 화면에 바로 띄울 수 있는 signed URL 을 돌려준다.
      * 이전 사진이 있었다면 갱신 뒤 orphan 오브젝트로 지운다(best-effort, 실패해도 갱신 자체는 성공).
      */
-    suspend fun updateAvatar(imageUri: String): Result<String>
+    suspend fun updateAvatar(imageUri: String): Result<AvatarUpload>
 }

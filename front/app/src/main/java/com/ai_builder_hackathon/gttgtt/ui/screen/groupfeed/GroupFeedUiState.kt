@@ -8,6 +8,10 @@ data class GroupFeedUiState(
     val memberCount: Int = 0,
     /** 상단바 우측의 겹친 아바타 표시용. [memberCount] 와 별개로 실제 id 몇 개만 있으면 된다. */
     val memberIds: List<String> = emptyList(),
+    /** memberId → 프로필 사진 signed URL. 없는 멤버는 그라디언트로 대체된다. */
+    val memberAvatarUrls: Map<String, String> = emptyMap(),
+    /** memberId → 프로필 사진 storage path. Coil 캐시 키 고정용 — [memberAvatarUrls] 참고. */
+    val memberAvatarPaths: Map<String, String> = emptyMap(),
     val posts: List<Post> = emptyList(),
     val errorMessage: String? = null,
     /** 하단 네비게이션 바 채팅 버튼 우측 상단 배지 — 이 그룹방의 안 읽은 메시지 수. */

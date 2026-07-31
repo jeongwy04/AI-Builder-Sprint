@@ -272,6 +272,8 @@ private fun GroupFeedContent(
                     GroupAvatarStack(
                         memberIds = shownMembers,
                         hiddenCount = (uiState.memberCount - shownMembers.size).coerceAtLeast(0),
+                        avatarUrlById = uiState.memberAvatarUrls,
+                        avatarPathById = uiState.memberAvatarPaths,
                     )
                 },
             )
@@ -980,7 +982,13 @@ private fun PostHeader(post: Post, onMoreClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        MemberAvatar(memberId = post.authorId, size = 34.dp, showRing = false)
+        MemberAvatar(
+            memberId = post.authorId,
+            size = 34.dp,
+            showRing = false,
+            imageUrl = post.authorAvatarUrl,
+            imagePath = post.authorAvatarPath,
+        )
         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.Bottom) {
             Text(
                 text = post.authorName,

@@ -51,6 +51,9 @@ val CardBackground = Color(0xFFF5F2EC)
 /** card — 흰 카드 */
 val SurfaceWhite = Color(0xFFFFFFFF)
 
+/** 사진이 로딩되기 전/URL이 없을 때의 중립 회색 배경. 테마별 그라디언트 대신 쓴다 (PhotoImage). */
+val PhotoPlaceholderBackground = Color(0xFFE2E2E5)
+
 /** 상단바 아이콘 */
 val TopBarIcon = Color(0xFF1A1A1A)
 

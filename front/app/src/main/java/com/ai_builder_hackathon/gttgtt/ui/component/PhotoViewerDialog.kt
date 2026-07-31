@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,6 +25,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.ai_builder_hackathon.gttgtt.R
 import com.ai_builder_hackathon.gttgtt.domain.model.Photo
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
@@ -72,9 +76,25 @@ fun PhotoViewerDialog(
                         .clickable(onClick = onDismiss),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (photo.url != null) {
+                    val url = photo.url
+                    if (url != null) {
+                        val platformContext = LocalPlatformContext.current
+                        // PhotoImage 와 같은 이유 — storagePath 를 캐시 키로 고정해서 썸네일 볼 때
+                        // 이미 받아둔 파일이 있으면(같은 사진이니까) 여기서 또 새로 받지 않는다.
+                        val request = remember(url, photo.storagePath) {
+                            ImageRequest.Builder(platformContext)
+                                .data(url)
+                                .crossfade(true)
+                                .apply {
+                                    photo.storagePath?.let { path ->
+                                        memoryCacheKey(path)
+                                        diskCacheKey(path)
+                                    }
+                                }
+                                .build()
+                        }
                         AsyncImage(
-                            model = photo.url,
+                            model = request,
                             contentDescription = null,
                             contentScale = ContentScale.Fit,
                             modifier = Modifier.fillMaxSize(),

@@ -17,4 +17,9 @@ data class UserProfile(
     val mediaCount: Int,
     /** 프로필 사진 signed URL. 아직 안 올렸으면 null — 그라디언트 기본 아바타로 대체된다. */
     val avatarUrl: String? = null,
+    /** 프로필 사진 storage path (signed URL 아님). Coil 캐시 키 고정용 — [avatarUrl] 참고. */
+    val avatarPath: String? = null,
 )
+
+/** [ProfileRepository.updateAvatar] 결과 — 화면에 바로 띄울 signed URL 과 캐시 키로 쓸 storage path. */
+data class AvatarUpload(val url: String, val path: String)

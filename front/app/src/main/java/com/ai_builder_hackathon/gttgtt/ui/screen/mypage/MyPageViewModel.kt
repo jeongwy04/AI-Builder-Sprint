@@ -125,11 +125,11 @@ class MyPageViewModel @Inject constructor(
         _uiState.update { it.copy(isAvatarUploading = true, avatarError = null) }
         viewModelScope.launch {
             profileRepository.updateAvatar(imageUri)
-                .onSuccess { url ->
+                .onSuccess { upload ->
                     _uiState.update { state ->
                         state.copy(
                             isAvatarUploading = false,
-                            profile = state.profile?.copy(avatarUrl = url),
+                            profile = state.profile?.copy(avatarUrl = upload.url, avatarPath = upload.path),
                         )
                     }
                 }

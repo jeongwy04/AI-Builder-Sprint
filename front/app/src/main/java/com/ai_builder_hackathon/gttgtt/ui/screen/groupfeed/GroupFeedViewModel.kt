@@ -343,6 +343,8 @@ class GroupFeedViewModel @Inject constructor(
                             groupName = group?.name.orEmpty(),
                             memberCount = group?.totalMemberCount ?: 0,
                             memberIds = group?.memberIds.orEmpty(),
+                            memberAvatarUrls = group?.memberAvatarUrls.orEmpty(),
+                            memberAvatarPaths = group?.memberAvatarPaths.orEmpty(),
                             posts = posts,
                             chatUnreadCount = group?.unreadCount ?: 0,
                             coverImageUrl = group?.coverImageUrl,

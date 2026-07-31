@@ -1,5 +1,6 @@
 package com.ai_builder_hackathon.gttgtt.data.repository
 
+import com.ai_builder_hackathon.gttgtt.domain.model.AvatarUpload
 import com.ai_builder_hackathon.gttgtt.domain.model.UserProfile
 import com.ai_builder_hackathon.gttgtt.domain.repository.ProfileRepository
 import kotlinx.coroutines.delay
@@ -52,11 +53,11 @@ class FakeProfileRepository @Inject constructor() : ProfileRepository {
         return Result.success(nickname.trim().lowercase() in TAKEN_NICKNAMES)
     }
 
-    override suspend fun updateAvatar(imageUri: String): Result<String> {
+    override suspend fun updateAvatar(imageUri: String): Result<AvatarUpload> {
         delay(FAKE_NETWORK_DELAY_MILLIS)
         // 실제 업로드가 없는 Fake 라, 고른 로컬 content:// URI 를 그대로 "signed URL"인 척 돌려준다.
         // Coil 은 content URI 도 그대로 로드할 수 있어 프리뷰에서도 바로 화면에 뜬다.
-        return Result.success(imageUri)
+        return Result.success(AvatarUpload(url = imageUri, path = imageUri))
     }
 
     private companion object {

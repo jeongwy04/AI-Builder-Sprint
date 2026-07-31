@@ -1285,6 +1285,8 @@ private fun GroupCard(
                     memberIds = shownMembers,
                     // "+N" 의 N 은 전체 인원에서 실제로 그린 아바타 수를 뺀 값이다.
                     hiddenCount = group.hiddenMemberCount(shownMembers.size),
+                    avatarUrlById = group.memberAvatarUrls,
+                    avatarPathById = group.memberAvatarPaths,
                 )
             }
 

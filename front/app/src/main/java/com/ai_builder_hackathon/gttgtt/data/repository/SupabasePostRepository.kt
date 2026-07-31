@@ -118,12 +118,12 @@ class SupabasePostRepository @Inject constructor(
                     .groupBy { it.memoryId }
             }
 
-            val namesDeferred = async { fetchNames(memories.map { it.authorId }) }
+            val authorsDeferred = async { fetchAuthors(memories.map { it.authorId }) }
 
             val assetsByMemory = assetsDeferred.await()
             val notesByMemory = notesDeferred.await()
             val reactionsByMemory = reactionsDeferred.await()
-            val nameById = namesDeferred.await()
+            val authorById = authorsDeferred.await()
 
             val photosByMemory = memories
                 .associate { memory ->
@@ -138,11 +138,15 @@ class SupabasePostRepository @Inject constructor(
                 val reactions = reactionsByMemory[memory.id].orEmpty()
                 val photos = photosByMemory[memory.id].orEmpty()
 
+                val author = authorById[memory.authorId]
+
                 Post(
                     id = memory.id,
                     archiveId = memory.archiveId,
                     authorId = memory.authorId,
-                    authorName = nameById[memory.authorId] ?: "멤버",
+                    authorName = author?.name ?: "멤버",
+                    authorAvatarUrl = author?.avatarUrl,
+                    authorAvatarPath = author?.avatarPath,
                     memoryDateMillis = parseDateMillis(memory.memoryDate),
                     photos = photos,
                     // 피드에는 제목만 보여준다 — 첫 note 는 "title\n본문"으로 접혀 저장되어 있으므로
@@ -156,16 +160,38 @@ class SupabasePostRepository @Inject constructor(
         }
     }
 
-    private suspend fun fetchNames(userIds: List<String>): Map<String, String> {
+    /**
+     * 작성자 이름 + 아바타. `profiles.avatar_url` 엔 storage path 만 들어있어(signed URL 아님)
+     * 매번 새로 발급받아야 한다 — SupabaseProfileRepository.getMyProfile() 과 같은 이유.
+     * 작성자가 여러 명이면 발급도 병렬로 돌린다(사진 signed URL 발급과 같은 이유 — N명이면
+     * 순차로는 N번 왕복해야 해서 느려진다).
+     */
+    private suspend fun fetchAuthors(userIds: List<String>): Map<String, AuthorInfo> {
         val ids = userIds.distinct()
         if (ids.isEmpty()) return emptyMap()
-        return supabase.postgrest.from("profiles")
+
+        val profiles = supabase.postgrest.from("profiles")
             .select(Columns.raw("id,display_name,avatar_url")) {
                 filter { isIn("id", ids) }
             }
             .decodeList<ProfileDto>()
-            .associate { it.id to (it.displayName ?: "멤버") }
+
+        return coroutineScope {
+            profiles
+                .map { profile ->
+                    async {
+                        profile.id to AuthorInfo(
+                            name = profile.displayName ?: "멤버",
+                            avatarUrl = profile.avatarUrl?.let { path -> media.avatarSignedUrl(path) },
+                            avatarPath = profile.avatarUrl,
+                        )
+                    }
+                }
+                .associate { it.await() }
+        }
     }
+
+    private data class AuthorInfo(val name: String, val avatarUrl: String?, val avatarPath: String? = null)
 
     private fun parseDateMillis(date: String): Long =
         runCatching {

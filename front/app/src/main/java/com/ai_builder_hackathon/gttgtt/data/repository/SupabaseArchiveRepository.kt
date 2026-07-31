@@ -67,12 +67,12 @@ class SupabaseArchiveRepository @Inject constructor(
 
         if (archives.isEmpty()) return@runCatching emptyList()
 
-        // 미리보기 작성자 이름 / 안 읽음 개수 / 그룹별 마지막 메시지 / 표지 사진 signed URL 을
+        // 미리보기 작성자 이름·아바타 / 안 읽음 개수 / 그룹별 마지막 메시지 / 표지 사진 signed URL 을
         // 전부 동시에 당겨온다. 예전엔 그룹마다 fetchLastMessage 를 순서대로 기다려서(N번 순차 왕복)
         // 그룹이 많을수록 목록 화면이 느려졌다 — 서로 독립적인 조회라 병렬로 돌려도 안전하다.
         val allMemberIds = archives.flatMap { a -> a.memberships.map { it.userId } }.distinct()
         val loaded = coroutineScope {
-            val namesDeferred = async { fetchProfileNames(allMemberIds) }
+            val profilesDeferred = async { fetchProfiles(allMemberIds) }
             val unreadDeferred = async { fetchUnreadCounts() }
             val lastMessageDeferreds = archives.map { archive -> archive.id to async { fetchLastMessage(archive.id) } }
             val coverUrlDeferreds = archives.map { archive ->
@@ -80,7 +80,7 @@ class SupabaseArchiveRepository @Inject constructor(
             }
 
             ArchiveListLoad(
-                nameById = namesDeferred.await(),
+                profileById = profilesDeferred.await(),
                 unreadByArchiveId = unreadDeferred.await(),
                 lastMessageByArchiveId = lastMessageDeferreds.associate { (id, deferred) -> id to deferred.await() },
                 coverUrlByArchiveId = coverUrlDeferreds.associate { (id, deferred) -> id to deferred.await() },
@@ -90,10 +90,11 @@ class SupabaseArchiveRepository @Inject constructor(
         archives.map { archive ->
             val lastMessage = loaded.lastMessageByArchiveId[archive.id]
             val preview = lastMessage?.let { msg ->
-                val sender = loaded.nameById[msg.senderId] ?: "멤버"
+                val sender = loaded.profileById[msg.senderId]?.name ?: "멤버"
                 val content = msg.body ?: "사진을 보냈어요"
                 "$sender: $content"
             } ?: "아직 대화가 없어요"
+            val memberIds = archive.memberships.map { it.userId }
 
             ArchiveSummary(
                 id = archive.id,
@@ -101,7 +102,9 @@ class SupabaseArchiveRepository @Inject constructor(
                 lastMessagePreview = preview,
                 lastActivityAtMillis = parseMillis(lastMessage?.createdAt ?: archive.createdAt),
                 theme = themeFor(archive.groupType, archive.id),
-                memberIds = archive.memberships.map { it.userId },
+                memberIds = memberIds,
+                memberAvatarUrls = avatarUrlsOf(memberIds, loaded.profileById),
+                memberAvatarPaths = avatarPathsOf(memberIds, loaded.profileById),
                 totalMemberCount = archive.memberships.size,
                 unreadCount = loaded.unreadByArchiveId[archive.id] ?: 0,
                 coverImageUrl = loaded.coverUrlByArchiveId[archive.id],
@@ -111,7 +114,7 @@ class SupabaseArchiveRepository @Inject constructor(
 
     /** [getMyArchives] 의 병렬 조회 결과 묶음 — 이종 타입 4개를 리스트 destructuring 대신 명시적 필드로 받는다. */
     private data class ArchiveListLoad(
-        val nameById: Map<String, String>,
+        val profileById: Map<String, ProfileSummary>,
         val unreadByArchiveId: Map<String, Int>,
         val lastMessageByArchiveId: Map<String, MessagePreviewDto?>,
         val coverUrlByArchiveId: Map<String, String?>,
@@ -131,19 +134,27 @@ class SupabaseArchiveRepository @Inject constructor(
             .firstOrNull()
             ?: throw NoSuchElementException("그룹을 찾을 수 없습니다. (id=$archiveId)")
 
+        val memberIds = archive.memberships.map { it.userId }
+
         // unread_counts() 는 내 그룹 전체를 한 번에 계산하는 RPC라 그룹 하나만 걸러 받을 방법이
         // 없다 — 그래도 쿼리 자체는 1번이라 getMyArchives() 의 N+1(그룹마다 fetchLastMessage)과는
-        // 성격이 다르다. 마지막 메시지 조회 / 표지 사진 signed URL 과는 서로 독립적이니 병렬로 돌린다.
-        val (lastMessage, unreadByArchiveId, coverUrl) = coroutineScope {
+        // 성격이 다르다. 마지막 메시지 조회 / 표지 사진 signed URL / 멤버 프로필(이름·아바타)은
+        // 서로 독립적이니 병렬로 돌린다.
+        val loaded = coroutineScope {
             val lastMessageDeferred = async { fetchLastMessage(archiveId) }
             val unreadDeferred = async { fetchUnreadCounts() }
             val coverUrlDeferred = async { archive.coverImagePath?.let { media.signedUrl(it) } }
-            Triple(lastMessageDeferred.await(), unreadDeferred.await(), coverUrlDeferred.await())
+            val profilesDeferred = async { fetchProfiles(memberIds) }
+            ArchiveDetailLoad(
+                lastMessage = lastMessageDeferred.await(),
+                unreadByArchiveId = unreadDeferred.await(),
+                coverUrl = coverUrlDeferred.await(),
+                profileById = profilesDeferred.await(),
+            )
         }
 
-        val nameById = lastMessage?.let { fetchProfileNames(listOf(it.senderId)) } ?: emptyMap()
-        val preview = lastMessage?.let { msg ->
-            val sender = nameById[msg.senderId] ?: "멤버"
+        val preview = loaded.lastMessage?.let { msg ->
+            val sender = loaded.profileById[msg.senderId]?.name ?: "멤버"
             val content = msg.body ?: "사진을 보냈어요"
             "$sender: $content"
         } ?: "아직 대화가 없어요"
@@ -152,14 +163,24 @@ class SupabaseArchiveRepository @Inject constructor(
             id = archive.id,
             name = archive.name,
             lastMessagePreview = preview,
-            lastActivityAtMillis = parseMillis(lastMessage?.createdAt ?: archive.createdAt),
+            lastActivityAtMillis = parseMillis(loaded.lastMessage?.createdAt ?: archive.createdAt),
             theme = themeFor(archive.groupType, archive.id),
-            memberIds = archive.memberships.map { it.userId },
+            memberIds = memberIds,
+            memberAvatarUrls = avatarUrlsOf(memberIds, loaded.profileById),
+            memberAvatarPaths = avatarPathsOf(memberIds, loaded.profileById),
             totalMemberCount = archive.memberships.size,
-            unreadCount = unreadByArchiveId[archive.id] ?: 0,
-            coverImageUrl = coverUrl,
+            unreadCount = loaded.unreadByArchiveId[archive.id] ?: 0,
+            coverImageUrl = loaded.coverUrl,
         )
     }
+
+    /** [getArchive] 의 병렬 조회 결과 묶음 — [ArchiveListLoad] 와 같은 이유. */
+    private data class ArchiveDetailLoad(
+        val lastMessage: MessagePreviewDto?,
+        val unreadByArchiveId: Map<String, Int>,
+        val coverUrl: String?,
+        val profileById: Map<String, ProfileSummary>,
+    )
 
     override suspend fun createArchive(name: String, groupType: GroupType): Result<ArchiveSummary> = runCatching {
         val trimmed = name.trim()
@@ -269,19 +290,51 @@ class SupabaseArchiveRepository @Inject constructor(
     }
 
     override suspend fun getMemberNames(memberIds: List<String>): Result<Map<String, String>> = runCatching {
-        fetchProfileNames(memberIds)
+        fetchProfiles(memberIds).mapValues { (_, profile) -> profile.name }
     }
 
-    /** id → display_name. profiles 조회 로직 한 곳에 모아 getMyArchives()/getMemberNames() 가 같이 쓴다. */
-    private suspend fun fetchProfileNames(memberIds: List<String>): Map<String, String> {
-        if (memberIds.isEmpty()) return emptyMap()
-        return supabase.postgrest.from("profiles")
+    /**
+     * id → 이름 + 아바타 signed URL. profiles 조회 로직 한 곳에 모아 getMyArchives()/getArchive()/
+     * getMemberNames() 가 같이 쓴다.
+     *
+     * `profiles.avatar_url` 엔 storage path 만 들어있어(signed URL 아님) 매번 새로 발급받아야 한다 —
+     * SupabaseProfileRepository.getMyProfile() 과 같은 이유. 멤버가 여러 명이면 발급도 병렬로 돌린다
+     * (사진 signed URL 발급과 같은 이유 — N명이면 순차로는 N번 왕복해야 해서 느려진다).
+     */
+    private suspend fun fetchProfiles(memberIds: List<String>): Map<String, ProfileSummary> {
+        val ids = memberIds.distinct()
+        if (ids.isEmpty()) return emptyMap()
+
+        val profiles = supabase.postgrest.from("profiles")
             .select(Columns.raw("id,display_name,avatar_url")) {
-                filter { isIn("id", memberIds.distinct()) }
+                filter { isIn("id", ids) }
             }
             .decodeList<ProfileDto>()
-            .associate { it.id to (it.displayName ?: "이름없음") }
+
+        return coroutineScope {
+            profiles
+                .map { profile ->
+                    async {
+                        profile.id to ProfileSummary(
+                            name = profile.displayName ?: "이름없음",
+                            avatarUrl = profile.avatarUrl?.let { path -> media.avatarSignedUrl(path) },
+                            avatarPath = profile.avatarUrl,
+                        )
+                    }
+                }
+                .associate { it.await() }
+        }
     }
+
+    private data class ProfileSummary(val name: String, val avatarUrl: String?, val avatarPath: String? = null)
+
+    /** memberIds 중 아바타가 있는 것만 골라 memberId → signed URL 맵으로 좁힌다. */
+    private fun avatarUrlsOf(memberIds: List<String>, profileById: Map<String, ProfileSummary>): Map<String, String> =
+        memberIds.mapNotNull { id -> profileById[id]?.avatarUrl?.let { id to it } }.toMap()
+
+    /** [avatarUrlsOf] 와 같은 규칙으로 storage path 를 뽑는다 — Coil 캐시 키 고정용. */
+    private fun avatarPathsOf(memberIds: List<String>, profileById: Map<String, ProfileSummary>): Map<String, String> =
+        memberIds.mapNotNull { id -> profileById[id]?.avatarPath?.let { id to it } }.toMap()
 
     /**
      * archive_id → 안 읽은 메시지 수. `unread_counts()` RPC (호출자 RLS로 이미 내 그룹만 계산됨).

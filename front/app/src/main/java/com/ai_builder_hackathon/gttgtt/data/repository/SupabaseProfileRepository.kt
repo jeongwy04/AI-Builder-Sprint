@@ -6,6 +6,7 @@ import com.ai_builder_hackathon.gttgtt.data.dto.ProfileAvatarUpdate
 import com.ai_builder_hackathon.gttgtt.data.dto.ProfileDto
 import com.ai_builder_hackathon.gttgtt.data.dto.ProfileNicknameUpdate
 import com.ai_builder_hackathon.gttgtt.data.remote.MediaUploader
+import com.ai_builder_hackathon.gttgtt.domain.model.AvatarUpload
 import com.ai_builder_hackathon.gttgtt.domain.model.UserProfile
 import com.ai_builder_hackathon.gttgtt.domain.repository.ProfileRepository
 import io.github.jan.supabase.SupabaseClient
@@ -85,6 +86,7 @@ class SupabaseProfileRepository @Inject constructor(
             memoryCount = myMemoryIds.size,
             mediaCount = mediaCount,
             avatarUrl = avatarUrl,
+            avatarPath = profile.avatarUrl,
         )
     }
 
@@ -132,7 +134,7 @@ class SupabaseProfileRepository @Inject constructor(
      * 새 사진을 올려 DB를 갱신한 뒤, 이전 오브젝트를 정리한다. 이전 경로 조회가 실패해도
      * (네트워크 등) 갱신 자체를 막을 이유는 없어 조용히 null 로 넘어간다.
      */
-    override suspend fun updateAvatar(imageUri: String): Result<String> = runCatching {
+    override suspend fun updateAvatar(imageUri: String): Result<AvatarUpload> = runCatching {
         // Photo Picker 를 열었다 돌아온 직후라 특히 여기서 세션 복원이 덜 끝났을 가능성이 높다.
         awaitSessionReady()
         val user = supabase.auth.currentUserOrNull() ?: error("로그인이 필요합니다.")
@@ -160,7 +162,8 @@ class SupabaseProfileRepository @Inject constructor(
             media.deleteAvatarObject(previousPath)
         }
 
-        media.avatarSignedUrl(uploadedPath) ?: error("사진을 불러오지 못했습니다.")
+        val url = media.avatarSignedUrl(uploadedPath) ?: error("사진을 불러오지 못했습니다.")
+        AvatarUpload(url = url, path = uploadedPath)
     }
 
     override suspend fun isNicknameTaken(nickname: String): Result<Boolean> = runCatching {

@@ -9,6 +9,10 @@ data class Post(
     val archiveId: String,
     val authorId: String,
     val authorName: String,
+    /** 작성자 프로필 사진 signed URL. 아직 안 올렸으면 null — MemberAvatar 가 그라디언트로 대체한다. */
+    val authorAvatarUrl: String? = null,
+    /** 작성자 프로필 사진 storage path (signed URL 아님). Coil 캐시 키 고정용 — [authorAvatarUrl] 참고. */
+    val authorAvatarPath: String? = null,
     /** 추억이 일어난 날. 업로드 시각(created_at)과 혼용하지 않는다 (CLAUDE.md §6.2). */
     val memoryDateMillis: Long,
     val photos: List<Photo>,
