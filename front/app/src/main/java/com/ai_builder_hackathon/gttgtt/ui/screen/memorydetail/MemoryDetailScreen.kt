@@ -33,10 +33,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,7 +65,6 @@ import com.ai_builder_hackathon.gttgtt.domain.model.MemoryDetail
 import com.ai_builder_hackathon.gttgtt.domain.model.Participant
 import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
 import com.ai_builder_hackathon.gttgtt.ui.component.PhotoImage
-import com.ai_builder_hackathon.gttgtt.ui.component.PhotoViewerDialog
 import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
@@ -445,20 +442,20 @@ private fun DetailBody(
             )
         }
 
-        // DetailBody 내부의 'head' 아이템 영역
         item(key = "head") {
             Column(modifier = Modifier.padding(horizontal = SidePadding)) {
                 Spacer(Modifier.height(16.dp))
+                // 날짜와 같은 줄, 같은 높이에 오른쪽 정렬로 좋아요 · 채팅방 보내기.
+                // 시안엔 없어 피드 카드(PostFooter/ShareButton)와 같은 모양으로 맞춘다.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    // 📌 날짜 (13sp -> 14sp)
                     Text(
                         text = formatDate(memory.memoryDateMillis),
                         color = BrandGreenDark,
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.ExtraBold,
                     )
                     LikeAndShareActions(
@@ -479,25 +476,23 @@ private fun DetailBody(
                     )
                 }
                 Spacer(Modifier.height(7.dp))
-                // 📌 제목 (22sp -> 24sp, lineHeight 조정)
                 Text(
                     text = memory.title,
                     style = TextStyle(
                         color = TextPrimary,
-                        fontSize = 24.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = (-0.03).em,
-                        lineHeight = 32.sp, // 폰트가 커진 만큼 줄 간격 확보
+                        lineHeight = 28.sp,
                     ),
                 )
                 Spacer(Modifier.height(10.dp))
-                // 📌 본문 (15sp -> 16sp, lineHeight 조정)
                 Text(
                     text = memory.body,
                     color = DetailBodyText,
-                    fontSize = 16.sp,
+                    fontSize = 13.5.sp,
                     fontWeight = FontWeight.Medium,
-                    lineHeight = 24.sp, // 읽기 편안한 줄 간격 비율(1.5배)
+                    lineHeight = 21.6.sp,
                 )
             }
         }
@@ -533,11 +528,7 @@ private fun DetailBody(
     }
 }
 
-/**
- * 시안 .hero-photo — 좌우로 넘기고 우상단에 "1 / 8" 이 뜬다.
- * 사진을 탭하면 [PhotoViewerDialog] 가 지금 보고 있던 페이지([pagerState.currentPage])부터
- * 열려서, 여기서 넘겨보던 위치 그대로 원본 크기로 이어볼 수 있다.
- */
+/** 시안 .hero-photo — 좌우로 넘기고 우상단에 "1 / 8" 이 뜬다. */
 @Composable
 private fun HeroPhotos(
     photos: List<Photo>,
@@ -545,7 +536,6 @@ private fun HeroPhotos(
     onIndexChange: (Int) -> Unit,
 ) {
     val pagerState = rememberPagerState(pageCount = { photos.size })
-    var isViewerOpen by remember { mutableStateOf(false) }
 
     // 스와이프로 바뀐 페이지를 ViewModel 로 올려 상태를 한 곳에 모은다.
     LaunchedEffect(pagerState) {
@@ -564,9 +554,7 @@ private fun HeroPhotos(
             PhotoImage(
                 photo = photos[page],
                 corner = 0.dp,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable { isViewerOpen = true },
+                modifier = Modifier.fillMaxSize(),
             )
         }
         if (photos.size > 1) {
@@ -583,14 +571,6 @@ private fun HeroPhotos(
                     .padding(horizontal = 11.dp, vertical = 5.dp),
             )
         }
-    }
-
-    if (isViewerOpen) {
-        PhotoViewerDialog(
-            photos = photos,
-            initialIndex = pagerState.currentPage,
-            onDismiss = { isViewerOpen = false },
-        )
     }
 }
 
@@ -722,43 +702,41 @@ private fun CommentCard(comment: Comment) {
             horizontalArrangement = Arrangement.spacedBy(9.dp),
         ) {
             MemberAvatar(memberId = comment.authorId, size = 30.dp, showRing = false)
-            // 📌 댓글 작성자 이름 (13sp -> 14sp)
             Text(
                 text = comment.authorName,
                 color = TextPrimary,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.weight(1f),
             )
-            // 📌 댓글 날짜 (11sp -> 12sp)
             Text(
                 text = formatShortDate(comment.createdAtMillis),
                 color = CommentMetaText,
-                fontSize = 10.5.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
             )
         }
-
         Spacer(Modifier.height(8.dp))
-
+        Text(
+            text = comment.text,
+            color = CommentText,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            lineHeight = 19.5.sp,
+        )
+        Spacer(Modifier.height(9.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            // 📌 댓글 본문 내용 (13sp -> 15sp, lineHeight 조정)
             Text(
-                text = comment.text,
-                color = CommentText,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                lineHeight = 22.sp,
-                modifier = Modifier.weight(1f)
+                text = "답글 달기",
+                color = CommentMetaText,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable { /* TODO: 대댓글 */ },
             )
-
-            Spacer(Modifier.width(12.dp))
-
-            // 하트 아이콘 및 카운트
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -772,7 +750,7 @@ private fun CommentCard(comment: Comment) {
                 Text(
                     text = comment.likeCount.toString(),
                     color = CommentMetaText,
-                    fontSize = 11.sp, // 하트 숫자도 날짜와 동일하게 12sp로 맞춤
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
             }

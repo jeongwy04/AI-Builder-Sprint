@@ -3,23 +3,19 @@ package com.ai_builder_hackathon.gttgtt.domain.model
 /**
  * 마이페이지에 필요한 내 정보.
  *
- * [avatarUrl] 이 null 이면 [id] 해시로 아바타 색을 정한다 (다른 화면과 같은 규칙,
- * [com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar] 참고).
+ * [avatarUrl] 이 null 이면(사진 미등록) [id] 해시로 기본 아바타 색을 정한다.
  */
 data class UserProfile(
     val id: String,
     val name: String,
-    /** "그때그때 120일째" 의 120 */
-    val streakDays: Int,
     /** "추억을 모으는 중 ✨" 같은 한 줄 상태 */
     val statusMessage: String,
     val memoryCount: Int,
     val mediaCount: Int,
-    /** 프로필 사진 signed URL. 아직 안 올렸으면 null — 그라디언트 기본 아바타로 대체된다. */
+    /** 내가 좋아요한 기억 수 (마이페이지 카드에 표시) */
+    val likedCount: Int,
+    /** 프로필 사진 signed URL. 미등록이면 null → 기본(그라디언트) 아바타. */
     val avatarUrl: String? = null,
-    /** 프로필 사진 storage path (signed URL 아님). Coil 캐시 키 고정용 — [avatarUrl] 참고. */
+    /** 프로필 사진 Storage 경로 (profiles.avatar_url). */
     val avatarPath: String? = null,
 )
-
-/** [ProfileRepository.updateAvatar] 결과 — 화면에 바로 띄울 signed URL 과 캐시 키로 쓸 storage path. */
-data class AvatarUpload(val url: String, val path: String)

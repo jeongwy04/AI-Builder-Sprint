@@ -42,7 +42,9 @@ interface SearchArgs {
 }
 
 const HISTORY_LIMIT = 8;
-const SEARCH_LIMIT = 6;
+const SEARCH_LIMIT = 4;
+// 코사인 거리 임계값 — 이보다 먼(=관련도 낮은) 기억은 반환하지 않는다. 실측 후 조정.
+const MAX_DISTANCE = 0.5;
 
 // ---- 프롬프트 로드 ----------------------------------------------------------
 // 소스 오브 트루스는 prompts/search_agent_v2.md (버전 관리 대상).
@@ -110,9 +112,26 @@ async function runSearch(
     p_date_from: args.date_from ?? null,
     p_date_to: args.date_to ?? null,
     p_limit: SEARCH_LIMIT,
+    p_max_distance: MAX_DISTANCE,
   });
   if (error) throw new Error(`match_memories: ${error.message}`);
   return (data as MemoryHit[]) ?? [];
+}
+
+// 검색 결과 요약문을 서버에서 만든다(2차 LLM 호출 제거 → 지연/타임아웃 감소).
+// 결과가 있으면 첫 기억의 메모 한 줄을 예시로 붙여 사람 말투로 짧게 요약한다.
+function buildReply(hits: MemoryHit[]): string {
+  if (hits.length === 0) {
+    return "그 단서로는 관련된 기억을 찾지 못했어요. 시기나 장소를 조금 다르게 말해줄 수 있을까요?";
+  }
+  const snippet = hits[0].search_text
+    ?.split("\n")
+    .map((l) => l.trim())
+    .find((l) => l.length > 0)
+    ?.slice(0, 40);
+  return snippet
+    ? `이런 기억 ${hits.length}개를 찾았어요. 예를 들면 "${snippet}…" 같은 날이요.`
+    : `관련된 기억 ${hits.length}개를 찾았어요.`;
 }
 
 // LLM 실패 시 키워드 폴백 (search_text ILIKE). 절대 빈 화면을 주지 않는다.
@@ -252,7 +271,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // (B) search_memories 호출
     const args = JSON.parse(toolCall.function.arguments) as SearchArgs;
     const hits = await runSearch(supabase, archive_id, args);
+    const memoryIds = hits.map((h) => h.id);
 
+    // 도구 호출 기록
     await saveMessage(supabase, {
       session_id: sessionId,
       archive_id,
@@ -261,31 +282,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       tool_calls: first.tool_calls,
     });
 
-    // 도구 결과를 Solar에 되먹여 자연어 요약 생성
-    const toolResult = hits.map((h) => ({
-      id: h.id,
-      date: h.memory_date,
-      place: h.place_name,
-      note: h.search_text?.slice(0, 200) ?? null,
-    }));
-
-    const second = await chatCompletion({
-      model: requireEnv("SOLAR_MODEL"),
-      messages: [
-        ...messages,
-        { role: "assistant", content: null, tool_calls: first.tool_calls },
-        {
-          role: "tool",
-          tool_call_id: toolCall.id,
-          content: JSON.stringify({ count: hits.length, memories: toolResult }),
-        },
-      ],
-      toolChoice: "none",
-    });
-
-    const reply = second.content ??
-      (hits.length > 0 ? `${hits.length}장 찾았어요.` : "관련된 기억을 찾지 못했어요.");
-    const memoryIds = hits.map((h) => h.id);
+    // 2차 LLM 요약 호출을 제거하고 요약문을 서버에서 만든다 —
+    // Solar 왕복을 한 번 줄여 전체 지연을 크게 낮춘다(타임아웃 방지).
+    const reply = buildReply(hits);
 
     await saveMessage(supabase, {
       session_id: sessionId,
