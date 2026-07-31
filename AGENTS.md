@@ -23,7 +23,7 @@ AI는 조건이 부족하면 되묻고, 확보된 조건으로 그룹의 기록�
 
 | 레이어 | 선택 |
 |---|---|
-| App | **Kotlin + Jetpack Compose** (minSdk 26, targetSdk 35) |
+| App | **Kotlin + Jetpack Compose** (minSdk 26, targetSdk 36) |
 | 아키텍처 | MVVM + Repository, Hilt DI, Coroutines/Flow |
 | 네비게이션 | Navigation Compose (type-safe routes, kotlinx.serialization) |
 | 이미지 | Coil |
@@ -49,10 +49,12 @@ trace-archive/
 ├── evals/                         # 프롬프트 품질 검증 산출물
 ├── docs/ARCHITECTURE.md
 │
-├── android/                       # Android Studio 프로젝트 루트
-│   ├── app/src/main/java/com/tracearchive/
+├── design/                        # 디자인 시안 (README + 목업, 구현 참조용)
+├── front/                         # Android Studio 프로젝트 루트
+│   ├── app/src/main/java/com/ai_builder_hackathon/gttgtt/
 │   │   ├── TraceArchiveApp.kt
 │   │   ├── di/                    # Hilt 모듈 (SupabaseClient 제공)
+│   │   ├── invite/                # 초대 딥링크 처리 (화면 패키지 아님)
 │   │   ├── data/
 │   │   │   ├── remote/            # Supabase 접근 (여기서만)
 │   │   │   ├── dto/               # @Serializable DTO
@@ -65,19 +67,26 @@ trace-archive/
 │   │       ├── theme/
 │   │       ├── component/         # 재사용 Composable
 │   │       └── screen/
-│   │           ├── auth/          # S0 로그인
-│   │           ├── grouplist/     # S1 그룹 선택
-│   │           ├── chat/          # S2 AI 대화 (홈) ⭐
-│   │           ├── memorydetail/  # S3 기억 상세
-│   │           ├── memorycreate/  # S4 기억 작성
-│   │           └── timeline/      # S5 타임라인
+│   │           ├── auth/          # 로그인
+│   │           ├── onboarding/    # 온보딩
+│   │           ├── signup/        # 회원가입
+│   │           ├── grouplist/     # 그룹 선택
+│   │           ├── groupfeed/     # 그룹 피드
+│   │           ├── groupchat/     # 그룹 채팅
+│   │           ├── chat/          # AI 대화 검색 ⭐
+│   │           ├── memorylist/    # 기억 목록
+│   │           ├── memorydetail/  # 기억 상세
+│   │           ├── memorycreate/  # 기억 작성
+│   │           └── mypage/        # 마이페이지
 │   ├── gradle/libs.versions.toml  # 버전 카탈로그
 │   └── build.gradle.kts
 │
 └── supabase/
     ├── config.toml
     ├── migrations/                # SQL 마이그레이션 (RLS 정책 포함)
+    ├── tests/                     # RLS 격리 등 SQL 검증 스크립트
     └── functions/
+        ├── _shared/                # cors · http · supabase · upstage 공통 유틸
         ├── chat/index.ts          # Solar 대화 + function calling
         └── embed-memory/index.ts  # Embed 2 임베딩
 ```
@@ -98,7 +107,7 @@ supabase functions deploy chat
 supabase secrets set UPSTAGE_API_KEY=...
 
 # Android
-cd android
+cd front
 ./gradlew assembleDebug
 ./gradlew test                         # 단위 테스트
 ./gradlew lint
@@ -233,7 +242,7 @@ supabase.functions.invoke("chat", body = ChatRequest(archiveId, message))
 
 ## 7. 데이터 모델
 
-테이블은 다음 8개다. **임의로 추가하지 말고 먼저 제안한다.**
+테이블은 다음 14개다. **임의로 추가하지 말고 먼저 제안한다.**
 
 | 테이블 | 용도 | archive_id |
 |---|---|---|
@@ -244,7 +253,12 @@ supabase.functions.invoke("chat", body = ChatRequest(archiveId, message))
 | `memories` | 기억 단위 + 검색 인덱스 | ✅ |
 | `media_assets` | Storage 미디어 메타 | ✅ |
 | `notes` | 메모·문구 (memory 1:N) | ✅ |
-| `chat_sessions` / `chat_messages` | AI 대화 이력 | ✅ |
+| `chat_sessions` / `chat_messages` | AI 대화(검색) 이력 | ✅ |
+| `messages` | 그룹 멤버끼리의 채팅 메시지 (`chat_messages`와 별개) | ✅ |
+| `chat_reads` | 채팅방별 마지막 읽음 시점 (안 읽음 배지) | ✅ |
+| `reactions` | 기억(memory)에 대한 좋아요 (memory_id + user_id 유니크) | ✅ |
+| `memory_people` | 기억에 태깅된 "함께한 사람" | ✅ |
+| `comments` | 기억(memory)에 대한 댓글 | ✅ |
 
 - Supabase Auth를 쓰므로 `users` 테이블을 직접 만들지 않는다. `auth.users` 를 참조하는 `profiles` 를 쓴다.
 - 스키마 변경은 `supabase migration new` 로만 한다. 대시보드에서 직접 수정 금지 (이력이 남지 않는다).
@@ -375,7 +389,6 @@ $$;
 - ❌ 음성 STT
 - ❌ 지역 공개 보관소, 공개 열람
 - ❌ 멤버 역할·권한 등급
-- ❌ 리액션, 좋아요
 - ❌ SSE 스트리밍 응답
 - ❌ iOS / 웹 클라이언트
 - ⏸ 과거 사진 알림 / 푸시 — **보류.** 별도 지시가 있을 때만 착수한다.
@@ -414,10 +427,11 @@ $$;
 
 ## 16. 환경변수 / 설정
 
-**Android — `local.properties` (커밋 금지)**
+**Android — `front/local.properties` (커밋 금지)**
 ```properties
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_ANON_KEY=eyJ...
+GOOGLE_WEB_CLIENT_ID=xxxx.apps.googleusercontent.com
 ```
 `build.gradle.kts` 에서 `BuildConfig` 로 주입한다. **Upstage 키는 여기 두지 않는다.**
 
@@ -425,7 +439,8 @@ SUPABASE_ANON_KEY=eyJ...
 ```bash
 UPSTAGE_API_KEY=up_...
 SOLAR_MODEL=solar-pro3
-EMBED_MODEL=<Embed 2 모델명 — 콘솔에서 확인>
+EMBED_PASSAGE_MODEL=embedding-passage
+EMBED_QUERY_MODEL=embedding-query
 ```
 
 `.env.example` 과 `local.properties.example` 을 항상 최신 상태로 유지한다. 새 변수를 추가하면 같은 커밋에 반영한다.
