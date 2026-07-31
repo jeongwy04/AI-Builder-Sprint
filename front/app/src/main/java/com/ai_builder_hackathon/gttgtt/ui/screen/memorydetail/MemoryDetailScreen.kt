@@ -33,8 +33,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +67,7 @@ import com.ai_builder_hackathon.gttgtt.domain.model.MemoryDetail
 import com.ai_builder_hackathon.gttgtt.domain.model.Participant
 import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
 import com.ai_builder_hackathon.gttgtt.ui.component.PhotoImage
+import com.ai_builder_hackathon.gttgtt.ui.component.PhotoViewerDialog
 import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
@@ -530,7 +533,11 @@ private fun DetailBody(
     }
 }
 
-/** 시안 .hero-photo — 좌우로 넘기고 우상단에 "1 / 8" 이 뜬다. */
+/**
+ * 시안 .hero-photo — 좌우로 넘기고 우상단에 "1 / 8" 이 뜬다.
+ * 사진을 탭하면 [PhotoViewerDialog] 가 지금 보고 있던 페이지([pagerState.currentPage])부터
+ * 열려서, 여기서 넘겨보던 위치 그대로 원본 크기로 이어볼 수 있다.
+ */
 @Composable
 private fun HeroPhotos(
     photos: List<Photo>,
@@ -538,6 +545,7 @@ private fun HeroPhotos(
     onIndexChange: (Int) -> Unit,
 ) {
     val pagerState = rememberPagerState(pageCount = { photos.size })
+    var isViewerOpen by remember { mutableStateOf(false) }
 
     // 스와이프로 바뀐 페이지를 ViewModel 로 올려 상태를 한 곳에 모은다.
     LaunchedEffect(pagerState) {
@@ -556,7 +564,9 @@ private fun HeroPhotos(
             PhotoImage(
                 photo = photos[page],
                 corner = 0.dp,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { isViewerOpen = true },
             )
         }
         if (photos.size > 1) {
@@ -573,6 +583,14 @@ private fun HeroPhotos(
                     .padding(horizontal = 11.dp, vertical = 5.dp),
             )
         }
+    }
+
+    if (isViewerOpen) {
+        PhotoViewerDialog(
+            photos = photos,
+            initialIndex = pagerState.currentPage,
+            onDismiss = { isViewerOpen = false },
+        )
     }
 }
 

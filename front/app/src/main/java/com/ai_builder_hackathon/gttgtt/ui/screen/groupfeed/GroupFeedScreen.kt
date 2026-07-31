@@ -16,7 +16,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -80,6 +81,7 @@ import com.ai_builder_hackathon.gttgtt.ui.component.AlbumLoader
 import com.ai_builder_hackathon.gttgtt.ui.component.LikeButton
 import com.ai_builder_hackathon.gttgtt.ui.theme.DisplayFontFamily
 import com.ai_builder_hackathon.gttgtt.ui.theme.AbodeBlue
+import com.ai_builder_hackathon.gttgtt.ui.theme.PhotoCountBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackgroundBrush
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
@@ -1009,7 +1011,12 @@ private fun PostHeader(post: Post, onMoreClick: () -> Unit) {
     }
 }
 
-/** 사진 1장이면 큰 히어로(h170, r18), 여러 장이면 3열 그리드(h92, r14). */
+/**
+ * 사진 1장이면 큰 히어로(h170, r18) 그대로.
+ * 여러 장이면 같은 h170 틀 안에서 좌우로 넘겨보는 페이저 — MemoryDetailScreen 의
+ * HeroPhotos 와 같은 디자인(우상단 "n / m" 카운터)이라 상세로 들어가도 낯설지 않다.
+ * (예전엔 3장까지만 그리드로 보여주고 나머지는 아예 안 보였다 — 이제 전부 넘겨볼 수 있다.)
+ */
 @Composable
 private fun PostPhotos(post: Post) {
     if (post.hasSinglePhoto) {
@@ -1020,22 +1027,36 @@ private fun PostPhotos(post: Post) {
                 .fillMaxWidth()
                 .height(170.dp),
         )
-    } else {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            post.photos.take(3).forEach { photo ->
-                PhotoImage(
-                    photo = photo,
-                    corner = 14.dp,
-                    modifier = Modifier
-                        .weight(1f)
-                        .aspectRatio(1f),
-                )
-            }
-            // 3장이 안 되면 남은 칸을 비워 그리드 폭을 유지한다.
-            repeat(3 - post.photos.size.coerceAtMost(3)) {
-                Spacer(Modifier.weight(1f))
-            }
+        return
+    }
+
+    val pagerState = rememberPagerState(pageCount = { post.photos.size })
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(170.dp)
+            .clip(RoundedCornerShape(18.dp)),
+    ) {
+        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+            PhotoImage(
+                photo = post.photos[page],
+                corner = 0.dp,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
+        Text(
+            text = "${pagerState.currentPage + 1} / ${post.photos.size}",
+            color = SurfaceWhite,
+            fontSize = 11.5.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(12.dp)
+                .clip(CircleShape)
+                .background(PhotoCountBackground)
+                .padding(horizontal = 11.dp, vertical = 5.dp),
+        )
     }
 }
 
