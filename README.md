@@ -154,10 +154,10 @@ ttgttg/
 
 | 이름 | 역할 |
 |---|---|
-| _(기입)_ | 안드로이드 (Compose) |
-| _(기입)_ | Supabase / Edge Functions |
-| _(기입)_ | AI / 기획 |
+| _정우영_ | 안드로이드 (Compose) |
+| _조우진_ | Supabase / Edge Functions |
+| _정우영, 조우진_ | AI / 기획 |
 
 ## 라이선스
 
-_(예: MIT — 팀 결정 후 기입)_
+_삠삠_
