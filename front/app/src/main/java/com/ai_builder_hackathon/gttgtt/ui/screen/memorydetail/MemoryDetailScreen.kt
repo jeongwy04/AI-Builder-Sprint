@@ -455,7 +455,7 @@ private fun DetailBody(
                     Text(
                         text = formatDate(memory.memoryDateMillis),
                         color = BrandGreenDark,
-                        fontSize = 13.sp,
+                        fontSize = 13.5.sp,
                         fontWeight = FontWeight.ExtraBold,
                     )
                     LikeAndShareActions(
@@ -490,9 +490,9 @@ private fun DetailBody(
                 Text(
                     text = memory.body,
                     color = DetailBodyText,
-                    fontSize = 13.5.sp,
+                    fontSize = 15.5.sp,
                     fontWeight = FontWeight.Medium,
-                    lineHeight = 21.6.sp,
+                    lineHeight = 23.sp,
                 )
             }
         }
@@ -514,7 +514,7 @@ private fun DetailBody(
                 Text(
                     text = "첫 댓글을 남겨보세요.",
                     color = TextSecondary,
-                    fontSize = 13.sp,
+                    fontSize = 13.5.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(horizontal = SidePadding),
                 )
@@ -652,14 +652,14 @@ private fun SectionLabel(
         Text(
             text = text,
             color = TextPrimary,
-            fontSize = 13.sp,
+            fontSize = 13.5.sp,
             fontWeight = FontWeight.ExtraBold,
         )
         if (trailing != null) {
             Text(
                 text = trailing,
                 color = BrandGreenDark,
-                fontSize = 13.sp,
+                fontSize = 13.5.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable { onTrailingClick?.invoke() },
             )
@@ -675,7 +675,7 @@ private fun ParticipantItem(participant: Participant) {
         Text(
             text = participant.name,
             color = ParticipantNameText,
-            fontSize = 11.sp,
+            fontSize = 11.5.sp,
             fontWeight = FontWeight.SemiBold,
         )
     }
@@ -701,55 +701,43 @@ private fun CommentCard(comment: Comment) {
             Text(
                 text = comment.authorName,
                 color = TextPrimary,
-                fontSize = 13.sp,
+                fontSize = 13.5.sp,
                 fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.weight(1f),
             )
             Text(
                 text = formatShortDate(comment.createdAtMillis),
                 color = CommentMetaText,
-                fontSize = 11.sp,
+                fontSize = 11.5.sp,
                 fontWeight = FontWeight.SemiBold,
             )
         }
         Spacer(Modifier.height(8.dp))
-        Text(
-            text = comment.text,
-            color = CommentText,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            lineHeight = 19.5.sp,
-        )
-        Spacer(Modifier.height(9.dp))
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "답글 달기",
-                color = CommentMetaText,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable { /* TODO: 대댓글 */ },
+                text = comment.text,
+                color = CommentText,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                lineHeight = 20.sp,
+                modifier = Modifier.weight(1f),
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_heart),
-                    contentDescription = null,
-                    tint = CommentMetaText,
-                    modifier = Modifier.size(12.dp),
-                )
-                Text(
-                    text = comment.likeCount.toString(),
-                    color = CommentMetaText,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                painter = painterResource(R.drawable.ic_heart),
+                contentDescription = null,
+                tint = CommentMetaText,
+                modifier = Modifier.size(12.dp),
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = comment.likeCount.toString(),
+                color = CommentMetaText,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
@@ -780,7 +768,7 @@ private fun CommentInputBar(
                 Text(
                     text = "댓글을 입력하세요…",
                     color = TextSecondary,
-                    fontSize = 13.5.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -789,7 +777,7 @@ private fun CommentInputBar(
                 onValueChange = onValueChange,
                 textStyle = LocalTextStyle.current.copy(
                     color = TextPrimary,
-                    fontSize = 13.5.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                 ),
                 modifier = Modifier
