@@ -69,6 +69,7 @@ import com.ai_builder_hackathon.gttgtt.ui.component.MemberAvatar
 import com.ai_builder_hackathon.gttgtt.ui.component.PhotoImage
 import com.ai_builder_hackathon.gttgtt.ui.component.PhotoViewerDialog
 import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
+import com.ai_builder_hackathon.gttgtt.ui.theme.AbodeBlue
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
 import com.ai_builder_hackathon.gttgtt.ui.theme.CommentMetaText
@@ -76,7 +77,6 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.CommentText
 import com.ai_builder_hackathon.gttgtt.ui.theme.DetailBodyText
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.InputBarIcon
-import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipText
 import com.ai_builder_hackathon.gttgtt.ui.theme.MoreIcon
 import com.ai_builder_hackathon.gttgtt.ui.theme.ParticipantNameText
@@ -611,10 +611,8 @@ private fun LikeAndShareActions(
     ) {
         Row(
             modifier = Modifier
-                .clip(CircleShape)
-                .background(LikeChipBackground)
                 .clickable(onClick = onLikeClick)
-                .padding(horizontal = 13.dp, vertical = 8.dp),
+                .padding(horizontal = 4.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -622,7 +620,7 @@ private fun LikeAndShareActions(
                 painter = painterResource(if (likedByMe) R.drawable.ic_heart_filled else R.drawable.ic_heart),
                 contentDescription = "좋아요",
                 tint = LikeChipText,
-                modifier = Modifier.size(15.dp),
+                modifier = Modifier.size(18.dp),
             )
             Text(
                 text = likeCount.toString(),
@@ -637,14 +635,12 @@ private fun LikeAndShareActions(
         Box(
             modifier = Modifier
                 .size(34.dp)
-                .clip(CircleShape)
-                .background(if (isSharing) BrandGreen.copy(alpha = 0.4f) else BrandGreen)
                 .clickable(enabled = !isSharing, onClick = onShareClick),
             contentAlignment = Alignment.Center,
         ) {
             if (isSharing) {
                 CircularProgressIndicator(
-                    color = SurfaceWhite,
+                    color = AbodeBlue,
                     strokeWidth = 2.dp,
                     modifier = Modifier.size(16.dp),
                 )
@@ -652,8 +648,8 @@ private fun LikeAndShareActions(
                 Icon(
                     painter = painterResource(R.drawable.ic_send),
                     contentDescription = "채팅방에 보내기",
-                    tint = SurfaceWhite,
-                    modifier = Modifier.size(15.dp),
+                    tint = AbodeBlue,
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }
