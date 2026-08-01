@@ -22,10 +22,7 @@ import javax.inject.Inject
 
 /**
  * 마이페이지 프로필. `auth.currentUserOrNull()` 로 로그인 사용자를 확인하고 `profiles` 를 붙인다.
- *
- * ⚠️ [UserProfile.streakDays] 와 [UserProfile.statusMessage] 는 스키마에 대응 테이블/컬럼이 없다.
- * (연속 기록일을 재는 테이블이 없음 — 타임캡슐/알림처럼 스코프 밖 §13으로 미루지는 않았지만
- * 실제로 만들려면 새 테이블이 필요해 백엔드와 상의가 먼저다.) 지금은 고정값을 둔다.
+ * 카운트(memoryCount/mediaCount/likedCount)는 각 테이블을 RLS 범위에서 세어 채운다.
  */
 class SupabaseProfileRepository @Inject constructor(
     private val supabase: SupabaseClient,
@@ -77,14 +74,21 @@ class SupabaseProfileRepository @Inject constructor(
                 .size
         }
 
+        // 내가 누른 좋아요 수 — RLS 상 내가 멤버인 archive 의 reactions 만 내려온다.
+        val likedCount = supabase.postgrest.from("reactions")
+            .select(Columns.raw("id")) {
+                filter { eq("user_id", user.id) }
+            }
+            .decodeList<IdOnlyDto>()
+            .size
+
         UserProfile(
             id = user.id,
             name = profile.displayName ?: "이름 없음",
-            // TODO: 연속 기록일 집계 테이블이 생기면 실제 값으로 교체.
-            streakDays = 0,
             statusMessage = profile.status?.takeIf { it.isNotBlank() } ?: DEFAULT_STATUS,
             memoryCount = myMemoryIds.size,
             mediaCount = mediaCount,
+            likedCount = likedCount,
             avatarUrl = avatarUrl,
             avatarPath = profile.avatarUrl,
         )

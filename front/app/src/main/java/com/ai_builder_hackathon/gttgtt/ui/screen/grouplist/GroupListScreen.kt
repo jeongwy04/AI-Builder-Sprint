@@ -9,7 +9,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -76,7 +75,6 @@ import com.ai_builder_hackathon.gttgtt.ui.component.AddActionCard
 import com.ai_builder_hackathon.gttgtt.ui.component.HomeBottomNavBar
 import com.ai_builder_hackathon.gttgtt.ui.component.HomeTab
 import com.ai_builder_hackathon.gttgtt.ui.component.SearchField
-import com.ai_builder_hackathon.gttgtt.ui.component.SmoothCornerShape
 import com.ai_builder_hackathon.gttgtt.ui.component.hazeBackdrop
 import com.ai_builder_hackathon.gttgtt.ui.component.rememberAppHazeState
 import com.ai_builder_hackathon.gttgtt.ui.theme.AbodeBlue
@@ -85,8 +83,6 @@ import com.ai_builder_hackathon.gttgtt.ui.component.AlbumLoader
 import com.ai_builder_hackathon.gttgtt.ui.component.bounceClick
 import com.ai_builder_hackathon.gttgtt.ui.theme.DisplayFontFamily
 import com.ai_builder_hackathon.gttgtt.ui.theme.CardBackground
-import com.ai_builder_hackathon.gttgtt.ui.theme.DarkCircleButton
-import com.ai_builder_hackathon.gttgtt.ui.theme.GlassTopHighlight
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.ScreenBackgroundBrush
@@ -335,10 +331,12 @@ private fun GroupListContent(
         // ── 3) 하단 플로팅 세그먼트 — 카메라(촬영) / 그룹(현재 화면) ──
         HomeBottomNavBar(
             selected = HomeTab.GROUP,
+            hazeState = hazeState,
             onCameraClick = onCameraClick,
             onGroupClick = {},
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                // 콤팩트 바(탭 폭에 맞게 줄어듦)라 별도 폭 지정 없이 가운데 정렬만 한다.
                 .padding(bottom = 22.dp),
         )
 
@@ -366,7 +364,7 @@ private fun GroupListContent(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(top = 60.dp, end = ScreenPadding)
-                    .width(232.dp),
+                    .width(216.dp),
             )
         }
     }
@@ -1170,7 +1168,7 @@ private fun HomeHeader(
     }
 }
 
-/** 헤더 우측의 원형 아이콘 버튼(+·프로필 공용). 다크 그레이 원 + 흰 아이콘 + 상단 하이라이트. */
+/** 헤더 우측의 원형 아이콘 버튼(+·프로필 공용). 파란 원 + 흰 아이콘 + 소프트 섀도우. */
 @Composable
 private fun HeaderIconButton(
     iconRes: Int,
@@ -1183,8 +1181,7 @@ private fun HeaderIconButton(
             .size(size)
             .shadow(elevation = 6.dp, shape = CircleShape, spotColor = SoftCardShadow, ambientColor = SoftCardShadow)
             .clip(CircleShape)
-            .background(DarkCircleButton)
-            .border(width = 1.dp, color = GlassTopHighlight, shape = CircleShape)
+            .background(BrandGreen)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -1399,7 +1396,8 @@ private fun CameraGroupPickerDialog(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(SmoothCornerShape(24.dp))
+                // 채팅방(그룹 카드)과 동일한 코너.
+                .clip(RoundedCornerShape(24.dp))
                 .background(SurfaceWhite)
                 .padding(20.dp),
         ) {
@@ -1422,7 +1420,7 @@ private fun CameraGroupPickerDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(SmoothCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
                         .clickable { onPick(group.id) }
                         .padding(vertical = 10.dp, horizontal = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -23,7 +24,8 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.GlassBlueGlow
 import com.ai_builder_hackathon.gttgtt.ui.theme.SurfaceWhite
 import dev.chrisbanes.haze.HazeState
 
-private val CardShape = SmoothCornerShape(radius = 28.dp, smoothness = 0.6f)
+// 검색바/네비바와 동일한 코너.
+private val CardShape = RoundedCornerShape(24.dp)
 private val CardShadow = Color(0x55000000)
 private val Divider = Color.White.copy(alpha = 0.08f)
 
@@ -56,15 +58,15 @@ fun AddActionCard(
             .background(brush = blueGlow, shape = CardShape)
             .padding(vertical = 6.dp),
     ) {
-        ActionRow(text = "그룹방 만들기", fontSize = 20.sp, fontWeight = FontWeight.Bold, onClick = onCreateGroup)
+        ActionRow(text = "그룹방 만들기", fontSize = 18.sp, fontWeight = FontWeight.Bold, onClick = onCreateGroup)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 22.dp)
+                .padding(horizontal = 20.dp)
                 .height(1.dp)
                 .background(Divider),
         )
-        ActionRow(text = "코드로 참여하기", fontSize = 18.sp, fontWeight = FontWeight.Medium, onClick = onJoinByCode)
+        ActionRow(text = "코드로 참여하기", fontSize = 16.sp, fontWeight = FontWeight.Medium, onClick = onJoinByCode)
     }
 }
 
@@ -83,6 +85,6 @@ private fun ActionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 22.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
     )
 }

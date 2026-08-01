@@ -5,7 +5,9 @@
 import { requireEnv } from "./http.ts";
 
 const UPSTAGE_BASE_URL = "https://api.upstage.ai/v1";
-const TIMEOUT_MS = 20_000; // CLAUDE.md §8.2 — 타임아웃 20초
+// 한 번의 chat 요청이 Solar 호출 + 임베딩을 연달아 하므로, per-call 을 12초로 낮춰
+// 전체 지연이 클라이언트 타임아웃을 넘겨 "request timeout" 이 나는 것을 막는다.
+const TIMEOUT_MS = 12_000;
 
 // ---- 타입 -------------------------------------------------------------------
 

@@ -57,6 +57,8 @@ import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
 import com.ai_builder_hackathon.gttgtt.ui.theme.ChevronIcon
 import com.ai_builder_hackathon.gttgtt.ui.theme.GttgttTheme
+import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipBackground
+import com.ai_builder_hackathon.gttgtt.ui.theme.LikeChipText
 import com.ai_builder_hackathon.gttgtt.ui.theme.MenuDivider
 import com.ai_builder_hackathon.gttgtt.ui.theme.MenuItemIcon
 import com.ai_builder_hackathon.gttgtt.ui.theme.MenuItemText
@@ -204,6 +206,7 @@ private fun MyPageContent(
                 )
 
                 Spacer(Modifier.height(12.dp))
+                // 두 추억 카드는 같은 StatCard 형식으로 통일한다.
                 StatCard(
                     iconRes = R.drawable.ic_notebook,
                     iconBackground = StatMemoryBackground,
@@ -212,8 +215,16 @@ private fun MyPageContent(
                     value = uiState.profile.memoryCount,
                     onClick = onMyMemoriesClick,
                 )
+                Spacer(Modifier.height(10.dp))
+                StatCard(
+                    iconRes = R.drawable.ic_heart,
+                    iconBackground = LikeChipBackground,
+                    iconTint = LikeChipText,
+                    label = "좋아요한 추억",
+                    value = uiState.profile.likedCount,
+                    onClick = onLikedClick,
+                )
                 MenuCard(
-                    onLikedClick = onLikedClick,
                     onSignOutClick = onSignOutClick,
                     onHelpClick = { showHelp = true },
                 )
@@ -308,10 +319,7 @@ private fun ProfileHeader(
                 )
             }
 
-            Spacer(Modifier.height(10.dp))
-            StreakBadge(days = profile.streakDays)
-
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             // 탭하면 상태 메시지를 직접 편집한다 (SNS 한 줄 상태처럼).
             Text(
                 text = profile.statusMessage,
@@ -381,32 +389,6 @@ private fun AvatarWithCamera(
     }
 }
 
-@Composable
-private fun StreakBadge(days: Int) {
-    Row(
-        modifier = Modifier
-            .shadow(elevation = 3.dp, shape = CircleShape, clip = false)
-            .clip(CircleShape)
-            .background(SurfaceWhite)
-            .padding(horizontal = 14.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_flame),
-            contentDescription = null,
-            tint = BrandGreenDark,
-            modifier = Modifier.size(14.dp),
-        )
-        Text(
-            text = "그때그때 ${days}일째",
-            color = BrandGreenDark,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.ExtraBold,
-        )
-    }
-}
-
 /** 시안 .statcard */
 @Composable
 private fun StatCard(
@@ -463,7 +445,6 @@ private fun StatCard(
 /** 시안 .menucard — 항목 사이에만 얇은 구분선이 들어간다. */
 @Composable
 private fun MenuCard(
-    onLikedClick: () -> Unit,
     onSignOutClick: () -> Unit,
     onHelpClick: () -> Unit,
 ) {
@@ -475,8 +456,6 @@ private fun MenuCard(
             .clip(RoundedCornerShape(20.dp))
             .background(SurfaceWhite)
     ) {
-        MenuItem(R.drawable.ic_heart, "좋아요한 추억", onClick = onLikedClick)
-        HorizontalDivider(thickness = 1.dp, color = MenuDivider)
         MenuItem(R.drawable.ic_help_circle, "도움말", onClick = onHelpClick)
         HorizontalDivider(thickness = 1.dp, color = MenuDivider)
         MenuItem(R.drawable.ic_logout, "로그아웃", onClick = onSignOutClick)
@@ -666,10 +645,10 @@ private fun MyPageContentPreview() {
                 profile = UserProfile(
                     id = "u-me",
                     name = "김그때",
-                    streakDays = 120,
                     statusMessage = "추억을 모으는 중 ✨",
                     memoryCount = 128,
                     mediaCount = 342,
+                    likedCount = 47,
                 ),
             ),
             onBackClick = {},
