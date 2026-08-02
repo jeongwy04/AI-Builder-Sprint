@@ -185,7 +185,7 @@ private fun PageContent(page: OnboardingPage, pageIndex: Int) {
         ) {
             when (pageIndex) {
                 0 -> BlobCluster()
-                1 -> IconBubble(AbodeYellow, R.drawable.ic_sparkles)
+                1 -> IconBubble(AbodeYellow, R.drawable.ic_solar_spark)
                 else -> IconBubble(AbodeCoral, R.drawable.ic_heart)
             }
         }

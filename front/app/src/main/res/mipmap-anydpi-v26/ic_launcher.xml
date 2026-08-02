@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  전경은 앱 아이콘 원본을 108dp 캔버스의 가운데 64dp 안에 넣은 비트맵이다.
+  런처가 108dp 중 가운데 72dp 만 보여주므로 원본을 꽉 채우면 바깥이 잘린다.
+  배경이 흰색인 이유는 원본 아트가 흰 바탕 위에 그려진 라운드 사각형이기 때문이다.
+  다색 아이콘이라 의미 있는 단색 버전이 없어 monochrome 은 두지 않는다.
+-->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@drawable/ic_launcher_background" />
-    <foreground android:drawable="@drawable/ic_launcher_foreground" />
-    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+    <foreground android:drawable="@mipmap/ic_launcher_fg" />
 </adaptive-icon>
