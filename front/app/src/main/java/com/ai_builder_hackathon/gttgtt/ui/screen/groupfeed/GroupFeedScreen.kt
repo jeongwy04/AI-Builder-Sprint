@@ -1029,6 +1029,7 @@ private fun PostCard(
             text = post.caption,
             style = TextStyle(
                 color = TextPrimary,
+                fontFamily = DisplayFontFamily,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 lineHeight = 19.6.sp,

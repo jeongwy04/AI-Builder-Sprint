@@ -29,16 +29,24 @@ val PretendardFontFamily = FontFamily(
 )
 
 /**
- * 헤딩·큰 문구·숫자용 디스플레이 서체 = **Gmarket Sans** (둥근 헤비 톤).
+ * 헤딩·큰 문구·숫자용 디스플레이 서체 = **카페24 써라운드** (획 끝이 둥근 라운드 고딕).
+ * 앱 아이콘의 굵은 라운드 스트로크와 톤을 맞추려고 Gmarket Sans 에서 교체했다.
  * "그때그때", 온보딩 헤딩, 마이페이지 이름/통계 숫자 등 큰 문구에 쓴다.
  * 화면에서 `fontFamily = DisplayFontFamily` 로 지정한다.
+ *
+ * 굵기는 두 종뿐이다 — Air(Light, 300) 과 Ssurround(Bold, 700).
+ * 호출부가 Light~Black 을 섞어 쓰므로 중간 굵기까지 둘 중 하나로 명시해 둔다.
+ * 빠진 굵기를 두면 Compose 가 합성 볼드(faux bold)를 만들어 획이 뭉갠다.
+ * 라이선스: docs/licenses/Cafe24Ssurround{,Air}-License.pdf (OFL, 임베딩 허용)
  */
 val DisplayFontFamily = FontFamily(
-    Font(R.font.gmarketsans_light, FontWeight.Light),
-    Font(R.font.gmarketsans_medium, FontWeight.Normal),
-    Font(R.font.gmarketsans_medium, FontWeight.Medium),
-    Font(R.font.gmarketsans_bold, FontWeight.SemiBold),
-    Font(R.font.gmarketsans_bold, FontWeight.Bold),
+    Font(R.font.cafe24_ssurround_air, FontWeight.Light),
+    Font(R.font.cafe24_ssurround_air, FontWeight.Normal),
+    Font(R.font.cafe24_ssurround, FontWeight.Medium),
+    Font(R.font.cafe24_ssurround, FontWeight.SemiBold),
+    Font(R.font.cafe24_ssurround, FontWeight.Bold),
+    Font(R.font.cafe24_ssurround, FontWeight.ExtraBold),
+    Font(R.font.cafe24_ssurround, FontWeight.Black),
 )
 
 val Typography = Typography(

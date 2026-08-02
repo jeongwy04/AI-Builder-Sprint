@@ -1259,6 +1259,7 @@ private fun GroupCard(
                     text = group.name,
                     style = TextStyle(
                         color = TextPrimary,
+                        fontFamily = DisplayFontFamily,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = (-0.02).em,
@@ -1434,6 +1435,7 @@ private fun CameraGroupPickerDialog(
                     Text(
                         text = group.name,
                         color = TextPrimary,
+                        fontFamily = DisplayFontFamily,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,

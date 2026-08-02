@@ -63,6 +63,7 @@ import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenSoft
+import com.ai_builder_hackathon.gttgtt.ui.theme.DisplayFontFamily
 import com.ai_builder_hackathon.gttgtt.ui.theme.ChatBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.DateChipBackground
 import com.ai_builder_hackathon.gttgtt.ui.theme.DateChipText
@@ -423,6 +424,7 @@ private fun SharedMemoryBubble(preview: SharedMemoryPreview, onClick: () -> Unit
             Text(
                 text = preview.title,
                 color = TextPrimary,
+                fontFamily = DisplayFontFamily,
                 fontSize = 12.5.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,

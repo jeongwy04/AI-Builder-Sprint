@@ -72,6 +72,7 @@ import com.ai_builder_hackathon.gttgtt.ui.component.TopBarButton
 import com.ai_builder_hackathon.gttgtt.ui.theme.AbodeBlue
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreen
 import com.ai_builder_hackathon.gttgtt.ui.theme.BrandGreenDark
+import com.ai_builder_hackathon.gttgtt.ui.theme.DisplayFontFamily
 import com.ai_builder_hackathon.gttgtt.ui.theme.CommentMetaText
 import com.ai_builder_hackathon.gttgtt.ui.theme.CommentText
 import com.ai_builder_hackathon.gttgtt.ui.theme.DetailBodyText
@@ -483,6 +484,7 @@ private fun DetailBody(
                     text = memory.title,
                     style = TextStyle(
                         color = TextPrimary,
+                        fontFamily = DisplayFontFamily,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = (-0.03).em,
