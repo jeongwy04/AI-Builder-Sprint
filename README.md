@@ -16,23 +16,24 @@
 
 ## 설치하고 바로 써보기 (Android)
 
-별도 빌드 없이 APK를 내려받아 바로 실행할 수 있습니다.
+코드를 직접 빌드하지 않고 APK만 받아 실행할 수 있습니다. 이미 배포된 Supabase 프로젝트와 Edge Functions에 연결되어 있어 별도 설정이 필요 없습니다.
 
-**다운로드** → [app-debug.apk](https://github.com/jeongwy04/AI-Builder-Sprint/releases/latest/download/app-debug.apk)
-(내려받아지지 않으면 [릴리즈 페이지](https://github.com/jeongwy04/AI-Builder-Sprint/releases/latest)에서 직접 받으실 수 있습니다.)
+**다운로드** → [app-debug.apk](https://github.com/jeongwy04/AI-Builder-Sprint/releases/download/v1.0/app-debug.apk)
+(링크가 열리지 않으면 [릴리즈 페이지](https://github.com/jeongwy04/AI-Builder-Sprint/releases/latest)에서 받으실 수 있습니다.)
 
 | 항목 | 값 |
 |---|---|
 | 지원 OS | Android 8.0 (API 26) 이상 · iOS 미지원 |
 | 파일 크기 | 약 32MB |
-| 백엔드 | Supabase (배포 완료, 별도 설정 불필요) |
 
 ### 설치
 
-1. **안드로이드 기기의 크롬**에서 위 링크를 엽니다.
+1. 안드로이드 기기의 **Chrome**에서 위 링크를 엽니다.
 2. 다운로드가 끝나면 파일을 눌러 설치합니다.
 3. "출처를 알 수 없는 앱" 경고가 뜨면 설정에서 해당 브라우저의 설치를 허용한 뒤 다시 실행합니다.
 
+> **다운로드·설치가 안 될 경우** 기본 브라우저(특히 삼성 인터넷 등) 대신 **Chrome**으로 링크를 열어 다시 받아보세요. 일부 브라우저는 다운로드가 100%까지 진행되고도 완료 처리가 안 되거나 설치 화면이 안 뜨는 경우가 있습니다.
+>
 > 기기 저장 공간은 100MB 이상 비어 있어야 합니다.
 
 ### 로그인
@@ -69,6 +70,17 @@
 - **그룹 채팅** — 그룹 멤버끼리 대화하고, 피드의 기억을 채팅방에 바로 공유할 수 있습니다.
 - **마이페이지** — 닉네임·프로필 사진·상태 메시지를 관리하고, 내가 남긴 기억과 좋아요한 기억을 모아 봅니다.
 - **그룹 관리** — 그룹 생성, 이름/대표 사진 변경, 초대 코드로 멤버 추가.
+
+### 사용 예시
+
+```
+나:  우리 그때 밤에 치킨 먹다가 다 같이 운 날 사진 있어?
+AI:  언제쯤이었는지 기억나세요? 어떤 여행이나 모임이었어요?
+나:  작년 겨울, 종강하고 강릉 갔을 때
+AI:  찾았어요! 2025년 12월 강릉이네요.
+     "시험 끝나고 치킨 먹다 졸업 얘기 나와서 다 같이 운 날"이라고 메모돼 있어요.
+     [사진 카드]
+```
 
 ## 기술 스택
 
@@ -107,21 +119,19 @@
 
 | 항목 | 내용 |
 |---|---|
-| 배포 링크 (APK) | [app-debug.apk](https://github.com/jeongwy04/AI-Builder-Sprint/releases/download/v1.0/app-debug.apk) — 다운로드 후 "출처를 알 수 없는 앱 설치" 허용하면 바로 설치됩니다. |
+| 배포 링크 (APK) | 위 [설치하고 바로 써보기](#설치하고-바로-써보기-android) 참고 |
 | 빌드 타입 | Debug (디버그 키 자동 서명, 별도 키스토어 설정 없이 설치 가능) |
 | 최소/타겟 SDK | minSdk 26 (Android 8.0) · targetSdk 36 |
-| 백엔드 | Supabase 프로젝트(Postgres + pgvector, Storage, Auth, Edge Functions) — 데모/심사용으로 별도 배포된 실 프로젝트에 연결됨 |
+| 빌드 도구 | JDK 17 · AGP 9.2.1 · Kotlin 2.2.10 · Gradle 9.4.1 |
+| 백엔드 | Supabase 프로젝트(Postgres + pgvector, Storage, Auth, Edge Functions) — 데모용으로 별도 배포된 실 프로젝트에 연결됨 |
 | Edge Functions | `chat`, `embed-memory` 배포 완료 (`supabase functions deploy`) |
 | AI 모델 | Upstage Solar Pro 3(대화) · Embed 2(임베딩), Edge Function 환경변수로 모델명 주입 |
-| 테스트 계정 | `tester@gmail.com` / `testtest` — 로그인 화면에서 이 계정으로 로그인해 바로 테스트할 수 있습니다. |
-
-> 코드를 직접 빌드하지 않고 앱만 써보고 싶다면 위 배포 링크로 APK를 받아 설치하면 됩니다. 이미 배포된 Supabase 프로젝트/Edge Functions에 연결되어 있어 별도 설정이 필요 없습니다.
->
-> **다운로드/설치가 안 될 경우** 기본 브라우저(특히 삼성 인터넷 등) 대신 **Chrome**으로 링크를 열어 다시 받아보세요. 일부 브라우저는 다운로드가 100%까지 진행되고도 완료 처리가 안 되거나 설치 화면이 안 뜨는 경우가 있습니다.
+| 테스트 계정 | `tester@gmail.com` / `testtest` |
 
 ## 로컬 기동 가이드
 
 ### 사전 준비
+
 - JDK 17+, Android Studio
 - Supabase 프로젝트, Supabase CLI, Upstage API 키(Solar Pro 3 · Embed 2)
 
@@ -133,7 +143,7 @@ supabase link --project-ref <your-project-ref>
 supabase db push   # supabase/migrations/ 의 스키마 + RLS + RPC 적용
 ```
 
-마이그레이션에는 `pgvector` 확장, 11개 테이블(`profiles`/`archives`/`memberships`/`invitations`/`memories`/`media_assets`/`notes`/`chat_sessions`/`chat_messages`/`post_likes`/`comments`), `is_member()` 헬퍼 기반 RLS, `match_memories()`/`create_archive()`/`accept_invitation()` 등의 RPC, private Storage 버킷(`memories`, `avatars`)이 모두 포함되어 있습니다.
+마이그레이션에는 `pgvector` 확장, 14개 테이블(`profiles`/`archives`/`memberships`/`invitations`/`memories`/`media_assets`/`notes`/`chat_sessions`/`chat_messages`/`messages`/`chat_reads`/`reactions`/`memory_people`/`comments`), `is_member()` 헬퍼 기반 RLS, `match_memories()`/`create_archive()`/`accept_invitation()` 등의 RPC, private Storage 버킷(`memories`, `avatars`)이 모두 포함되어 있습니다.
 
 ### 2. 백엔드 (Supabase Edge Functions)
 
@@ -165,6 +175,8 @@ cd front
 ```
 
 Android Studio에서 `front` 프로젝트를 열어 실행할 수도 있습니다.
+
+> Google 로그인은 앱 서명 키의 SHA-1이 Google Cloud OAuth 클라이언트에 등록되어 있어야 동작합니다. 다른 환경에서 빌드하는 경우 해당 기기의 디버그 키스토어 SHA-1을 등록하거나, 이메일 회원가입으로 테스트해 주세요.
 
 ## 환경변수
 
@@ -203,7 +215,7 @@ gttgtt/
 │   └── migrations/                 # 스키마 · RLS · RPC
 ├── prompts/                        # 검색 Agent 시스템 프롬프트 (버전 관리)
 ├── evals/                          # 프롬프트 품질 검증 산출물
-├── docs/                           # 아키텍처 문서 · 스키마 레퍼런스
+├── docs/                           # 아키텍처 문서 · 스키마 레퍼런스 · 폰트 라이선스
 ├── .claude/agents/                 # 코드 리뷰 서브에이전트 정의
 ├── CLAUDE.md / AGENTS.md           # AI 코딩 에이전트 지침 (동일 내용)
 ├── AI_USAGE.md                     # AI 활용 기록
@@ -227,3 +239,10 @@ gttgtt/
 ## 라이선스
 
 _삠삠_
+
+**사용 폰트**
+
+| 폰트 | 용도 | 라이선스 |
+|---|---|---|
+| Pretendard | 본문 | SIL Open Font License 1.1 |
+| 카페24 써라운드 / 써라운드 Air | 제목·로고 | 카페24 무료 폰트 (임베딩 허용) — [`docs/licenses/`](./docs/licenses) |
