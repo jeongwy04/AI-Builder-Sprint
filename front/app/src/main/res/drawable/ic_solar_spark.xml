@@ -1,0 +1,17 @@
+<!--
+  Upstage Solar 마크의 실루엣 — 스파클 두 개가 겹친 형태.
+  AI 추억 찾기(Solar Pro 3 기반)를 나타내는 아이콘이라 기존 범용 sparkle 대신 이걸 쓴다.
+  단색 fill 이므로 호출부의 Icon(tint = ...) 이 그대로 먹는다.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M10.65,2.55 C10.65,8.69 13.96,12 20.1,12 C13.96,12 10.65,15.31 10.65,21.45 C10.65,15.31 7.34,12 1.2,12 C7.34,12 10.65,8.69 10.65,2.55 Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M13.35,2.55 C13.35,8.69 16.66,12 22.8,12 C16.66,12 13.35,15.31 13.35,21.45 C13.35,15.31 10.04,12 3.9,12 C10.04,12 13.35,8.69 13.35,2.55 Z" />
+</vector>
