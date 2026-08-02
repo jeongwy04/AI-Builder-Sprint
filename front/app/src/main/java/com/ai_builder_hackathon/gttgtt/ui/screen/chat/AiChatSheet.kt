@@ -188,7 +188,7 @@ private fun SparkleAvatar(size: Dp) {
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            painter = painterResource(R.drawable.ic_sparkles),
+            painter = painterResource(R.drawable.ic_solar_spark),
             contentDescription = null,
             tint = SurfaceWhite,
             modifier = Modifier.size(size * 0.6f),

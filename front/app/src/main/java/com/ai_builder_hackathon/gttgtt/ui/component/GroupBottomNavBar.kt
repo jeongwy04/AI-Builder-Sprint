@@ -67,7 +67,7 @@ fun GroupBottomNavBar(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         NavItem(
-            iconRes = R.drawable.ic_sparkles,
+            iconRes = R.drawable.ic_solar_spark,
             contentDescription = "AI 추억 찾기",
             isSelected = isAiSelected,
             onClick = onAiClick,
