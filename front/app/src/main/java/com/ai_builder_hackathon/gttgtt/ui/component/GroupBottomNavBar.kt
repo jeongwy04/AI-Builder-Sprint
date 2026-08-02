@@ -19,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.PlatformTextStyle
@@ -59,7 +58,6 @@ fun GroupBottomNavBar(
         modifier = modifier
             .height(BarHeight)
             // 높이의 절반이 radius 가 되는 완전한 알약(타원) 형태
-            .shadow(elevation = 16.dp, shape = CircleShape, clip = false)
             .clip(CircleShape)
             .background(SurfaceWhite)
             .padding(horizontal = 10.dp),
