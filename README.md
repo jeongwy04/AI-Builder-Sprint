@@ -217,6 +217,16 @@ gttgtt/
 - **Upstage Embed 2** — 메모·장소·날짜를 조합한 `search_text`를 벡터로 변환해 의미 기반 검색에 사용합니다 (`supabase/functions/embed-memory`).
 - **개발 과정** — AI 코딩 에이전트를 프로젝트 전반의 구현·리뷰·마이그레이션 작성에 활용했으며, 지침은 [`CLAUDE.md`](./CLAUDE.md)에, 활용 내역과 설계 이유는 [`AI_USAGE.md`](./AI_USAGE.md)에 정리되어 있습니다.
 
+### 산출물
+
+| 위치 | 내용 |
+|---|---|
+| [`AI_USAGE.md`](./AI_USAGE.md) | AI 활용 기술서 — 런타임 AI, 개발 과정 AI, 사용 위치 요약표, 재현 정보 |
+| [`prompts/`](./prompts) | 검색 에이전트 시스템 프롬프트. 덮어쓰지 않고 버전을 올려 개선 이력을 남깁니다 ([v1](./prompts/search_agent_v1.md) → [v2](./prompts/search_agent_v2.md), 활성 버전은 v2) |
+| [`evals/`](./evals) | 프롬프트 품질 검증 — [케이스 12개](./evals/cases/search_agent.md)와 [실행 결과](./evals/results). "정답률"이 아니라 **환각·되묻기 같은 금지 행동 위반 여부**로 채점합니다 |
+| [`.claude/agents/`](./.claude/agents) | 코드 리뷰 서브에이전트 정의 (Compose · RLS · 프롬프트) |
+| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | 아키텍처 결정 기록 |
+
 ## 팀
 
 | 이름 | 역할 |
