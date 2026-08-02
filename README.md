@@ -67,7 +67,20 @@ AI:  찾았어요! 2025년 12월 강릉이네요.
 - **검색**만 Edge Function을 거칩니다: 질의 임베딩(Embed 2) → `match_memories()` RPC로 유사도 검색 → Solar Pro 3가 결과 안에서만 자연어로 요약합니다.
 - Upstage API 키는 앱에 절대 포함하지 않고 Edge Function secrets로만 관리합니다 (APK 디컴파일 유출 방지).
 
-## 실행 방법
+## 실행/배포 환경
+
+| 항목 | 내용 |
+|---|---|
+| 배포 링크 (APK) | [app-debug.apk](https://github.com/jeongwy04/AI-Builder-Sprint/releases/download/v1.0/app-debug.apk) — 다운로드 후 "출처를 알 수 없는 앱 설치" 허용하면 바로 설치됩니다. |
+| 빌드 타입 | Debug (디버그 키 자동 서명, 별도 키스토어 설정 없이 설치 가능) |
+| 최소/타겟 SDK | minSdk 26 (Android 8.0) · targetSdk 36 |
+| 백엔드 | Supabase 프로젝트(Postgres + pgvector, Storage, Auth, Edge Functions) — 데모/심사용으로 별도 배포된 실 프로젝트에 연결됨 |
+| Edge Functions | `chat`, `embed-memory` 배포 완료 (`supabase functions deploy`) |
+| AI 모델 | Upstage Solar Pro 3(대화) · Embed 2(임베딩), Edge Function 환경변수로 모델명 주입 |
+
+> 코드를 직접 빌드하지 않고 앱만 써보고 싶다면 위 배포 링크로 APK를 받아 설치하면 됩니다. 이미 배포된 Supabase 프로젝트/Edge Functions에 연결되어 있어 별도 설정이 필요 없습니다.
+
+## 로컬 기동 가이드
 
 ### 사전 준비
 - JDK 17+, Android Studio
@@ -113,6 +126,27 @@ cd front
 ```
 
 Android Studio에서 `front` 프로젝트를 열어 실행할 수도 있습니다.
+
+## 환경변수
+
+**앱 (`front/local.properties`, 커밋 금지 · `local.properties.example` 참고)**
+
+| 변수 | 설명 |
+|---|---|
+| `SUPABASE_URL` | Supabase 프로젝트 URL. `BuildConfig`로 주입. |
+| `SUPABASE_ANON_KEY` | Supabase anon 키. RLS가 보안 경계라 클라이언트에 포함돼도 안전. |
+| `GOOGLE_WEB_CLIENT_ID` | Google 네이티브 로그인용 Web 클라이언트 ID. |
+
+> Upstage API 키는 앱에 절대 포함하지 않습니다 — APK는 디컴파일될 수 있어 여기 두는 순간 키가 공개됩니다.
+
+**Supabase Edge Functions (`supabase secrets set`)**
+
+| 변수 | 설명 |
+|---|---|
+| `UPSTAGE_API_KEY` | Upstage API 키. Edge Function secrets에만 저장, 앱에는 없음. |
+| `SOLAR_MODEL` | 대화 Agent 모델명 (예: `solar-pro3`). 코드에 하드코딩하지 않고 환경변수로 주입. |
+| `EMBED_PASSAGE_MODEL` | 저장 시 임베딩 모델명 (예: `embedding-passage`). |
+| `EMBED_QUERY_MODEL` | 검색 질의 임베딩 모델명 (예: `embedding-query`). |
 
 ## 프로젝트 구조
 
