@@ -77,6 +77,7 @@ AI:  찾았어요! 2025년 12월 강릉이네요.
 | 백엔드 | Supabase 프로젝트(Postgres + pgvector, Storage, Auth, Edge Functions) — 데모/심사용으로 별도 배포된 실 프로젝트에 연결됨 |
 | Edge Functions | `chat`, `embed-memory` 배포 완료 (`supabase functions deploy`) |
 | AI 모델 | Upstage Solar Pro 3(대화) · Embed 2(임베딩), Edge Function 환경변수로 모델명 주입 |
+| 테스트 계정 | `tester@gmail.com` / `testtest` — 로그인 화면에서 이 계정으로 로그인해 바로 테스트할 수 있습니다. |
 
 > 코드를 직접 빌드하지 않고 앱만 써보고 싶다면 위 배포 링크로 APK를 받아 설치하면 됩니다. 이미 배포된 Supabase 프로젝트/Edge Functions에 연결되어 있어 별도 설정이 필요 없습니다.
 >
