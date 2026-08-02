@@ -21,6 +21,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -181,6 +182,8 @@ fun GroupFeedScreen(
         },
         onSettingsClick = viewModel::onSettingsClick,
         onDismissSettingsSheet = viewModel::onDismissSettingsSheet,
+        onMemberListClick = viewModel::onMemberListClick,
+        onDismissMemberList = viewModel::onDismissMemberList,
         onRenameClick = viewModel::onRenameClick,
         onDeleteClick = viewModel::onDeleteClick,
         onInviteClick = viewModel::onInviteClick,
@@ -228,6 +231,8 @@ private fun GroupFeedContent(
     onMemoryClickFromAi: (String) -> Unit,
     onSettingsClick: () -> Unit = {},
     onDismissSettingsSheet: () -> Unit = {},
+    onMemberListClick: () -> Unit = {},
+    onDismissMemberList: () -> Unit = {},
     onRenameClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
     onInviteClick: () -> Unit = {},
@@ -274,6 +279,7 @@ private fun GroupFeedContent(
                         hiddenCount = (uiState.memberCount - shownMembers.size).coerceAtLeast(0),
                         avatarUrlById = uiState.memberAvatarUrls,
                         avatarPathById = uiState.memberAvatarPaths,
+                        onClick = onMemberListClick,
                     )
                 },
             )
@@ -368,6 +374,17 @@ private fun GroupFeedContent(
         )
     }
 
+    if (uiState.isMemberListOpen) {
+        MemberListSheet(
+            memberIds = uiState.memberIds,
+            memberNames = uiState.memberNames,
+            avatarUrlById = uiState.memberAvatarUrls,
+            avatarPathById = uiState.memberAvatarPaths,
+            isLoading = uiState.isMemberNamesLoading,
+            onDismiss = onDismissMemberList,
+        )
+    }
+
     if (uiState.isRenameDialogOpen) {
         RenameGroupDialog(
             name = uiState.renameText,
@@ -441,6 +458,71 @@ private fun PostOptionsSheet(
             )
             SettingsMenuRow(label = "수정", onClick = onEditClick)
             SettingsMenuRow(label = "삭제", labelColor = DangerColor, onClick = onDeleteClick)
+        }
+    }
+}
+
+/** 상단바 우측 겹친 아바타를 누르면 뜨는 그룹 멤버 목록. */
+@Composable
+private fun MemberListSheet(
+    memberIds: List<String>,
+    memberNames: Map<String, String>,
+    avatarUrlById: Map<String, String>,
+    avatarPathById: Map<String, String>,
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(SurfaceWhite)
+                .padding(vertical = 20.dp),
+        ) {
+            Text(
+                text = "멤버 ${memberIds.size}",
+                color = TextPrimary,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
+            Spacer(Modifier.height(14.dp))
+
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(color = BrandGreen, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+                }
+            } else {
+                LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
+                    items(memberIds, key = { it }) { memberId ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            MemberAvatar(
+                                memberId = memberId,
+                                size = 40.dp,
+                                showRing = false,
+                                imageUrl = avatarUrlById[memberId],
+                                imagePath = avatarPathById[memberId],
+                            )
+                            Text(
+                                text = memberNames[memberId] ?: "이름 없음",
+                                color = TextPrimary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

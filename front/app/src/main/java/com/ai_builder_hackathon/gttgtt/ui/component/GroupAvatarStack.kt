@@ -2,6 +2,8 @@ package com.ai_builder_hackathon.gttgtt.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -42,6 +44,7 @@ private val AvatarRing = 2.dp
  * @param avatarUrlById memberId → 프로필 사진 URL. 키가 없거나 값이 null 인 멤버는
  * id 해시로 고정 배정한 그라디언트를 대신 보여준다.
  * @param avatarPathById memberId → 프로필 사진 storage path. Coil 캐시 키 고정용 — [MemberAvatar] 참고.
+ * @param onClick 탭하면 멤버 목록을 보여주는 등의 동작을 연결한다. null 이면 탭 반응이 없다.
  */
 @Composable
 fun GroupAvatarStack(
@@ -50,9 +53,20 @@ fun GroupAvatarStack(
     modifier: Modifier = Modifier,
     avatarUrlById: Map<String, String> = emptyMap(),
     avatarPathById: Map<String, String> = emptyMap(),
+    onClick: (() -> Unit)? = null,
 ) {
     Row(
-        modifier = modifier,
+        modifier = modifier.then(
+            if (onClick != null) {
+                Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onClick,
+                )
+            } else {
+                Modifier
+            }
+        ),
         horizontalArrangement = Arrangement.spacedBy(AvatarOverlap),
         verticalAlignment = Alignment.CenterVertically,
     ) {

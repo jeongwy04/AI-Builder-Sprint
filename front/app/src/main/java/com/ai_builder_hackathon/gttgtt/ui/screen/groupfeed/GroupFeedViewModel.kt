@@ -95,6 +95,35 @@ class GroupFeedViewModel @Inject constructor(
         _uiState.update { it.copy(isSettingsSheetOpen = false) }
     }
 
+    // ── 멤버 목록 (상단바 우측 아바타 겹침 탭) ──
+
+    /**
+     * 시트를 열고, 아직 이름을 못 불러왔으면 그때 조회한다.
+     * memberIds 는 이미 uiState 에 다 있으니(피드 로딩 때 같이 옴) 이름만 추가로 필요하다.
+     */
+    fun onMemberListClick() {
+        _uiState.update { it.copy(isMemberListOpen = true) }
+        if (_uiState.value.memberNames.isNotEmpty()) return
+
+        val memberIds = _uiState.value.memberIds
+        if (memberIds.isEmpty()) return
+
+        _uiState.update { it.copy(isMemberNamesLoading = true) }
+        viewModelScope.launch {
+            archiveRepository.getMemberNames(memberIds)
+                .onSuccess { names ->
+                    _uiState.update { it.copy(memberNames = names, isMemberNamesLoading = false) }
+                }
+                .onFailure {
+                    _uiState.update { it.copy(isMemberNamesLoading = false) }
+                }
+        }
+    }
+
+    fun onDismissMemberList() {
+        _uiState.update { it.copy(isMemberListOpen = false) }
+    }
+
     // ── 이름 변경 ──
 
     fun onRenameClick() {

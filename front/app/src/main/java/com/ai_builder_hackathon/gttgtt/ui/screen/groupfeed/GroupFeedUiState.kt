@@ -20,6 +20,12 @@ data class GroupFeedUiState(
     // ── 그룹 설정 (우측 상단 톱니 버튼) ──
     val isSettingsSheetOpen: Boolean = false,
 
+    // ── 멤버 목록 (상단바 우측 아바타 겹침 탭) ──
+    val isMemberListOpen: Boolean = false,
+    /** memberId → 표시 이름. 시트를 열 때 조회한다 — 평소엔 안 쓰이니 미리 불러오지 않는다. */
+    val memberNames: Map<String, String> = emptyMap(),
+    val isMemberNamesLoading: Boolean = false,
+
     // 이름 변경
     val isRenameDialogOpen: Boolean = false,
     val renameText: String = "",
