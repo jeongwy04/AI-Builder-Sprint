@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.ai_builder_hackathon.gttgtt.ui.util.toUserMessage
 
 @HiltViewModel
 class GroupFeedViewModel @Inject constructor(
@@ -78,7 +79,7 @@ class GroupFeedViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             posts = before,
-                            errorMessage = throwable.message ?: "좋아요를 반영하지 못했습니다.",
+                            errorMessage = throwable.toUserMessage("좋아요를 반영하지 못했습니다."),
                         )
                     }
                 }
@@ -164,7 +165,7 @@ class GroupFeedViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isRenaming = false,
-                            renameError = throwable.message ?: "이름을 변경하지 못했습니다.",
+                            renameError = throwable.toUserMessage("이름을 변경하지 못했습니다."),
                         )
                     }
                 }
@@ -195,7 +196,7 @@ class GroupFeedViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isDeleting = false,
-                            deleteError = throwable.message ?: "그룹을 삭제하지 못했습니다.",
+                            deleteError = throwable.toUserMessage("그룹을 삭제하지 못했습니다."),
                         )
                     }
                 }
@@ -223,7 +224,7 @@ class GroupFeedViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isInviteLoading = false,
-                            inviteError = throwable.message ?: "초대 코드를 만들지 못했습니다.",
+                            inviteError = throwable.toUserMessage("초대 코드를 만들지 못했습니다."),
                         )
                     }
                 }
@@ -258,7 +259,7 @@ class GroupFeedViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isCoverImageUpdating = false,
-                            coverImageError = throwable.message ?: "그룹 사진을 변경하지 못했습니다.",
+                            coverImageError = throwable.toUserMessage("그룹 사진을 변경하지 못했습니다."),
                         )
                     }
                 }
@@ -311,7 +312,7 @@ class GroupFeedViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isDeletingPost = false,
-                            deletePostError = throwable.message ?: "게시물을 삭제하지 못했습니다.",
+                            deletePostError = throwable.toUserMessage("게시물을 삭제하지 못했습니다."),
                         )
                     }
                 }
@@ -337,7 +338,7 @@ class GroupFeedViewModel @Inject constructor(
                         it.copy(
                             sharingPostId = null,
                             shareErrorPostId = postId,
-                            shareError = throwable.message ?: "채팅방에 공유하지 못했습니다.",
+                            shareError = throwable.toUserMessage("채팅방에 공유하지 못했습니다."),
                         )
                     }
                 }
@@ -384,7 +385,7 @@ class GroupFeedViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = throwable.message ?: "게시물을 불러오지 못했습니다.",
+                            errorMessage = throwable.toUserMessage("게시물을 불러오지 못했습니다."),
                         )
                     }
                 }

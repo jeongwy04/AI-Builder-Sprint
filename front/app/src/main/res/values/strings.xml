@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">gttgtt</string>
+    <!-- 런처 아이콘 아래와 앱 정보에 표시되는 이름. 브랜드 표기는 붙여 쓴 "그때그때"다. -->
+    <string name="app_name">그때그때</string>
 </resources>

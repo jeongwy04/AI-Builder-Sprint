@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.ai_builder_hackathon.gttgtt.ui.util.toUserMessage
 
 /**
  * S0-B 회원가입 ViewModel.
@@ -142,7 +143,7 @@ class SignUpViewModel @Inject constructor(
                 }
                 .onFailure { throwable ->
                     _uiState.update {
-                        it.copy(isSubmitting = false, errorMessage = throwable.message ?: "회원가입에 실패했어요.")
+                        it.copy(isSubmitting = false, errorMessage = throwable.toUserMessage("회원가입에 실패했어요."))
                     }
                 }
         }
@@ -168,7 +169,7 @@ class SignUpViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isSubmitting = false,
-                        errorMessage = throwable.message ?: "닉네임을 저장하지 못했어요.",
+                        errorMessage = throwable.toUserMessage("닉네임을 저장하지 못했어요."),
                     )
                 }
             }

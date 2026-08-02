@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.ai_builder_hackathon.gttgtt.ui.util.toUserMessage
 
 /**
  * S0 로그인 ViewModel.
@@ -68,8 +69,7 @@ class AuthViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            errorMessage = throwable.message
-                                ?: "로그인에 실패했어요. 이메일/비밀번호를 확인해주세요.",
+                            errorMessage = throwable.toUserMessage("로그인에 실패했어요. 이메일/비밀번호를 확인해주세요."),
                         )
                     }
                 }

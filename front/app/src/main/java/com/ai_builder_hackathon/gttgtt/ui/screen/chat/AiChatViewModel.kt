@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
+import com.ai_builder_hackathon.gttgtt.ui.util.toUserMessage
 
 /**
  * AI 추억 찾기 바텀시트의 상태.
@@ -74,7 +75,7 @@ class AiChatViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isThinking = false,
-                            errorMessage = throwable.message ?: "답변을 가져오지 못했어요.",
+                            errorMessage = throwable.toUserMessage("답변을 가져오지 못했어요."),
                         )
                     }
                 }

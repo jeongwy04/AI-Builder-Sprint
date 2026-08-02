@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.ai_builder_hackathon.gttgtt.ui.util.toUserMessage
 
 @HiltViewModel
 class MyPageViewModel @Inject constructor(
@@ -35,7 +36,7 @@ class MyPageViewModel @Inject constructor(
                 }
                 .onFailure { throwable ->
                     _uiState.update {
-                        it.copy(errorMessage = throwable.message ?: "상태 메시지를 저장하지 못했습니다.")
+                        it.copy(errorMessage = throwable.toUserMessage("상태 메시지를 저장하지 못했습니다."))
                     }
                 }
         }
@@ -105,7 +106,7 @@ class MyPageViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSavingNickname = false,
-                            nicknameError = throwable.message ?: "닉네임을 저장하지 못했어요.",
+                            nicknameError = throwable.toUserMessage("닉네임을 저장하지 못했어요."),
                         )
                     }
                 }
@@ -133,7 +134,7 @@ class MyPageViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isAvatarUploading = false,
-                            avatarError = throwable.message ?: "프로필 사진을 변경하지 못했습니다.",
+                            avatarError = throwable.toUserMessage("프로필 사진을 변경하지 못했습니다."),
                         )
                     }
                 }
@@ -150,7 +151,7 @@ class MyPageViewModel @Inject constructor(
                 .onSuccess { _uiState.update { it.copy(isSignedOut = true) } }
                 .onFailure { throwable ->
                     _uiState.update {
-                        it.copy(errorMessage = throwable.message ?: "로그아웃하지 못했습니다.")
+                        it.copy(errorMessage = throwable.toUserMessage("로그아웃하지 못했습니다."))
                     }
                 }
         }
@@ -167,7 +168,7 @@ class MyPageViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = throwable.message ?: "프로필을 불러오지 못했습니다.",
+                            errorMessage = throwable.toUserMessage("프로필을 불러오지 못했습니다."),
                         )
                     }
                 }

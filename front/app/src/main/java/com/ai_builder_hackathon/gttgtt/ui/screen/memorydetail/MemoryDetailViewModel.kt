@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.ai_builder_hackathon.gttgtt.ui.util.toUserMessage
 
 @HiltViewModel
 class MemoryDetailViewModel @Inject constructor(
@@ -71,7 +72,7 @@ class MemoryDetailViewModel @Inject constructor(
                         it.copy(
                             isSubmittingComment = false,
                             commentInput = text,
-                            errorMessage = throwable.message ?: "댓글을 등록하지 못했습니다.",
+                            errorMessage = throwable.toUserMessage("댓글을 등록하지 못했습니다."),
                         )
                     }
                 }
@@ -110,7 +111,7 @@ class MemoryDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             memory = before,
-                            errorMessage = throwable.message ?: "좋아요를 반영하지 못했습니다.",
+                            errorMessage = throwable.toUserMessage("좋아요를 반영하지 못했습니다."),
                         )
                     }
                 }
@@ -134,7 +135,7 @@ class MemoryDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSharing = false,
-                            shareError = throwable.message ?: "채팅방에 공유하지 못했습니다.",
+                            shareError = throwable.toUserMessage("채팅방에 공유하지 못했습니다."),
                         )
                     }
                 }
@@ -187,7 +188,7 @@ class MemoryDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isDeleting = false,
-                            deleteError = throwable.message ?: "삭제하지 못했습니다.",
+                            deleteError = throwable.toUserMessage("삭제하지 못했습니다."),
                         )
                     }
                 }
@@ -205,7 +206,7 @@ class MemoryDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = throwable.message ?: "기억을 불러오지 못했습니다.",
+                            errorMessage = throwable.toUserMessage("기억을 불러오지 못했습니다."),
                         )
                     }
                 }

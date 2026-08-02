@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.ai_builder_hackathon.gttgtt.ui.util.toUserMessage
 
 @HiltViewModel
 class MemoryCreateViewModel @Inject constructor(
@@ -64,7 +65,7 @@ class MemoryCreateViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoadingExisting = false,
-                            errorMessage = throwable.message ?: "기억을 불러오지 못했습니다.",
+                            errorMessage = throwable.toUserMessage("기억을 불러오지 못했습니다."),
                         )
                     }
                 }
@@ -167,7 +168,7 @@ class MemoryCreateViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            errorMessage = throwable.message ?: "기억을 저장하지 못했습니다.",
+                            errorMessage = throwable.toUserMessage("기억을 저장하지 못했습니다."),
                         )
                     }
                 }

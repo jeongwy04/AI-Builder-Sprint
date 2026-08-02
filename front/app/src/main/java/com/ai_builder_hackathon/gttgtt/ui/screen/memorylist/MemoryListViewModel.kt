@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.ai_builder_hackathon.gttgtt.ui.util.toUserMessage
 
 /**
  * 내 추억 / 좋아요한 추억 목록을 로드한다. 종류는 화면에서 [load] 로 한 번 넘겨준다.
@@ -42,7 +43,7 @@ class MemoryListViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = throwable.message ?: "목록을 불러오지 못했습니다.",
+                            errorMessage = throwable.toUserMessage("목록을 불러오지 못했습니다."),
                         )
                     }
                 }

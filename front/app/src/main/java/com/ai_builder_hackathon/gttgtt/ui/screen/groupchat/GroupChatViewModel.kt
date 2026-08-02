@@ -18,6 +18,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
+import com.ai_builder_hackathon.gttgtt.ui.util.toUserMessage
 
 @HiltViewModel
 class GroupChatViewModel @Inject constructor(
@@ -61,7 +62,7 @@ class GroupChatViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             input = text,
-                            errorMessage = throwable.message ?: "메시지를 보내지 못했습니다.",
+                            errorMessage = throwable.toUserMessage("메시지를 보내지 못했습니다."),
                         )
                     }
                 }
@@ -130,7 +131,7 @@ class GroupChatViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = throwable.message ?: "대화를 불러오지 못했습니다.",
+                            errorMessage = throwable.toUserMessage("대화를 불러오지 못했습니다."),
                         )
                     }
                 }
